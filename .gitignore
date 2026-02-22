@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+Docs/
+nul
+
+# Environment files
+.env*
+!.env.example
+
+# Next.js (web app)
+app/.next/
+app/out/
+app/build/
+next-env.d.ts
+
+# Mobile (React Native)
+mobile/node_modules/
+mobile/.expo/
+mobile/android/app/build/
+mobile/ios/Pods/
+mobile/ios/build/
+
+# IDE
+.DS_Store
+*.pem
+.vscode/
+.idea/
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build artifacts
+*.tsbuildinfo
+nul
+
+# Vercel
+.vercel
+
+# Misc
+/coverage
