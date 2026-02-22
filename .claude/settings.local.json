@@ -23,7 +23,9 @@
       "Bash(git push:*)",
       "WebFetch(domain:total-spray.vercel.app)",
       "Bash(gh api:*)",
-      "WebFetch(domain:api.github.com)"
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:total-spray-jainabhi1607s-projects.vercel.app)",
+      "WebFetch(domain:total-spray-git-main-jainabhi1607s-projects.vercel.app)"
     ]
   }
 }
