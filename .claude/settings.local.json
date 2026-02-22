@@ -12,7 +12,18 @@
       "Bash(find:*)",
       "Bash(start:*)",
       "Bash(npx next dev)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(where:*)",
+      "Bash(npx vercel:*)",
+      "Bash(vercel whoami:*)",
+      "Bash(vercel login:*)",
+      "Bash(git fetch:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "WebFetch(domain:total-spray.vercel.app)",
+      "Bash(gh api:*)",
+      "WebFetch(domain:api.github.com)"
     ]
   }
 }
