@@ -44,9 +44,10 @@ interface ChecklistTemplate {
 interface ChecklistsResponse {
   success: boolean;
   data: {
-    checklists: ChecklistTemplate[];
+    data: ChecklistTemplate[];
     total: number;
     page: number;
+    limit: number;
     totalPages: number;
   };
   message?: string;
@@ -67,6 +68,7 @@ function getCreatedByName(
 // --- Page ---
 
 export default function ChecklistsPage() {
+  useEffect(() => { document.title = "TSC - Checklists"; }, []);
   const [checklists, setChecklists] = useState<ChecklistTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,7 +95,7 @@ export default function ChecklistsPage() {
         throw new Error(json.message || "Failed to load checklists");
       }
 
-      setChecklists(json.data.checklists);
+      setChecklists(json.data.data);
       setTotalPages(json.data.totalPages);
       setTotal(json.data.total);
     } catch (err: any) {
@@ -152,9 +154,6 @@ export default function ChecklistsPage() {
           <h1 className="text-2xl font-bold text-gray-900">
             Checklist Templates
           </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Manage checklist templates for job cards
-          </p>
         </div>
         <Link href="/checklists/new">
           <Button>

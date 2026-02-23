@@ -32,6 +32,7 @@ interface ClientOption {
 // ---------------------------------------------------------------------------
 
 export default function AddUserPage() {
+  useEffect(() => { document.title = "TSC - Add User"; }, []);
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +57,7 @@ export default function AddUserPage() {
         try {
           const res = await fetch("/api/clients");
           const json = await res.json();
-          if (json.success) setClients(json.data || []);
+          if (json.success) setClients(json.data?.data || json.data || []);
         } catch {}
       })();
     }
@@ -119,7 +120,6 @@ export default function AddUserPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Add User</h1>
-          <p className="mt-1 text-sm text-gray-500">Create a new system user account.</p>
         </div>
       </div>
 

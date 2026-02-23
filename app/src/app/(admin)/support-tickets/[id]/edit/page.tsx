@@ -70,6 +70,7 @@ interface ExistingTicket {
 // --- Page component ---
 
 export default function EditSupportTicketPage() {
+  useEffect(() => { document.title = "TSC - Edit Support Ticket"; }, []);
   const params = useParams();
   const router = useRouter();
   const ticketId = params.id as string;
@@ -307,14 +308,9 @@ export default function EditSupportTicketPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Edit Support Ticket
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Update ticket details
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Edit Support Ticket
+        </h1>
       </div>
 
       {/* Form */}

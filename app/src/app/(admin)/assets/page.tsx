@@ -70,6 +70,7 @@ function resolveField(
 // ---------------------------------------------------------------------------
 
 export default function AssetsPage() {
+  useEffect(() => { document.title = "TSC - Assets"; }, []);
   const [allAssets, setAllAssets] = useState<AssetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +95,7 @@ export default function AssetsPage() {
       if (!clientRes.ok || !clientJson.success)
         throw new Error(clientJson.message || "Failed to load clients");
 
-      const clients = clientJson.data || [];
+      const clients = clientJson.data?.data || clientJson.data || [];
       const assetPromises = clients.map(async (client: any) => {
         try {
           const aRes = await fetch(`/api/clients/${client._id}/assets`);
@@ -136,9 +137,6 @@ export default function AssetsPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Assets</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Global asset listing across all clients.
-        </p>
       </div>
 
       {/* Search */}

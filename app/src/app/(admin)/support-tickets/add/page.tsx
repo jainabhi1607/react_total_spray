@@ -51,6 +51,7 @@ interface Title {
 // --- Page component ---
 
 export default function AddSupportTicketPage() {
+  useEffect(() => { document.title = "TSC - Add Support Ticket"; }, []);
   const router = useRouter();
 
   // Data lists
@@ -211,14 +212,9 @@ export default function AddSupportTicketPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            New Support Ticket
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Create a new support ticket
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900">
+          New Support Ticket
+        </h1>
       </div>
 
       {/* Form */}

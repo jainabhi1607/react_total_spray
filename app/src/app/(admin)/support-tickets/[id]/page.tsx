@@ -179,6 +179,7 @@ function formatFileSize(bytes: number): string {
 // --- Page component ---
 
 export default function SupportTicketDetailPage() {
+  useEffect(() => { document.title = "TSC - Support Ticket Details"; }, []);
   const params = useParams();
   const router = useRouter();
   const ticketId = params.id as string;

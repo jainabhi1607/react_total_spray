@@ -147,7 +147,7 @@ export default function PublicClientAssetPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="maintenance" className="w-full">
-        <TabsList className="w-full sm:w-auto">
+        <TabsList>
           <TabsTrigger value="maintenance" className="flex items-center gap-1.5">
             <Wrench className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Maintenance Log</span>

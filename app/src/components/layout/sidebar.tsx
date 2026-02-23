@@ -6,8 +6,6 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  Settings,
-  Users,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -63,8 +61,8 @@ const navItems: NavItem[] = [
   { label: "To Invoice", href: "/support-tickets?tab=to-invoice", iconSrc: "/invoice.svg", roles: [1, 2, 3] },
   { label: "Resources", href: "/resources", iconSrc: "/resources.svg", roles: [1, 2, 3, 4], dividerAfter: true },
   { label: "Archive", href: "/archive", icon: ArchiveIcon, roles: [1, 2, 3] },
-  { label: "Settings", href: "/settings", icon: Settings, roles: [1, 4] },
-  { label: "Users", href: "/users", icon: Users, roles: [1] },
+  { label: "Settings", href: "/settings", iconSrc: "/settings.svg", roles: [1, 4] },
+  { label: "Users", href: "/users", iconSrc: "/users.svg", roles: [1] },
 ];
 
 export function Sidebar({ userRole, collapsed, onToggle }: SidebarProps) {

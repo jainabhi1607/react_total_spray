@@ -35,6 +35,7 @@ interface PaginatedResponse {
 }
 
 export default function ClientsPage() {
+  useEffect(() => { document.title = "TSC - Clients"; }, []);
   const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,9 +93,6 @@ export default function ClientsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Manage your client accounts
-          </p>
         </div>
         <Link href="/clients/add">
           <Button>
@@ -133,7 +131,7 @@ export default function ClientsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Company Name</TableHead>
-                <TableHead>ABN</TableHead>
+                <TableHead>ABN / GST No.</TableHead>
                 <TableHead>Address</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>

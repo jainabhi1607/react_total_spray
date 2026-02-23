@@ -86,6 +86,7 @@ function getStatusInfo(status: number) {
 // ---------------------------------------------------------------------------
 
 export default function UserDetailPage() {
+  useEffect(() => { document.title = "TSC - User Details"; }, []);
   const params = useParams();
   const userId = params.id as string;
 
@@ -157,7 +158,6 @@ export default function UserDetailPage() {
             <h1 className="text-2xl font-bold text-gray-900">
               {user.name} {user.lastName || ""}
             </h1>
-            <p className="mt-1 text-sm text-gray-500">User details and profile information</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

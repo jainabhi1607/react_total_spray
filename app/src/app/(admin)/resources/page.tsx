@@ -50,6 +50,7 @@ function getCategoryId(
 // --- Page ---
 
 export default function ResourcesPage() {
+  useEffect(() => { document.title = "TSC - Resources"; }, []);
   const [resources, setResources] = useState<Resource[]>([]);
   const [categories, setCategories] = useState<ResourceCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,7 +77,7 @@ export default function ResourcesPage() {
       }
 
       setCategories(catJson.data || []);
-      setResources(resJson.data || []);
+      setResources(resJson.data?.data || resJson.data || []);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -120,9 +121,6 @@ export default function ResourcesPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Resources</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Browse and manage resource documents and files
-          </p>
         </div>
         <Link href="/resources/add">
           <Button>

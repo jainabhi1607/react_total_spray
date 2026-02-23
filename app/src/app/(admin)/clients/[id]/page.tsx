@@ -17,6 +17,7 @@ import {
   Upload,
   Loader2,
 } from "lucide-react";
+import { AddClientDialog } from "@/components/dialogs/add-client-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -111,6 +112,7 @@ interface ClientDocument {
 // ─── Main Component ─────────────────────────────────────────────────────────
 
 export default function ClientDetailPage() {
+  useEffect(() => { document.title = "TSC - Client Details"; }, []);
   const params = useParams();
   const router = useRouter();
   const clientId = params.id as string;
@@ -125,6 +127,7 @@ export default function ClientDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   // ─── Fetch client ───────────────────────────────────────────────────────
 
@@ -237,17 +240,23 @@ export default function ClientDetailPage() {
               </Badge>
             </div>
             {client.abn && (
-              <p className="text-sm text-gray-500 mt-1">ABN: {client.abn}</p>
+              <p className="text-sm text-gray-500 mt-1">ABN / GST No.: {client.abn}</p>
             )}
           </div>
         </div>
-        <Link href={`/clients/${clientId}/edit`}>
-          <Button variant="outline">
-            <Pencil className="h-4 w-4" />
-            Edit
-          </Button>
-        </Link>
+        <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
+          <Pencil className="h-4 w-4" />
+          Edit
+        </Button>
       </div>
+
+      {/* Edit Client Dialog */}
+      <AddClientDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        client={client}
+        onSuccess={() => fetchClient()}
+      />
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -276,7 +285,7 @@ export default function ClientDetailPage() {
                   <p className="mt-1 text-gray-900">{client.companyName}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">ABN</p>
+                  <p className="text-sm font-medium text-gray-500">ABN / GST No.</p>
                   <p className="mt-1 text-gray-900">{client.abn || "-"}</p>
                 </div>
                 <div>

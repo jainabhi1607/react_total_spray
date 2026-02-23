@@ -37,6 +37,7 @@ interface ContactItem {
 // ---------------------------------------------------------------------------
 
 export default function ContactsPage() {
+  useEffect(() => { document.title = "TSC - Contacts"; }, []);
   const [allContacts, setAllContacts] = useState<ContactItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +62,7 @@ export default function ContactsPage() {
       if (!clientRes.ok || !clientJson.success)
         throw new Error(clientJson.message || "Failed to load clients");
 
-      const clients = clientJson.data || [];
+      const clients = clientJson.data?.data || clientJson.data || [];
       const contactPromises = clients.map(async (client: any) => {
         try {
           const cRes = await fetch(`/api/clients/${client._id}/contacts`);
@@ -108,9 +109,6 @@ export default function ContactsPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Contacts</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Global contact listing across all clients.
-        </p>
       </div>
 
       {/* Search */}

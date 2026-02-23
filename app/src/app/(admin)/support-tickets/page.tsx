@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageLoading } from "@/components/ui/loading";
+import { AddClientDialog } from "@/components/dialogs/add-client-dialog";
 import {
   Table,
   TableBody,
@@ -162,6 +163,7 @@ function CircularProgress({
 // --- Page Component ---
 
 export default function SupportTicketsPage() {
+  useEffect(() => { document.title = "TSC - Support Tickets"; }, []);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -182,6 +184,9 @@ export default function SupportTicketsPage() {
     resolved: 0,
     total: 0,
   });
+
+  // Add Client dialog state
+  const [addClientOpen, setAddClientOpen] = useState(false);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -332,12 +337,14 @@ export default function SupportTicketsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Support Tickets</h1>
         <div className="flex items-center gap-2">
-          <Link href="/clients/add">
-            <Button variant="outline" size="sm">
-              <Plus className="mr-1 h-4 w-4" />
-              Add Client
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setAddClientOpen(true)}
+          >
+            <Plus className="mr-1 h-4 w-4" />
+            Add Client
+          </Button>
           <Link href="/clients">
             <Button variant="outline" size="sm">
               <Plus className="mr-1 h-4 w-4" />
@@ -565,6 +572,12 @@ export default function SupportTicketsPage() {
           </div>
         </div>
       )}
+
+      {/* Add Client Dialog */}
+      <AddClientDialog
+        open={addClientOpen}
+        onOpenChange={setAddClientOpen}
+      />
     </div>
   );
 }

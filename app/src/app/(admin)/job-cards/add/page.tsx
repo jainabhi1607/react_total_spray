@@ -51,6 +51,7 @@ interface JobCardType {
 // --- Page component ---
 
 export default function AddJobCardPage() {
+  useEffect(() => { document.title = "TSC - Add Job Card"; }, []);
   const router = useRouter();
 
   // Lookup data
@@ -200,12 +201,7 @@ export default function AddJobCardPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">New Job Card</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Create a new job card for a client
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900">New Job Card</h1>
       </div>
 
       {/* Form */}

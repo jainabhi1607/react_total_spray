@@ -27,6 +27,7 @@ interface ResourceCategory {
 // --- Page ---
 
 export default function AddResourcePage() {
+  useEffect(() => { document.title = "TSC - Add Resource"; }, []);
   const router = useRouter();
 
   const [categories, setCategories] = useState<ResourceCategory[]>([]);
@@ -100,12 +101,7 @@ export default function AddResourcePage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Add Resource</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Upload a new resource document or file
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900">Add Resource</h1>
       </div>
 
       {/* Form */}

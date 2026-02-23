@@ -34,6 +34,7 @@ const initialForm: TechnicianForm = {
 };
 
 export default function EditTechnicianPage() {
+  useEffect(() => { document.title = "TSC - Edit Technician"; }, []);
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
@@ -141,12 +142,7 @@ export default function EditTechnicianPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Edit Technician</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Update technician company details
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900">Edit Technician</h1>
       </div>
 
       {/* Form */}
@@ -201,7 +197,7 @@ export default function EditTechnicianPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="abn">ABN</Label>
+                <Label htmlFor="abn">ABN / GST No.</Label>
                 <Input
                   id="abn"
                   name="abn"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save } from "lucide-react";
@@ -32,6 +32,7 @@ const initialForm: TechnicianForm = {
 };
 
 export default function AddTechnicianPage() {
+  useEffect(() => { document.title = "TSC - Add Technician"; }, []);
   const router = useRouter();
   const [form, setForm] = useState<TechnicianForm>(initialForm);
   const [saving, setSaving] = useState(false);
@@ -84,12 +85,7 @@ export default function AddTechnicianPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Add Technician</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Create a new technician company record
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900">Add Technician</h1>
       </div>
 
       {/* Form */}
@@ -144,7 +140,7 @@ export default function AddTechnicianPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="abn">ABN</Label>
+                <Label htmlFor="abn">ABN / GST No.</Label>
                 <Input
                   id="abn"
                   name="abn"

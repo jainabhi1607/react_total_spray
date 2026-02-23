@@ -124,6 +124,7 @@ function getTechStatusBadge(status: number) {
 // --- Page ---
 
 export default function TechnicianDetailPage() {
+  useEffect(() => { document.title = "TSC - Technician Details"; }, []);
   const params = useParams();
   const id = params.id as string;
 
@@ -313,9 +314,6 @@ export default function TechnicianDetailPage() {
               </h1>
               {getTechStatusBadge(technician.status)}
             </div>
-            <p className="mt-1 text-sm text-gray-500">
-              Technician company details
-            </p>
           </div>
         </div>
         <Link href={`/technicians/${id}/edit`}>
@@ -360,7 +358,7 @@ export default function TechnicianDetailPage() {
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">ABN</p>
+                  <p className="text-sm font-medium text-gray-500">ABN / GST No.</p>
                   <p className="text-sm text-gray-900">
                     {technician.abn || "-"}
                   </p>

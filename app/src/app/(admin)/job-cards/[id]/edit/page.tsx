@@ -89,6 +89,7 @@ function toDateInputValue(dateStr?: string): string {
 // --- Page component ---
 
 export default function EditJobCardPage() {
+  useEffect(() => { document.title = "TSC - Edit Job Card"; }, []);
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
@@ -312,12 +313,7 @@ export default function EditJobCardPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Edit Job Card</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Update job card details
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900">Edit Job Card</h1>
       </div>
 
       {/* Form */}

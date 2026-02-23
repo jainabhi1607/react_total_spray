@@ -82,6 +82,7 @@ const ITEM_TYPE_COLORS: Record<number, string> = {
 // --- Page ---
 
 export default function ChecklistDetailPage() {
+  useEffect(() => { document.title = "TSC - Checklist Details"; }, []);
   const params = useParams();
   const id = params.id as string;
 
@@ -333,9 +334,6 @@ export default function ChecklistDetailPage() {
               {checklist.title}
             </h1>
           )}
-          <p className="mt-1 text-sm text-gray-500">
-            Checklist template detail and items
-          </p>
         </div>
       </div>
 

@@ -44,6 +44,7 @@ interface ClientOption {
 // ---------------------------------------------------------------------------
 
 export default function EditUserPage() {
+  useEffect(() => { document.title = "TSC - Edit User"; }, []);
   const params = useParams();
   const router = useRouter();
   const userId = params.id as string;
@@ -99,7 +100,7 @@ export default function EditUserPage() {
         try {
           const res = await fetch("/api/clients");
           const json = await res.json();
-          if (json.success) setClients(json.data || []);
+          if (json.success) setClients(json.data?.data || json.data || []);
         } catch {}
       })();
     }
@@ -163,7 +164,6 @@ export default function EditUserPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Edit User</h1>
-          <p className="mt-1 text-sm text-gray-500">Update user account information.</p>
         </div>
       </div>
 

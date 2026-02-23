@@ -112,6 +112,7 @@ function getStatusBadge(status: number) {
 // ---------------------------------------------------------------------------
 
 export default function UsersPage() {
+  useEffect(() => { document.title = "TSC - Users"; }, []);
   const router = useRouter();
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,8 +143,14 @@ export default function UsersPage() {
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message || "Failed to load users");
 
-      setUsers(json.data || []);
-      if (json.meta) setMeta(json.meta);
+      const responseData = json.data;
+      setUsers(responseData.data || []);
+      setMeta({
+        total: responseData.total || 0,
+        page: responseData.page || 1,
+        limit: responseData.limit || 20,
+        totalPages: responseData.totalPages || 1,
+      });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -193,9 +200,6 @@ export default function UsersPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Manage all system users and their roles.
-          </p>
         </div>
         <Button asChild>
           <Link href="/users/add">

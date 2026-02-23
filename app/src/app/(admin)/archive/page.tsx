@@ -53,6 +53,7 @@ interface ArchivedJobCard {
 // ---------------------------------------------------------------------------
 
 export default function ArchivePage() {
+  useEffect(() => { document.title = "TSC - Archive"; }, []);
   const [tickets, setTickets] = useState<ArchivedTicket[]>([]);
   const [jobCards, setJobCards] = useState<ArchivedJobCard[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(true);
@@ -69,7 +70,7 @@ export default function ArchivePage() {
       const json = await res.json();
       if (!res.ok || !json.success)
         throw new Error(json.message || "Failed to load archived tickets");
-      setTickets(json.data || []);
+      setTickets(json.data?.data || json.data || []);
     } catch (err: any) {
       setErrorTickets(err.message);
     } finally {
@@ -85,7 +86,7 @@ export default function ArchivePage() {
       const json = await res.json();
       if (!res.ok || !json.success)
         throw new Error(json.message || "Failed to load archived job cards");
-      setJobCards(json.data || []);
+      setJobCards(json.data?.data || json.data || []);
     } catch (err: any) {
       setErrorJobCards(err.message);
     } finally {
@@ -149,9 +150,6 @@ export default function ArchivePage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Archive</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          View and restore archived tickets and job cards.
-        </p>
       </div>
 
       <Tabs defaultValue="tickets">

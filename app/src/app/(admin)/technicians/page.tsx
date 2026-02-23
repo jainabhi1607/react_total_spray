@@ -31,9 +31,10 @@ interface Technician {
 interface TechniciansResponse {
   success: boolean;
   data: {
-    technicians: Technician[];
+    data: Technician[];
     total: number;
     page: number;
+    limit: number;
     totalPages: number;
   };
   message?: string;
@@ -57,6 +58,7 @@ function getInsuranceBadge(status?: string) {
 // --- Page ---
 
 export default function TechniciansPage() {
+  useEffect(() => { document.title = "TSC - Technicians"; }, []);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +85,7 @@ export default function TechniciansPage() {
         throw new Error(json.message || "Failed to load technicians");
       }
 
-      setTechnicians(json.data.technicians);
+      setTechnicians(json.data.data);
       setTotalPages(json.data.totalPages);
       setTotal(json.data.total);
     } catch (err: any) {
@@ -125,9 +127,6 @@ export default function TechniciansPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Technicians</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Manage technician companies and their details
-          </p>
         </div>
         <Link href="/technicians/add">
           <Button>

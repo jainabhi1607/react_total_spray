@@ -66,7 +66,7 @@ export function AdminLayout({ children, user }: AdminLayoutProps) {
           user={user}
           onMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
         />
-        <main className="p-6">{children}</main>
+        <main className="px-[70px] pt-[45px] pb-[70px]">{children}</main>
       </div>
     </div>
   );

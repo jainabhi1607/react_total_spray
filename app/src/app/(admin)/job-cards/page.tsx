@@ -86,6 +86,7 @@ function getJobCardStatusColor(status: number): string {
 // --- Page component ---
 
 export default function JobCardsListPage() {
+  useEffect(() => { document.title = "TSC - Job Cards"; }, []);
   const [jobCards, setJobCards] = useState<JobCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -117,15 +118,14 @@ export default function JobCardsListPage() {
         throw new Error(json.message || "Failed to load job cards");
       }
 
-      setJobCards(json.data || []);
-      setPagination(
-        json.pagination || {
-          total: 0,
-          page: 1,
-          limit: 20,
-          totalPages: 1,
-        }
-      );
+      const responseData = json.data;
+      setJobCards(responseData.data || []);
+      setPagination({
+        total: responseData.total || 0,
+        page: responseData.page || 1,
+        limit: responseData.limit || 20,
+        totalPages: responseData.totalPages || 1,
+      });
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -148,9 +148,6 @@ export default function JobCardsListPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Job Cards</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Manage and track all job cards
-          </p>
         </div>
         <Link href="/job-cards/add">
           <Button>
