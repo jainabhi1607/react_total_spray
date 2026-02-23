@@ -8,10 +8,11 @@ import {
   Pencil,
   Plus,
   Trash2,
-  X,
   Eye,
   Archive,
   Loader2,
+  ExternalLink,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +39,11 @@ import {
   TechnicianDialog,
   type TechnicianData as TechnicianDialogData,
 } from "@/components/dialogs/technician-dialog";
+import {
+  InsuranceDialog,
+  getPolicyLabel,
+  type InsuranceRecord,
+} from "@/components/dialogs/insurance-dialog";
 
 // --- Types ---
 
@@ -295,6 +301,12 @@ export default function TechnicianDetailPage() {
   const [subDialogOpen, setSubDialogOpen] = useState(false);
   const [editSub, setEditSub] = useState<SubTechnician | undefined>(undefined);
 
+  // Insurance
+  const [insurances, setInsurances] = useState<InsuranceRecord[]>([]);
+  const [insDialogOpen, setInsDialogOpen] = useState(false);
+  const [insDialogMode, setInsDialogMode] = useState<"add" | "edit" | "revision">("add");
+  const [insDialogTarget, setInsDialogTarget] = useState<InsuranceRecord | undefined>(undefined);
+
   const fetchTechnician = useCallback(async () => {
     try {
       const res = await fetch(`/api/technicians/${id}`);
@@ -324,10 +336,23 @@ export default function TechnicianDetailPage() {
     }
   }, []);
 
+  const fetchInsurances = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/technicians/${id}/insurance`);
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setInsurances(Array.isArray(json.data) ? json.data : []);
+      }
+    } catch {
+      // non-critical
+    }
+  }, [id]);
+
   useEffect(() => {
     fetchTechnician();
     fetchTags();
-  }, [fetchTechnician, fetchTags]);
+    fetchInsurances();
+  }, [fetchTechnician, fetchTags, fetchInsurances]);
 
   // --- Tag handlers ---
 
@@ -422,14 +447,76 @@ export default function TechnicianDetailPage() {
     }
   }
 
+  // --- Insurance handlers ---
+
+  function handleAddInsurance() {
+    setInsDialogTarget(undefined);
+    setInsDialogMode("add");
+    setInsDialogOpen(true);
+  }
+
+  function handleEditInsurance(ins: InsuranceRecord) {
+    setInsDialogTarget(ins);
+    setInsDialogMode("edit");
+    setInsDialogOpen(true);
+  }
+
+  function handleUploadRevision(ins: InsuranceRecord) {
+    setInsDialogTarget(ins);
+    setInsDialogMode("revision");
+    setInsDialogOpen(true);
+  }
+
+  async function handleDeleteInsurance(insuranceId: string) {
+    if (!confirm("Are you sure you want to delete this insurance?")) return;
+    try {
+      const res = await fetch(
+        `/api/technicians/${id}/insurance/${insuranceId}`,
+        { method: "DELETE" }
+      );
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || "Failed to delete");
+      fetchInsurances();
+      fetchTechnician();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  }
+
+  // Group insurances by groupNumber: latest first in each group
+  function getGroupedInsurances() {
+    const groups: Record<number, InsuranceRecord[]> = {};
+    for (const ins of insurances) {
+      const gn = ins.groupNumber || 0;
+      if (!groups[gn]) groups[gn] = [];
+      groups[gn].push(ins);
+    }
+    // Sort each group by createdAt desc (latest first)
+    for (const gn of Object.keys(groups)) {
+      groups[Number(gn)].sort(
+        (a, b) =>
+          new Date(b.createdAt || 0).getTime() -
+          new Date(a.createdAt || 0).getTime()
+      );
+    }
+    // Return groups sorted by latest item's createdAt desc
+    return Object.values(groups).sort(
+      (a, b) =>
+        new Date(b[0].createdAt || 0).getTime() -
+        new Date(a[0].createdAt || 0).getTime()
+    );
+  }
+
   // --- Insurance status ---
 
   function getOverallInsuranceStatus() {
-    const insurances = technician?.insurances || [];
     if (insurances.length === 0) return null;
+    // Check only the latest entry per group
+    const groups = getGroupedInsurances();
     const now = new Date();
-    const allValid = insurances.every((ins: any) => {
-      if (ins.expiryDate) return new Date(ins.expiryDate) > now;
+    const allValid = groups.every((group) => {
+      const latest = group[0];
+      if (latest.expiryDate) return new Date(latest.expiryDate) > now;
       return false;
     });
     return allValid ? "Valid" : "Invalid";
@@ -470,10 +557,21 @@ export default function TechnicianDetailPage() {
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Technicians</h1>
         </div>
-        <Button variant="outline" onClick={handleArchive}>
-          <Archive className="h-4 w-4" />
-          Archive
-        </Button>
+        <div className="flex items-center gap-2">
+          {activeTab === "insurance" && (
+            <Button
+              className="bg-cyan-500 hover:bg-cyan-600 text-white"
+              onClick={handleAddInsurance}
+            >
+              <Plus className="h-4 w-4" />
+              Add Insurance
+            </Button>
+          )}
+          <Button variant="outline" onClick={handleArchive}>
+            <Archive className="h-4 w-4" />
+            Archive
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -669,7 +767,7 @@ export default function TechnicianDetailPage() {
       {activeTab === "insurance" && (
         <Card>
           <CardContent className="p-6">
-            {(!technician.insurances || technician.insurances.length === 0) ? (
+            {insurances.length === 0 ? (
               <div className="py-8 text-center">
                 <p className="text-sm text-gray-500">No insurance records found</p>
               </div>
@@ -677,36 +775,105 @@ export default function TechnicianDetailPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-[#EBF5FF]">
-                    <TableHead>Type</TableHead>
+                    <TableHead>Document Type</TableHead>
+                    <TableHead>Upload Date</TableHead>
                     <TableHead>Expiry Date</TableHead>
-                    <TableHead>File</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead></TableHead>
+                    <TableHead className="text-right"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {technician.insurances.map((ins: any) => {
-                    const expired = ins.expiryDate && new Date(ins.expiryDate) < new Date();
-                    return (
-                      <TableRow key={ins._id}>
-                        <TableCell className="font-medium">
-                          {ins.insurancePolicyType || ins.type || "-"}
-                        </TableCell>
-                        <TableCell>
-                          {ins.expiryDate ? formatDate(ins.expiryDate) : "-"}
-                        </TableCell>
-                        <TableCell>
-                          {ins.fileName ? (
-                            <span className="text-sm text-blue-600">{ins.fileName}</span>
-                          ) : "-"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={expired ? "destructive" : "success"}>
-                            {expired ? "Expired" : "Valid"}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {getGroupedInsurances().map((group) =>
+                    group.map((ins, idx) => {
+                      const isMain = idx === 0;
+                      const isRevision = idx > 0;
+                      const expired =
+                        ins.expiryDate &&
+                        new Date(ins.expiryDate) < new Date();
+                      return (
+                        <TableRow
+                          key={ins._id}
+                          className={isRevision ? "bg-gray-50/50" : ""}
+                        >
+                          <TableCell
+                            className={`${isRevision ? "pl-10 text-gray-500" : "font-medium"}`}
+                          >
+                            {getPolicyLabel(ins.insurancePolicyType)}
+                          </TableCell>
+                          <TableCell>
+                            {ins.createdAt ? formatDate(ins.createdAt) : "-"}
+                          </TableCell>
+                          <TableCell>
+                            {ins.expiryDate
+                              ? formatDate(ins.expiryDate)
+                              : "-"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={expired ? "destructive" : "success"}
+                            >
+                              {expired ? "Expired" : "Valid"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {isMain && !expired && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="whitespace-nowrap"
+                                onClick={() => handleUploadRevision(ins)}
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                                Upload Revision
+                              </Button>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => handleEditInsurance(ins)}
+                                className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                title="Edit"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                              {isMain && ins.fileName && (
+                                <a
+                                  href={`/uploads/insurance/${ins.fileName}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                  title="View"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </a>
+                              )}
+                              {ins.fileName && (
+                                <a
+                                  href={`/uploads/insurance/${ins.fileName}`}
+                                  download
+                                  className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                  title="Download"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </a>
+                              )}
+                              <button
+                                onClick={() =>
+                                  handleDeleteInsurance(ins._id)
+                                }
+                                className="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
                 </TableBody>
               </Table>
             )}
@@ -787,6 +954,19 @@ export default function TechnicianDetailPage() {
         onSuccess={fetchTechnician}
         parentId={id}
         subTechnician={editSub}
+      />
+
+      {/* Insurance Dialog (add / edit / revision) */}
+      <InsuranceDialog
+        open={insDialogOpen}
+        onOpenChange={setInsDialogOpen}
+        onSuccess={() => {
+          fetchInsurances();
+          fetchTechnician();
+        }}
+        technicianId={id}
+        mode={insDialogMode}
+        insurance={insDialogTarget}
       />
 
       {/* Edit Technician Dialog */}
