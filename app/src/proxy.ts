@@ -20,7 +20,7 @@ const publicPaths = [
   "/api/seed",
 ];
 
-export default auth((req) => {
+export const proxy = auth((req) => {
   const { pathname } = req.nextUrl;
 
   // Allow public paths
