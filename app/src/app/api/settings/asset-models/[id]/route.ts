@@ -26,7 +26,7 @@ export async function PUT(
     }
 
     if (title !== undefined) assetModel.title = title;
-    if (assetTypeId !== undefined) assetModel.assetTypeId = assetTypeId;
+    if (assetTypeId !== undefined) assetModel.assetTypeId = assetTypeId || undefined;
     await assetModel.save();
 
     return successResponse(assetModel);

@@ -21,8 +21,6 @@ export async function GET(req: NextRequest) {
     }
 
     const mappings = await AssetMakeModel.find(query)
-      .populate("assetMakeId")
-      .populate("assetModelId")
       .sort({ createdAt: -1 })
       .lean();
 

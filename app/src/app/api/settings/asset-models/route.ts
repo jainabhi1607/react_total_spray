@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     }
 
     const assetModels = await AssetModel.find(query)
-      .sort({ createdAt: -1 })
+      .sort({ title: 1 })
       .lean();
 
     return successResponse(assetModels);
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     const assetModel = await AssetModel.create({
       title,
-      assetTypeId,
+      assetTypeId: assetTypeId || undefined,
       dateTime: new Date(),
     });
 
