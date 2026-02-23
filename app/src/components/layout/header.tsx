@@ -73,21 +73,23 @@ export function Header({ user, onMenuToggle }: HeaderProps) {
         <Menu className="h-5 w-5" />
       </Button>
 
-      {/* Search */}
-      <form onSubmit={handleSearch} className="flex-1 max-w-md">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input
-            type="search"
-            placeholder="Search clients, tickets, job cards..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-gray-50 border-gray-200 focus:bg-white"
-          />
-        </div>
-      </form>
+      {/* Search - centered */}
+      <div className="flex-1 flex justify-center">
+        <form onSubmit={handleSearch} className="w-full max-w-md">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Input
+              type="search"
+              placeholder="Search clients, tickets, job cards..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 bg-gray-50 border-gray-200 focus:bg-white"
+            />
+          </div>
+        </form>
+      </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 ml-auto">
         {/* Notifications */}
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5 text-gray-600" />
@@ -106,14 +108,9 @@ export function Header({ user, onMenuToggle }: HeaderProps) {
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <div className="hidden md:flex flex-col items-start">
-                <span className="text-sm font-medium text-gray-900">
-                  {user.name} {user.lastName}
-                </span>
-                <span className="text-xs text-gray-500">
-                  {getRoleLabel(user.role)}
-                </span>
-              </div>
+              <span className="hidden md:block text-sm font-medium text-gray-900">
+                {user.name} {user.lastName}
+              </span>
               <ChevronDown className="hidden md:block h-4 w-4 text-gray-400" />
             </button>
           </DropdownMenuTrigger>

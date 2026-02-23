@@ -67,20 +67,16 @@ export function Sidebar({ userRole, collapsed, onToggle }: SidebarProps) {
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4">
-        {!collapsed && (
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <Image src="/logo.jpg" alt="Total Spray Care" width={32} height={32} className="rounded-lg" />
-            <span className="text-lg font-semibold text-gray-900">
-              Total Spray
-            </span>
-          </Link>
-        )}
-        {collapsed && (
-          <Link href="/dashboard" className="mx-auto">
-            <Image src="/logo.jpg" alt="Total Spray Care" width={32} height={32} className="rounded-lg" />
-          </Link>
-        )}
+      <div className="flex items-center justify-center border-b border-gray-200 py-3 px-2">
+        <Link href="/dashboard" className="flex items-center justify-center">
+          <Image
+            src="/logo.jpg"
+            alt="Total Spray Care"
+            width={130}
+            height={130}
+            className={cn("object-contain", collapsed ? "w-10 h-10" : "w-[120px] h-auto")}
+          />
+        </Link>
       </div>
 
       {/* Toggle */}
