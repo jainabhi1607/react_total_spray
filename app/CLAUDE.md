@@ -78,6 +78,25 @@ src/
 - **ChecklistTemplatesSection** (`components/settings/checklist-templates-section.tsx`): Full two-panel checklist management
 - **Settings sections** (`components/settings/settings-sections.tsx`): TagsSettings, SettingsListSection, AssetSettings, EmailNotification, TableCrudSection
 
+### Resources Page (`/resources`)
+- Category tabs (underline-style) from settings, first tab active by default
+- 2-column card grid: thumbnail + resource file images, title, edit/delete icons
+- Add/Edit Resource dialog (`components/dialogs/resource-dialog.tsx`) with file upload via XHR progress
+- File upload API at `/api/upload` saves to `public/uploads/{folder}/`
+- API: `import "@/models/ResourceCategory"` for populate, `status: { $ne: 2 }` filter
+- Deleted old `/resources/add` page (replaced by dialog)
+
+### Technicians Page (`/technicians`)
+- Listing: table with Company, Tags (pill badges), Email, Contact Number, Insurance, Actions (eye+pencil)
+- API enriches listing with tags via `TechnicianTag` + `Tag` populate
+- Parent/child model: `parentId` field — listing filters parent-only by default, `?parentId=` for children
+- **View page** (`/technicians/[id]`): Overview/Work History/Insurance tabs, right sidebar (Insurance, Support Tickets, Notes)
+  - Tags: pill badges with "+" toggle dialog (cyan=assigned, gray=unassigned)
+  - Notes: inline editable, saves to `TechnicianDetail`
+  - Sub-technicians table with Add/Edit dialog (Name, Email+Phone, Licence Number+Expiry side-by-side)
+  - Archive button (soft delete)
+- `import "@/models/Tag"` added to technician routes for populate
+
 ### API Fixes Applied
 - Removed `.populate()` calls from asset settings routes (resolves client-side instead)
 - Added `import "@/models/ChecklistTag"` to checklist detail and tags routes for populate

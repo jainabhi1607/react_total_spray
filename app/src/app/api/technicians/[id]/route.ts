@@ -11,6 +11,7 @@ import Technician from "@/models/Technician";
 import TechnicianDetail from "@/models/TechnicianDetail";
 import TechnicianInsurance from "@/models/TechnicianInsurance";
 import TechnicianTag from "@/models/TechnicianTag";
+import "@/models/Tag";
 
 export async function GET(
   req: NextRequest,
@@ -29,10 +30,11 @@ export async function GET(
       return errorResponse("Technician not found", 404);
     }
 
-    const [technicianDetail, insurances, tags] = await Promise.all([
+    const [technicianDetail, insurances, tags, subTechnicians] = await Promise.all([
       TechnicianDetail.findOne({ technicianId: id }).lean(),
       TechnicianInsurance.find({ technicianId: id }).sort({ createdAt: -1 }).lean(),
       TechnicianTag.find({ technicianId: id }).populate("tagId").lean(),
+      Technician.find({ parentId: id, status: { $ne: 2 } }).sort({ createdAt: -1 }).lean(),
     ]);
 
     return successResponse({
@@ -40,6 +42,7 @@ export async function GET(
       technicianDetail,
       insurances,
       tags,
+      subTechnicians,
     });
   } catch (error) {
     return handleApiError(error);
@@ -56,7 +59,7 @@ export async function PUT(
     const { id } = await params;
 
     const body = await req.json();
-    const { companyName, licenceNumber, licenceExpiry, abn, email, phone, address, status } = body;
+    const { companyName, licenceNumber, licenceExpiry, abn, email, phone, address, status, notes } = body;
 
     const technician = await Technician.findById(id);
     if (!technician) {
@@ -73,6 +76,15 @@ export async function PUT(
     if (status !== undefined) technician.status = status;
 
     await technician.save();
+
+    // Update notes in TechnicianDetail if provided
+    if (notes !== undefined) {
+      await TechnicianDetail.findOneAndUpdate(
+        { technicianId: id },
+        { notes },
+        { upsert: true }
+      );
+    }
 
     return successResponse(technician);
   } catch (error) {

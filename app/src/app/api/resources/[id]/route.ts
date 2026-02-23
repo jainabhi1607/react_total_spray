@@ -8,6 +8,7 @@ import {
   handleApiError,
 } from "@/lib/api-helpers";
 import Resource from "@/models/Resource";
+import "@/models/ResourceCategory";
 
 export async function GET(
   req: NextRequest,

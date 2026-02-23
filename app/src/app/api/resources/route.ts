@@ -10,6 +10,7 @@ import {
   paginatedResponse,
 } from "@/lib/api-helpers";
 import Resource from "@/models/Resource";
+import "@/models/ResourceCategory";
 
 export async function GET(req: NextRequest) {
   try {
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const categoryId = searchParams.get("categoryId");
 
-    const query: Record<string, any> = {};
+    const query: Record<string, any> = { status: { $ne: 2 } };
 
     if (categoryId) {
       query.resourceCategoryId = categoryId;

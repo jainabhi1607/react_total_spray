@@ -7,6 +7,7 @@ import {
   handleApiError,
 } from "@/lib/api-helpers";
 import TechnicianTag from "@/models/TechnicianTag";
+import "@/models/Tag";
 
 export async function GET(
   req: NextRequest,
