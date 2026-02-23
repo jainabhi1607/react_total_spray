@@ -394,17 +394,18 @@ export default function SupportTicketsPage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 mt-4">
         <nav className="-mb-px flex gap-6">
           {TABS.map((tab) => (
             <button
               key={tab.value}
               onClick={() => handleTabChange(tab.value)}
-              className={`whitespace-nowrap border-b-2 py-3 px-1 text-sm font-medium transition-colors ${
+              className={`whitespace-nowrap border-b-2 text-sm font-normal transition-colors ${
                 activeTab === tab.value
-                  ? "border-cyan-500 text-cyan-600"
-                  : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                  ? "border-cyan-500 text-gray-900"
+                  : "border-transparent text-gray-900 hover:border-gray-300"
               }`}
+              style={{ lineHeight: "30px", paddingLeft: 25, paddingRight: 25, fontSize: 14 }}
             >
               {tab.label}
             </button>

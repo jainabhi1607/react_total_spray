@@ -48,8 +48,15 @@ export async function GET(req: NextRequest) {
       query.status = { $ne: 2 };
     }
 
-    // Filter by ticketStatus (supports comma-separated values e.g. "1,2,3")
     const { searchParams } = new URL(req.url);
+
+    // Filter by clientId
+    const clientIdParam = searchParams.get("clientId");
+    if (clientIdParam) {
+      query.clientId = clientIdParam;
+    }
+
+    // Filter by ticketStatus (supports comma-separated values e.g. "1,2,3")
     const ticketStatus = searchParams.get("ticketStatus");
     if (ticketStatus) {
       if (ticketStatus.includes(",")) {

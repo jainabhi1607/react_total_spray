@@ -7,6 +7,7 @@ export interface IClientDocumentDocument extends Document {
   fileName?: string;
   fileSize?: string;
   documentCounter?: number;
+  isPublic?: number;
   dateTime?: Date;
 }
 
@@ -18,6 +19,7 @@ const ClientDocumentSchema = new Schema<IClientDocumentDocument>(
     fileName: { type: String },
     fileSize: { type: String },
     documentCounter: { type: Number },
+    isPublic: { type: Number, default: 0 },
     dateTime: { type: Date },
   },
   { timestamps: true }

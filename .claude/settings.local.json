@@ -11,7 +11,12 @@
       "Bash(head:*)",
       "Bash(cd \"H:\\\\coxy\\\\total_spray_care\\\\app\" && curl -s http://localhost:3000 -o /dev/null -w \"%{http_code}\" 2>&1)",
       "Bash(cd \"H:\\\\coxy\\\\total_spray_care\\\\app\" && curl -s http://localhost:3000/api/checklists/tags 2>&1)",
-      "Bash(cd H:\\\\coxy\\\\total_spray_care\\\\app:*)"
+      "Bash(cd H:\\\\coxy\\\\total_spray_care\\\\app:*)",
+      "Bash(sleep 8:*)",
+      "WebFetch(domain:localhost)",
+      "Bash(curl:*)",
+      "Bash(echo === Client API ===:*)",
+      "Bash(node:*)"
     ]
   }
 }

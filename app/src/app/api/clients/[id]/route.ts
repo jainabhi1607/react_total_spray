@@ -49,7 +49,7 @@ export async function PUT(
     const { id } = await params;
 
     const body = await req.json();
-    const { companyName, address, abn, singleSite, companyLogo, status } = body;
+    const { companyName, address, abn, singleSite, companyLogo, status, about } = body;
 
     const client = await Client.findById(id);
     if (!client) {
@@ -64,6 +64,15 @@ export async function PUT(
     if (status !== undefined) client.status = status;
 
     await client.save();
+
+    // Update ClientDetail.about if provided
+    if (about !== undefined) {
+      await ClientDetail.findOneAndUpdate(
+        { clientId: id },
+        { about },
+        { upsert: true }
+      );
+    }
 
     return successResponse(client);
   } catch (error) {

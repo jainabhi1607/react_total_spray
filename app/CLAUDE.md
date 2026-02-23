@@ -97,6 +97,18 @@ src/
   - Archive button (soft delete)
 - `import "@/models/Tag"` added to technician routes for populate
 
+### Client Detail Page (`/clients/[id]`)
+- Overview tab: Client Info, About (editable), Attachments, Support Tickets by Title, Support Ticket URL, General Site Notes
+- Tabs: Overview, Service Agreements, Work History, Sites, Contacts, Assets, Portal Users
+- **Attachments**: Upload dialog (drag & drop), download + delete icons per card, image lightbox slider with prev/next arrows
+- **Image Lightbox**: Click thumbnail to open, constrained to viewport (`max-h-[80vh] max-w-[80vw]`), left/right chevron nav, close via X or backdrop
+- **General Site Notes**: Textarea with "Save As" + 5 note type icons (phone/mail/message/meeting/document) — hidden until focused
+  - Note types: 1=Phone, 2=Email, 3=Message, 4=Meeting, 5=Document (icons from `/public/*.svg`)
+  - Each note card: type icon + user name + cyan date, edit (inline) + delete buttons
+  - API: `GET/POST /api/clients/[id]/notes`, `PUT/DELETE /api/clients/[id]/notes/[noteId]`
+- Sites/Assets/Contacts tabs: table CRUD with add/edit/delete dialogs
+- Stat cards: Support Tickets (dark), Assets (yellow), Sites (orange), Contacts (green)
+
 ### API Fixes Applied
 - Removed `.populate()` calls from asset settings routes (resolves client-side instead)
 - Added `import "@/models/ChecklistTag"` to checklist detail and tags routes for populate

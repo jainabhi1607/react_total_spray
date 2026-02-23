@@ -35,6 +35,28 @@ export async function GET(
   }
 }
 
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await dbConnect();
+    await requireAdmin();
+    const { id } = await params;
+
+    const body = await req.json();
+
+    if (body.makeAllPublic) {
+      await ClientDocument.updateMany({ clientId: id }, { $set: { isPublic: 1 } });
+      return successResponse({ message: "All documents made public" });
+    }
+
+    return errorResponse("Invalid action");
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

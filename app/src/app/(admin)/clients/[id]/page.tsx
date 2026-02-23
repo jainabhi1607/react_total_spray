@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
   Pencil,
   Plus,
   Trash2,
-  Building2,
   MapPin,
   FileText,
   Users,
@@ -16,6 +15,12 @@ import {
   Wrench,
   Upload,
   Loader2,
+  Copy,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  X,
 } from "lucide-react";
 import { AddClientDialog } from "@/components/dialogs/add-client-dialog";
 import { Button } from "@/components/ui/button";
@@ -41,7 +46,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageLoading } from "@/components/ui/loading";
 import { formatDate } from "@/lib/utils";
 
@@ -55,6 +59,7 @@ interface Client {
   abn?: string;
   singleSite?: number;
   status: number;
+  accessToken?: string;
   createdAt?: string;
   clientDetail?: {
     _id: string;
@@ -109,12 +114,29 @@ interface ClientDocument {
   createdAt?: string;
 }
 
+interface SupportTicket {
+  _id: string;
+  titleId?: { _id: string; title: string } | null;
+  ticketStatus: number;
+}
+
+// ─── Tab Definitions ────────────────────────────────────────────────────────
+
+const TABS = [
+  { label: "Overview", value: "overview" },
+  { label: "Service Agreements", value: "service-agreements" },
+  { label: "Work History", value: "work-history" },
+  { label: "Sites", value: "sites" },
+  { label: "Contacts", value: "contacts" },
+  { label: "Assets", value: "assets" },
+  { label: "Portal Users", value: "portal-users" },
+];
+
 // ─── Main Component ─────────────────────────────────────────────────────────
 
 export default function ClientDetailPage() {
   useEffect(() => { document.title = "TSC - Client Details"; }, []);
   const params = useParams();
-  const router = useRouter();
   const clientId = params.id as string;
 
   const [client, setClient] = useState<Client | null>(null);
@@ -123,13 +145,37 @@ export default function ClientDetailPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [documents, setDocuments] = useState<ClientDocument[]>([]);
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-  // ─── Fetch client ───────────────────────────────────────────────────────
+  // About section edit state
+  const [editingAbout, setEditingAbout] = useState(false);
+  const [aboutText, setAboutText] = useState("");
+  const [savingAbout, setSavingAbout] = useState(false);
+
+  // Notes inline state
+  const [noteText, setNoteText] = useState("");
+  const [submittingNote, setSubmittingNote] = useState(false);
+  const [noteFocused, setNoteFocused] = useState(false);
+  const [selectedNoteType, setSelectedNoteType] = useState<number>(3); // default: message
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editNoteText, setEditNoteText] = useState("");
+
+  // Document upload state
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+
+  // Image lightbox state
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  // ─── Fetch functions ──────────────────────────────────────────────────
 
   const fetchClient = useCallback(async () => {
     try {
@@ -182,6 +228,18 @@ export default function ClientDetailPage() {
     } catch {}
   }, [clientId]);
 
+  const fetchSupportTickets = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/support-tickets?clientId=${clientId}&limit=1000`);
+      const json = await res.json();
+      if (json.success) {
+        const data = json.data?.data || json.data || [];
+        setSupportTickets(Array.isArray(data) ? data : []);
+      }
+    } catch {}
+  }, [clientId]);
+
+  // Load all data upfront for stat cards + overview
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -191,14 +249,198 @@ export default function ClientDetailPage() {
     load();
   }, [fetchClient]);
 
-  // Fetch tab data when switching tabs
   useEffect(() => {
-    if (activeTab === "sites") fetchSites();
-    if (activeTab === "assets") fetchAssets();
-    if (activeTab === "contacts") fetchContacts();
-    if (activeTab === "notes") fetchNotes();
-    if (activeTab === "documents") fetchDocuments();
-  }, [activeTab, fetchSites, fetchAssets, fetchContacts, fetchNotes, fetchDocuments]);
+    if (!loading && client) {
+      fetchSites();
+      fetchAssets();
+      fetchContacts();
+      fetchNotes();
+      fetchDocuments();
+      fetchSupportTickets();
+    }
+  }, [loading, client, fetchSites, fetchAssets, fetchContacts, fetchNotes, fetchDocuments, fetchSupportTickets]);
+
+  // ─── About section handlers ───────────────────────────────────────────
+
+  const handleEditAbout = () => {
+    setAboutText(client?.clientDetail?.about || "");
+    setEditingAbout(true);
+  };
+
+  const handleSaveAbout = async () => {
+    try {
+      setSavingAbout(true);
+      const res = await fetch(`/api/clients/${clientId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ about: aboutText }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || json.message || "Failed to save");
+      setEditingAbout(false);
+      fetchClient();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSavingAbout(false);
+    }
+  };
+
+  // ─── Notes handler ────────────────────────────────────────────────────
+
+  const NOTE_TYPES = [
+    { value: 1, icon: "/phone.svg", label: "Phone" },
+    { value: 2, icon: "/mail.svg", label: "Email" },
+    { value: 3, icon: "/message-circle.svg", label: "Message" },
+    { value: 4, icon: "/users.svg", label: "Meeting" },
+    { value: 5, icon: "/file_text.svg", label: "Document" },
+  ];
+
+  const getNoteTypeIcon = (noteType?: number) => {
+    const found = NOTE_TYPES.find((t) => t.value === noteType);
+    return found ? found.icon : "/message-circle.svg";
+  };
+
+  const handleAddNote = async () => {
+    if (!noteText.trim()) return;
+    try {
+      setSubmittingNote(true);
+      const res = await fetch(`/api/clients/${clientId}/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes: noteText.trim(), noteType: selectedNoteType }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || json.message || "Failed to add note");
+      setNoteText("");
+      setNoteFocused(false);
+      setSelectedNoteType(3);
+      fetchNotes();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSubmittingNote(false);
+    }
+  };
+
+  const handleEditNote = async (noteId: string) => {
+    if (!editNoteText.trim()) return;
+    try {
+      const res = await fetch(`/api/clients/${clientId}/notes/${noteId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes: editNoteText.trim() }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || json.message || "Failed to update note");
+      setEditingNoteId(null);
+      setEditNoteText("");
+      fetchNotes();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (!confirm("Are you sure you want to delete this note?")) return;
+    try {
+      const res = await fetch(`/api/clients/${clientId}/notes/${noteId}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || json.message || "Failed to delete note");
+      fetchNotes();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  // ─── Document upload handler ──────────────────────────────────────────
+
+  const handleFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setPendingFiles((prev) => [...prev, ...Array.from(files)]);
+    e.target.value = "";
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      setPendingFiles((prev) => [...prev, ...Array.from(files)]);
+    }
+  };
+
+  const handleUploadDocuments = async () => {
+    if (pendingFiles.length === 0) return;
+
+    try {
+      setUploading(true);
+
+      for (const file of pendingFiles) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("folder", "documents");
+
+        const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+        const uploadJson = await uploadRes.json();
+        if (!uploadJson.success) throw new Error(uploadJson.error || "Upload failed");
+
+        const docRes = await fetch(`/api/clients/${clientId}/documents`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            documentName: file.name,
+            fileName: uploadJson.data?.fileName || uploadJson.data?.filename,
+            fileSize: `${(file.size / 1024).toFixed(1)} KB`,
+          }),
+        });
+        const docJson = await docRes.json();
+        if (!docJson.success) throw new Error(docJson.error || "Failed to save document");
+      }
+
+      setPendingFiles([]);
+      setUploadDialogOpen(false);
+      fetchDocuments();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteDocument = async (docId: string) => {
+    if (!confirm("Are you sure you want to delete this document?")) return;
+    try {
+      const res = await fetch(`/api/clients/${clientId}/documents/${docId}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || "Failed to delete document");
+      fetchDocuments();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+
+  // ─── Copy support ticket URL ──────────────────────────────────────────
+
+  const handleCopyUrl = () => {
+    if (!client?.accessToken) return;
+    const url = `${window.location.origin}/support-portal/${client.accessToken}`;
+    navigator.clipboard.writeText(url);
+  };
+
+  // ─── Support tickets grouped by title ─────────────────────────────────
+
+  const ticketsByTitle = supportTickets.reduce<Record<string, { title: string; count: number }>>((acc, t) => {
+    const key = t.titleId?._id || "uncategorized";
+    const title = t.titleId?.title || "Uncategorized";
+    if (!acc[key]) acc[key] = { title, count: 0 };
+    acc[key].count++;
+    return acc;
+  }, {});
+
+  // ─── Render ───────────────────────────────────────────────────────────
 
   if (loading) return <PageLoading />;
 
@@ -223,31 +465,28 @@ export default function ClientDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/clients">
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">
-                {client.companyName}
-              </h1>
-              <Badge variant={client.status === 1 ? "success" : "destructive"}>
-                {client.status === 1 ? "Active" : "Inactive"}
-              </Badge>
-            </div>
-            {client.abn && (
-              <p className="text-sm text-gray-500 mt-1">ABN / GST No.: {client.abn}</p>
-            )}
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900">{client.companyName}</h1>
         </div>
-        <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
-          <Pencil className="h-4 w-4" />
-          Edit
-        </Button>
+        {sites.length > 0 && (
+          <div className="relative">
+            <select
+              className="appearance-none rounded-xl border border-gray-200 bg-white px-4 py-2 pr-10 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            >
+              <option value="">Select Site</option>
+              {sites.map((s) => (
+                <option key={s._id} value={s._id}>{s.siteName}</option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          </div>
+        )}
       </div>
 
       {/* Edit Client Dialog */}
@@ -258,108 +497,558 @@ export default function ClientDetailPage() {
         onSuccess={() => fetchClient()}
       />
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="sites">Sites</TabsTrigger>
-          <TabsTrigger value="assets">Assets</TabsTrigger>
-          <TabsTrigger value="contacts">Contacts</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-        </TabsList>
+      {/* Underline-Style Tabs */}
+      <div className="border-b border-gray-200 mt-4">
+        <nav className="-mb-px flex gap-6">
+          {TABS.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => setActiveTab(tab.value)}
+              className={`whitespace-nowrap border-b-2 text-sm font-normal transition-colors ${
+                activeTab === tab.value
+                  ? "border-cyan-500 text-gray-900"
+                  : "border-transparent text-gray-900 hover:border-gray-300"
+              }`}
+              style={{ lineHeight: "30px", paddingLeft: 25, paddingRight: 25, fontSize: 14 }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
 
-        {/* ── Overview Tab ──────────────────────────────────────────────── */}
-        <TabsContent value="overview">
-          <div className="grid gap-6 md:grid-cols-2">
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Support Tickets - dark card */}
+        <Card className="bg-slate-800 border-slate-700">
+          <CardContent className="flex items-center justify-between p-5" style={{ height: 106 }}>
+            <p className="text-sm font-medium text-slate-300">Support Tickets</p>
+            <p className="text-3xl font-bold" style={{ color: "#00AEEF" }}>
+              {supportTickets.length}
+            </p>
+          </CardContent>
+        </Card>
+        {/* Assets */}
+        <Card className="bg-white">
+          <CardContent className="flex items-center justify-between p-5" style={{ height: 106 }}>
+            <p className="text-sm font-medium text-gray-500">Assets</p>
+            <p className="text-3xl font-bold" style={{ color: "#f7cd4b" }}>
+              {assets.length}
+            </p>
+          </CardContent>
+        </Card>
+        {/* Sites */}
+        <Card className="bg-white">
+          <CardContent className="flex items-center justify-between p-5" style={{ height: 106 }}>
+            <p className="text-sm font-medium text-gray-500">Sites</p>
+            <p className="text-3xl font-bold" style={{ color: "#E18230" }}>
+              {sites.length}
+            </p>
+          </CardContent>
+        </Card>
+        {/* Contacts */}
+        <Card className="bg-white">
+          <CardContent className="flex items-center justify-between p-5" style={{ height: 106 }}>
+            <p className="text-sm font-medium text-gray-500">Contacts</p>
+            <p className="text-3xl font-bold" style={{ color: "#82cd66" }}>
+              {contacts.length}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === "overview" && (
+        <div className="grid gap-6 md:grid-cols-12">
+          {/* Left Column */}
+          <div className="md:col-span-7 space-y-6">
+            {/* Client Info Card */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Building2 className="h-5 w-5 text-gray-500" />
-                  Company Details
-                </CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg">Client Information</CardTitle>
+                <button
+                  onClick={() => setEditDialogOpen(true)}
+                  className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Company Name</p>
-                  <p className="mt-1 text-gray-900">{client.companyName}</p>
+              <CardContent className="p-0">
+                <div className="divide-y divide-gray-100">
+                  <div className="flex items-center px-6 py-3">
+                    <span className="w-40 text-sm font-medium text-gray-500 shrink-0">Date Created</span>
+                    <span className="text-sm text-gray-900">{client.createdAt ? formatDate(client.createdAt) : "-"}</span>
+                  </div>
+                  <div className="flex items-center px-6 py-3">
+                    <span className="w-40 text-sm font-medium text-gray-500 shrink-0">Company</span>
+                    <span className="text-sm text-gray-900">{client.companyName}</span>
+                  </div>
+                  <div className="flex items-center px-6 py-3">
+                    <span className="w-40 text-sm font-medium text-gray-500 shrink-0">Address</span>
+                    <span className="text-sm text-gray-900">{client.address || "-"}</span>
+                  </div>
+                  <div className="flex items-center px-6 py-3">
+                    <span className="w-40 text-sm font-medium text-gray-500 shrink-0">ABN</span>
+                    <span className="text-sm text-gray-900">{client.abn || "-"}</span>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">ABN / GST No.</p>
-                  <p className="mt-1 text-gray-900">{client.abn || "-"}</p>
+              </CardContent>
+            </Card>
+
+            {/* About Section */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg">About</CardTitle>
+                <button
+                  onClick={handleEditAbout}
+                  className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                  {client.clientDetail?.about || "No information available."}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* About Edit Dialog */}
+            <Dialog open={editingAbout} onOpenChange={setEditingAbout}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Edit About</DialogTitle>
+                  <DialogDescription>Update the about information for this client.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Textarea
+                    value={aboutText}
+                    onChange={(e) => setAboutText(e.target.value)}
+                    rows={6}
+                    placeholder="Enter information about this client..."
+                  />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Address</p>
-                  <p className="mt-1 text-gray-900">{client.address || "-"}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Single Site</p>
-                  <p className="mt-1 text-gray-900">
-                    {client.singleSite === 1 ? "Yes" : "No"}
-                  </p>
-                </div>
-                {client.createdAt && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Created</p>
-                    <p className="mt-1 text-gray-900">
-                      {formatDate(client.createdAt)}
-                    </p>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setEditingAbout(false)} disabled={savingAbout}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSaveAbout} disabled={savingAbout}>
+                    {savingAbout && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Save
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Attachments Section */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg">Attachments</CardTitle>
+                <button
+                  onClick={() => { setPendingFiles([]); setUploadDialogOpen(true); }}
+                  className="rounded-md border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                >
+                  <Upload className="h-4 w-4" />
+                </button>
+              </CardHeader>
+              <CardContent>
+                {documents.length === 0 ? (
+                  <p className="text-center text-sm text-gray-500 py-6">No attachments yet</p>
+                ) : (
+                  <div className="flex flex-wrap gap-4">
+                    {documents.map((doc) => {
+                      const name = doc.fileName || doc.documentName || "";
+                      const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(name);
+                      return (
+                        <div key={doc._id} className="w-40 rounded-xl border border-gray-200 bg-white p-3">
+                          {/* Action icons */}
+                          <div className="flex items-center gap-2.5 mb-2">
+                            <a
+                              href={`/uploads/documents/${doc.fileName}`}
+                              download={doc.documentName || doc.fileName}
+                              className="rounded p-0.5 text-gray-400 hover:text-gray-600"
+                              title="Download"
+                            >
+                              <Download className="h-5 w-5" strokeWidth={1.5} />
+                            </a>
+                            <button
+                              onClick={() => handleDeleteDocument(doc._id)}
+                              className="rounded p-0.5 hover:opacity-70"
+                              title="Delete"
+                            >
+                              <img src="/trash.svg" alt="Delete" className="h-5 w-5" />
+                            </button>
+                          </div>
+                          {/* Thumbnail */}
+                          {isImage ? (
+                            <img
+                              src={`/uploads/documents/${doc.fileName}`}
+                              alt={doc.documentName || "Attachment"}
+                              className="h-32 w-full rounded border border-gray-100 object-contain bg-gray-50 cursor-pointer"
+                              onClick={() => {
+                                const imageDocuments = documents.filter((d) => {
+                                  const n = d.fileName || d.documentName || "";
+                                  return /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(n);
+                                });
+                                const idx = imageDocuments.findIndex((d) => d._id === doc._id);
+                                setLightboxIndex(idx >= 0 ? idx : 0);
+                                setLightboxOpen(true);
+                              }}
+                            />
+                          ) : (
+                            <div className="flex h-32 w-full items-center justify-center rounded border border-gray-100 bg-gray-50">
+                              <FileText className="h-10 w-10 text-gray-300" />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
             </Card>
 
+            {/* Image Lightbox */}
+            {lightboxOpen && (() => {
+              const imageDocuments = documents.filter((d) => {
+                const n = d.fileName || d.documentName || "";
+                return /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(n);
+              });
+              if (imageDocuments.length === 0) return null;
+              const currentDoc = imageDocuments[lightboxIndex] || imageDocuments[0];
+              return (
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+                  onClick={() => setLightboxOpen(false)}
+                >
+                  {/* Lightbox container */}
+                  <div
+                    className="relative mx-4 flex max-h-[90vh] max-w-[90vw] items-center justify-center rounded-2xl bg-white p-6 shadow-2xl"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Close button */}
+                    <button
+                      onClick={() => setLightboxOpen(false)}
+                      className="absolute right-3 top-3 z-10 rounded-full bg-white p-1.5 text-gray-400 shadow hover:text-gray-600"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+
+                    {/* Previous arrow */}
+                    {imageDocuments.length > 1 && (
+                      <button
+                        onClick={() =>
+                          setLightboxIndex((prev) =>
+                            prev <= 0 ? imageDocuments.length - 1 : prev - 1
+                          )
+                        }
+                        className="absolute -left-14 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-gray-500 shadow-lg hover:text-gray-800"
+                      >
+                        <ChevronLeft className="h-6 w-6" />
+                      </button>
+                    )}
+
+                    {/* Image */}
+                    <img
+                      src={`/uploads/documents/${currentDoc.fileName}`}
+                      alt={currentDoc.documentName || "Attachment"}
+                      className="max-h-[80vh] max-w-[80vw] rounded-lg object-contain"
+                    />
+
+                    {/* Next arrow */}
+                    {imageDocuments.length > 1 && (
+                      <button
+                        onClick={() =>
+                          setLightboxIndex((prev) =>
+                            prev >= imageDocuments.length - 1 ? 0 : prev + 1
+                          )
+                        }
+                        className="absolute -right-14 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-gray-500 shadow-lg hover:text-gray-800"
+                      >
+                        <ChevronRight className="h-6 w-6" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Upload Documents Dialog */}
+            <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Upload Multiple Documents</DialogTitle>
+                </DialogHeader>
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={handleDrop}
+                  className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-10 transition-colors ${
+                    dragOver
+                      ? "border-cyan-500 bg-cyan-50"
+                      : "border-cyan-300 bg-cyan-50/30"
+                  }`}
+                >
+                  <p className="text-sm text-gray-600">Drag & Drop multiple documents to upload at once</p>
+                  <label className="mt-1 cursor-pointer text-sm font-medium text-cyan-600 underline hover:text-cyan-700">
+                    Or click here to select
+                    <input
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={handleFilesSelected}
+                    />
+                  </label>
+                </div>
+                {pendingFiles.length > 0 && (
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                    {pendingFiles.map((f, i) => (
+                      <div key={i} className="flex items-center justify-between rounded border border-gray-100 bg-gray-50 px-3 py-1.5 text-sm">
+                        <span className="truncate">{f.name}</span>
+                        <button
+                          onClick={() => setPendingFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                          className="ml-2 hover:opacity-70 shrink-0"
+                        >
+                          <img src="/trash.svg" alt="Remove" className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center gap-3">
+                  <Button
+                    onClick={handleUploadDocuments}
+                    disabled={uploading || pendingFiles.length === 0}
+                    className="bg-cyan-500 hover:bg-cyan-600 text-white"
+                  >
+                    {uploading && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {uploading ? "Uploading..." : "Upload Documents"}
+                  </Button>
+                  <button
+                    onClick={() => setUploadDialogOpen(false)}
+                    disabled={uploading}
+                    className="text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Right Column */}
+          <div className="md:col-span-5 space-y-6">
+            {/* Support Tickets by Title */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <FileText className="h-5 w-5 text-gray-500" />
-                  About
-                </CardTitle>
+                <CardTitle className="text-lg">Support Tickets by Title</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-700 whitespace-pre-wrap">
-                  {client.clientDetail?.about || "No information available."}
-                </p>
+                {Object.keys(ticketsByTitle).length === 0 ? (
+                  <p className="text-center text-sm text-gray-500 py-4">No tickets yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {Object.entries(ticketsByTitle).map(([key, { title, count }]) => (
+                      <div key={key} className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-4 py-2.5">
+                        <span className="text-sm text-gray-700">{title}</span>
+                        <span className="text-sm font-semibold text-gray-900">{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Support Ticket URL */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Support Ticket URL</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {client.accessToken ? (
+                  <div className="space-y-3">
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                      <p className="text-xs text-gray-500 truncate">
+                        {typeof window !== "undefined" ? `${window.location.origin}/support-portal/${client.accessToken}` : `/support-portal/${client.accessToken}`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="outline" onClick={handleCopyUrl}>
+                        <Copy className="h-4 w-4" />
+                        Copy Link
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-center text-sm text-gray-500 py-4">No access token configured</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* General Site Notes */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">General Site Notes</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Add note */}
+                <div className="rounded-xl border border-gray-200 bg-sky-50/40 p-4">
+                  <Textarea
+                    placeholder="Start typing..."
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    onFocus={() => setNoteFocused(true)}
+                    rows={3}
+                    className="border-gray-200 bg-white resize-none"
+                  />
+                  {(noteFocused || noteText.trim()) && (
+                    <div className="mt-3 space-y-3">
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 mb-2">Save As:</p>
+                        <div className="flex items-center gap-1.5">
+                          {NOTE_TYPES.map((t) => (
+                            <button
+                              key={t.value}
+                              onClick={() => setSelectedNoteType(t.value)}
+                              className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-colors ${
+                                selectedNoteType === t.value
+                                  ? "border-cyan-500 bg-cyan-50"
+                                  : "border-gray-200 bg-white hover:border-gray-300"
+                              }`}
+                              title={t.label}
+                            >
+                              <img src={t.icon} alt={t.label} className="h-5 w-5" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={handleAddNote}
+                        disabled={submittingNote || !noteText.trim()}
+                        className="bg-cyan-500 hover:bg-cyan-600 text-white"
+                      >
+                        {submittingNote && <Loader2 className="h-4 w-4 animate-spin" />}
+                        {submittingNote ? "Saving..." : "Save As"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Notes list */}
+                {notes.length === 0 ? (
+                  <p className="text-center text-sm text-gray-500 py-4">No notes yet</p>
+                ) : (
+                  <div className="space-y-3">
+                    {notes.map((note) => (
+                      <div key={note._id} className="rounded-xl border border-gray-200 bg-white p-4">
+                        {/* Note header */}
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={getNoteTypeIcon(note.noteType)}
+                              alt=""
+                              className="h-4 w-4 opacity-60"
+                            />
+                            <span className="text-sm font-semibold text-gray-900">
+                              {note.userId?.name || "Unknown User"}
+                            </span>
+                            <span className="text-xs" style={{ color: "#00AEEF" }}>
+                              {note.dateTime
+                                ? formatDate(note.dateTime)
+                                : note.createdAt
+                                ? formatDate(note.createdAt)
+                                : "-"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => {
+                                setEditingNoteId(note._id);
+                                setEditNoteText(note.notes);
+                              }}
+                              className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                              title="Edit"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteNote(note._id)}
+                              className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 hover:bg-gray-50 hover:opacity-70"
+                              title="Delete"
+                            >
+                              <img src="/trash.svg" alt="Delete" className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                        {/* Note body */}
+                        {editingNoteId === note._id ? (
+                          <div className="space-y-2">
+                            <Textarea
+                              value={editNoteText}
+                              onChange={(e) => setEditNoteText(e.target.value)}
+                              rows={3}
+                              className="resize-none"
+                            />
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => handleEditNote(note._id)}
+                                disabled={!editNoteText.trim()}
+                                className="bg-cyan-500 hover:bg-cyan-600 text-white"
+                              >
+                                Save
+                              </Button>
+                              <button
+                                onClick={() => { setEditingNoteId(null); setEditNoteText(""); }}
+                                className="text-xs text-gray-500 hover:text-gray-700"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap">{note.notes}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
+        </div>
+      )}
 
-        {/* ── Sites Tab ─────────────────────────────────────────────────── */}
-        <TabsContent value="sites">
-          <SitesTab clientId={clientId} sites={sites} onRefresh={fetchSites} />
-        </TabsContent>
+      {activeTab === "sites" && (
+        <SitesTab clientId={clientId} sites={sites} onRefresh={fetchSites} />
+      )}
 
-        {/* ── Assets Tab ────────────────────────────────────────────────── */}
-        <TabsContent value="assets">
-          <AssetsTab
-            clientId={clientId}
-            assets={assets}
-            sites={sites}
-            onRefresh={fetchAssets}
-          />
-        </TabsContent>
+      {activeTab === "assets" && (
+        <AssetsTab clientId={clientId} assets={assets} sites={sites} onRefresh={fetchAssets} />
+      )}
 
-        {/* ── Contacts Tab ──────────────────────────────────────────────── */}
-        <TabsContent value="contacts">
-          <ContactsTab
-            clientId={clientId}
-            contacts={contacts}
-            sites={sites}
-            onRefresh={fetchContacts}
-          />
-        </TabsContent>
+      {activeTab === "contacts" && (
+        <ContactsTab clientId={clientId} contacts={contacts} sites={sites} onRefresh={fetchContacts} />
+      )}
 
-        {/* ── Notes Tab ─────────────────────────────────────────────────── */}
-        <TabsContent value="notes">
-          <NotesTab clientId={clientId} notes={notes} onRefresh={fetchNotes} />
-        </TabsContent>
+      {activeTab === "service-agreements" && (
+        <div className="flex items-center justify-center py-16">
+          <p className="text-gray-500 text-sm">Coming soon</p>
+        </div>
+      )}
 
-        {/* ── Documents Tab ─────────────────────────────────────────────── */}
-        <TabsContent value="documents">
-          <DocumentsTab documents={documents} />
-        </TabsContent>
-      </Tabs>
+      {activeTab === "work-history" && (
+        <div className="flex items-center justify-center py-16">
+          <p className="text-gray-500 text-sm">Coming soon</p>
+        </div>
+      )}
+
+      {activeTab === "portal-users" && (
+        <div className="flex items-center justify-center py-16">
+          <p className="text-gray-500 text-sm">Coming soon</p>
+        </div>
+      )}
     </div>
   );
 }

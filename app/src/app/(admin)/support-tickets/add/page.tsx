@@ -92,10 +92,12 @@ export default function AddSupportTicketPage() {
         const titlesJson = await titlesRes.json();
 
         if (clientsJson.success) {
-          setClients(clientsJson.data || []);
+          const raw = clientsJson.data?.data || clientsJson.data || [];
+          setClients(Array.isArray(raw) ? raw : []);
         }
         if (titlesJson.success) {
-          setTitles(titlesJson.data || []);
+          const raw = titlesJson.data?.data || titlesJson.data || [];
+          setTitles(Array.isArray(raw) ? raw : []);
         }
       } catch {
         setError("Failed to load form data");
@@ -136,9 +138,18 @@ export default function AddSupportTicketPage() {
         const assetsJson = await assetsRes.json();
         const contactsJson = await contactsRes.json();
 
-        if (sitesJson.success) setSites(sitesJson.data || []);
-        if (assetsJson.success) setAssets(assetsJson.data || []);
-        if (contactsJson.success) setContacts(contactsJson.data || []);
+        if (sitesJson.success) {
+          const raw = sitesJson.data?.data || sitesJson.data || [];
+          setSites(Array.isArray(raw) ? raw : []);
+        }
+        if (assetsJson.success) {
+          const raw = assetsJson.data?.data || assetsJson.data || [];
+          setAssets(Array.isArray(raw) ? raw : []);
+        }
+        if (contactsJson.success) {
+          const raw = contactsJson.data?.data || contactsJson.data || [];
+          setContacts(Array.isArray(raw) ? raw : []);
+        }
       } catch {
         // Silently handle; dropdowns will just be empty
       } finally {
