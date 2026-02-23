@@ -72,7 +72,8 @@ function useSettingsCrud(endpoint: string) {
       const res = await fetch(endpoint);
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || json.message || "Failed to load");
-      setItems(json.data || []);
+      const raw = json.data;
+      setItems(Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : []);
     } catch (err: any) {
       setError(err.message);
     } finally {

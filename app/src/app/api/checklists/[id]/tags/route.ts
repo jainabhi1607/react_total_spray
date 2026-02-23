@@ -7,6 +7,7 @@ import {
   handleApiError,
 } from "@/lib/api-helpers";
 import ChecklistTemplateTag from "@/models/ChecklistTemplateTag";
+import "@/models/ChecklistTag";
 
 export async function GET(
   req: NextRequest,

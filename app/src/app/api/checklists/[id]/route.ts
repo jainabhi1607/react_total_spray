@@ -9,6 +9,7 @@ import {
 import ChecklistTemplate from "@/models/ChecklistTemplate";
 import ChecklistTemplateItem from "@/models/ChecklistTemplateItem";
 import ChecklistTemplateTag from "@/models/ChecklistTemplateTag";
+import "@/models/ChecklistTag";
 
 export async function GET(
   req: NextRequest,

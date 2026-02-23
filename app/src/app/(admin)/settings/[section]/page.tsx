@@ -12,7 +12,7 @@ import {
   EmailNotificationSection,
   TableCrudSection,
 } from "@/components/settings/settings-sections";
-import { ClipboardList } from "lucide-react";
+import { ChecklistTemplatesSection } from "@/components/settings/checklist-templates-section";
 
 const SECTIONS: Record<
   string,
@@ -37,13 +37,7 @@ const SECTIONS: Record<
   },
   "checklist-templates": {
     title: "Checklist Templates",
-    component: () => (
-      <TableCrudSection
-        title="Checklist Templates"
-        endpoint="/api/checklists"
-        icon={ClipboardList}
-      />
-    ),
+    component: ChecklistTemplatesSection,
   },
   "job-card-types": {
     title: "Job Card Types",
