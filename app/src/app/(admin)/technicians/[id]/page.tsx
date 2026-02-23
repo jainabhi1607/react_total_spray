@@ -789,8 +789,9 @@ export default function TechnicianDetailPage() {
                       const isMain = idx === 0;
                       const isRevision = idx > 0;
                       const expired =
-                        ins.expiryDate &&
-                        new Date(ins.expiryDate) < new Date();
+                        ins.status === 2 ||
+                        (ins.expiryDate &&
+                          new Date(ins.expiryDate) < new Date());
                       return (
                         <TableRow
                           key={ins._id}

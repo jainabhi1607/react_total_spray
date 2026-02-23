@@ -207,6 +207,16 @@ export function InsuranceDialog({
         const json = await res.json();
         if (!json.success)
           throw new Error(json.error || json.message || "Failed to upload revision");
+
+        // Mark old insurance as invalid
+        await fetch(
+          `/api/technicians/${technicianId}/insurance/${insurance._id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: 2 }),
+          }
+        );
       }
 
       handleOpenChange(false);
