@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(cd:*)",
+      "Bash(npx kill-port:*)",
+      "WebSearch",
+      "Bash(echo ImageMagick not found:*)",
+      "Bash(where ffmpeg:*)",
+      "Bash(ls:*)",
+      "Bash(head:*)"
+    ]
+  }
+}

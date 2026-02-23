@@ -1,21 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard,
-  TicketCheck,
-  ClipboardList,
-  Building2,
-  Boxes,
-  Contact,
-  Wrench,
-  Receipt,
-  FolderOpen,
-  Archive,
   Settings,
   Users,
   ChevronLeft,
@@ -33,23 +23,46 @@ interface SidebarProps {
 interface NavItem {
   label: string;
   href: string;
-  icon: React.ElementType;
+  icon?: React.ElementType;
+  iconSrc?: string;
+  iconInline?: React.ReactNode;
   roles: number[];
   badge?: number;
   dividerAfter?: boolean;
 }
 
+function ArchiveIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <polyline points="21 8 21 21 3 21 3 8" />
+      <rect x="1" y="3" width="22" height="5" />
+      <line x1="10" y1="12" x2="14" y2="12" />
+    </svg>
+  );
+}
+
 const navItems: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: [1, 2, 3, 4, 6] },
-  { label: "Support Tickets", href: "/support-tickets", icon: TicketCheck, roles: [1, 2, 3, 4, 6] },
-  { label: "Job Cards", href: "/job-cards", icon: ClipboardList, roles: [1, 2, 3, 4, 6] },
-  { label: "Clients", href: "/clients", icon: Building2, roles: [1, 2, 3] },
-  { label: "Assets", href: "/assets", icon: Boxes, roles: [1, 2, 3, 4, 6] },
-  { label: "Contacts", href: "/contacts", icon: Contact, roles: [1, 2, 3, 4, 6] },
-  { label: "Technicians", href: "/technicians", icon: Wrench, roles: [1, 2, 3] },
-  { label: "To Invoice", href: "/support-tickets?tab=to-invoice", icon: Receipt, roles: [1, 2, 3], dividerAfter: true },
-  { label: "Resources", href: "/resources", icon: FolderOpen, roles: [1, 2, 3, 4], dividerAfter: true },
-  { label: "Archive", href: "/archive", icon: Archive, roles: [1, 2, 3] },
+  { label: "Dashboard", href: "/dashboard", iconSrc: "/dashboard.svg", roles: [1, 2, 3, 4, 6] },
+  { label: "Support Tickets", href: "/support-tickets", iconSrc: "/support_tickets.svg", roles: [1, 2, 3, 4, 6] },
+  { label: "Job Cards", href: "/job-cards", iconSrc: "/briefcase.svg", roles: [1, 2, 3, 4, 6] },
+  { label: "Clients", href: "/clients", iconSrc: "/clients.svg", roles: [1, 2, 3] },
+  { label: "Assets", href: "/assets", iconSrc: "/package.svg", roles: [1, 2, 3, 4, 6] },
+  { label: "Contacts", href: "/contacts", iconSrc: "/phone.svg", roles: [1, 2, 3, 4, 6] },
+  { label: "Technicians", href: "/technicians", iconSrc: "/tool.svg", roles: [1, 2, 3] },
+  { label: "To Invoice", href: "/support-tickets?tab=to-invoice", iconSrc: "/invoice.svg", roles: [1, 2, 3] },
+  { label: "Resources", href: "/resources", iconSrc: "/resources.svg", roles: [1, 2, 3, 4], dividerAfter: true },
+  { label: "Archive", href: "/archive", icon: ArchiveIcon, roles: [1, 2, 3] },
   { label: "Settings", href: "/settings", icon: Settings, roles: [1, 4] },
   { label: "Users", href: "/users", icon: Users, roles: [1] },
 ];
@@ -93,7 +106,7 @@ export function Sidebar({ userRole, collapsed, onToggle }: SidebarProps) {
 
       {/* Navigation */}
       <ScrollArea className="h-[calc(100vh-8rem)]">
-        <nav className="flex flex-col gap-1 p-3">
+        <nav className="flex flex-col gap-0.5 p-3">
           {filteredItems.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -104,7 +117,7 @@ export function Sidebar({ userRole, collapsed, onToggle }: SidebarProps) {
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                    "flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors",
                     isActive
                       ? "bg-blue-50 text-blue-700"
                       : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
@@ -112,7 +125,15 @@ export function Sidebar({ userRole, collapsed, onToggle }: SidebarProps) {
                   )}
                   title={collapsed ? item.label : undefined}
                 >
-                  <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-blue-600")} />
+                  {item.iconSrc ? (
+                    <img
+                      src={item.iconSrc}
+                      alt=""
+                      className="h-[18px] w-[18px] shrink-0"
+                    />
+                  ) : item.icon ? (
+                    <item.icon className={cn("h-[18px] w-[18px] shrink-0", isActive && "text-blue-600")} />
+                  ) : null}
                   {!collapsed && <span>{item.label}</span>}
                   {!collapsed && item.badge !== undefined && item.badge > 0 && (
                     <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-100 px-1.5 text-xs font-semibold text-red-700">
@@ -121,7 +142,7 @@ export function Sidebar({ userRole, collapsed, onToggle }: SidebarProps) {
                   )}
                 </Link>
                 {item.dividerAfter && (
-                  <div className="my-2 h-px bg-gray-100" />
+                  <div className="my-1.5 h-px bg-gray-100" />
                 )}
               </React.Fragment>
             );
@@ -134,11 +155,11 @@ export function Sidebar({ userRole, collapsed, onToggle }: SidebarProps) {
         <Link
           href="/api/auth/signout"
           className={cn(
-            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-700 transition-colors",
+            "flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium text-gray-600 hover:bg-red-50 hover:text-red-700 transition-colors",
             collapsed && "justify-center px-2"
           )}
         >
-          <LogOut className="h-5 w-5 shrink-0" />
+          <LogOut className="h-[18px] w-[18px] shrink-0" />
           {!collapsed && <span>Logout</span>}
         </Link>
       </div>

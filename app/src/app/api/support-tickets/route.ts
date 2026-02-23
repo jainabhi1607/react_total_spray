@@ -11,6 +11,7 @@ import {
 import SupportTicket from "@/models/SupportTicket";
 import SupportTicketDetail from "@/models/SupportTicketDetail";
 import SupportTicketLog from "@/models/SupportTicketLog";
+import SupportTicketOwner from "@/models/SupportTicketOwner";
 
 export async function GET(req: NextRequest) {
   try {
@@ -47,17 +48,23 @@ export async function GET(req: NextRequest) {
       query.status = { $ne: 2 };
     }
 
-    // Filter by ticketStatus
+    // Filter by ticketStatus (supports comma-separated values e.g. "1,2,3")
     const { searchParams } = new URL(req.url);
     const ticketStatus = searchParams.get("ticketStatus");
     if (ticketStatus) {
-      query.ticketStatus = parseInt(ticketStatus);
+      if (ticketStatus.includes(",")) {
+        query.ticketStatus = { $in: ticketStatus.split(",").map(Number) };
+      } else {
+        query.ticketStatus = parseInt(ticketStatus);
+      }
     }
 
     const [tickets, total] = await Promise.all([
       SupportTicket.find(query)
         .populate("clientId", "companyName")
         .populate("clientSiteId", "siteName")
+        .populate("clientAssetId", "machineName")
+        .populate("titleId", "title")
         .populate("userId", "name email")
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -66,7 +73,29 @@ export async function GET(req: NextRequest) {
       SupportTicket.countDocuments(query),
     ]);
 
-    return paginatedResponse(tickets, total, page, limit);
+    // Fetch owners for the retrieved tickets
+    const ticketIds = tickets.map((t: any) => t._id);
+    const owners = await SupportTicketOwner.find({
+      supportTicketId: { $in: ticketIds },
+    })
+      .populate("userId", "name")
+      .lean();
+
+    const ownerMap: Record<string, any[]> = {};
+    for (const owner of owners as any[]) {
+      const key = String(owner.supportTicketId);
+      if (!ownerMap[key]) ownerMap[key] = [];
+      if (owner.userId) {
+        ownerMap[key].push(owner.userId);
+      }
+    }
+
+    const ticketsWithOwners = tickets.map((t: any) => ({
+      ...t,
+      owners: ownerMap[String(t._id)] || [],
+    }));
+
+    return paginatedResponse(ticketsWithOwners, total, page, limit);
   } catch (error) {
     return handleApiError(error);
   }
