@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Plus,
-  Search,
   Pencil,
   ArrowRight,
   ChevronLeft,
@@ -13,8 +12,6 @@ import {
   ArrowUpDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageLoading } from "@/components/ui/loading";
 import { AddClientDialog } from "@/components/dialogs/add-client-dialog";
@@ -64,10 +61,10 @@ const STATUS_LABELS: Record<number, string> = {
 };
 
 const STATUS_BADGE_CLASSES: Record<number, string> = {
-  1: "bg-blue-100 text-blue-800",
-  2: "bg-yellow-100 text-yellow-800",
-  3: "bg-orange-500 text-white",
-  4: "bg-green-100 text-green-800",
+  1: "bg-blue-500 text-white",
+  2: "bg-yellow-400 text-gray-900",
+  3: "bg-green-500 text-white",
+  4: "bg-green-500 text-white",
 };
 
 const TABS = [
@@ -78,13 +75,6 @@ const TABS = [
   { label: "Resolved", value: "4" },
 ];
 
-const RING_COLORS: Record<string, string> = {
-  open: "#0ea5e9",
-  working: "#f59e0b",
-  onSiteTechnician: "#22c55e",
-  resolved: "#22c55e",
-};
-
 // --- Helpers ---
 
 function calculateAge(createdAt: string): string {
@@ -93,8 +83,8 @@ function calculateAge(createdAt: string): string {
   const diffMs = now.getTime() - created.getTime();
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   if (days === 0) return "Today";
-  if (days === 1) return "1 day";
-  return `${days} days`;
+  if (days === 1) return "1 Day";
+  return `${days} Days`;
 }
 
 function getInitials(name: string): string {
@@ -163,7 +153,9 @@ function CircularProgress({
 // --- Page Component ---
 
 export default function SupportTicketsPage() {
-  useEffect(() => { document.title = "TSC - Support Tickets"; }, []);
+  useEffect(() => {
+    document.title = "TSC - Support Tickets";
+  }, []);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -173,7 +165,6 @@ export default function SupportTicketsPage() {
   const [page, setPage] = useState(Number(searchParams.get("page")) || 1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
-  const [search, setSearch] = useState(searchParams.get("q") || "");
   const [activeTab, setActiveTab] = useState(
     searchParams.get("ticketStatus") || "1,2,3"
   );
@@ -196,7 +187,7 @@ export default function SupportTicketsPage() {
         setStats(json.data);
       }
     } catch {
-      // Stats are non-critical, fail silently
+      // Stats are non-critical
     }
   }, []);
 
@@ -208,7 +199,6 @@ export default function SupportTicketsPage() {
       const params = new URLSearchParams();
       params.set("page", String(page));
       params.set("limit", "20");
-      if (search) params.set("q", search);
       if (activeTab) params.set("ticketStatus", activeTab);
 
       const res = await fetch(`/api/support-tickets?${params.toString()}`);
@@ -227,7 +217,7 @@ export default function SupportTicketsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, activeTab]);
+  }, [page, activeTab]);
 
   useEffect(() => {
     fetchStats();
@@ -241,22 +231,16 @@ export default function SupportTicketsPage() {
   useEffect(() => {
     const params = new URLSearchParams();
     if (page > 1) params.set("page", String(page));
-    if (search) params.set("q", search);
-    if (activeTab && activeTab !== "1,2,3") params.set("ticketStatus", activeTab);
+    if (activeTab && activeTab !== "1,2,3")
+      params.set("ticketStatus", activeTab);
 
     const qs = params.toString();
     router.replace(`/support-tickets${qs ? `?${qs}` : ""}`, { scroll: false });
-  }, [page, search, activeTab, router]);
+  }, [page, activeTab, router]);
 
   function handleTabChange(value: string) {
     setActiveTab(value);
     setPage(1);
-  }
-
-  function handleSearchSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setPage(1);
-    fetchTickets();
   }
 
   // Stat card data
@@ -264,20 +248,22 @@ export default function SupportTicketsPage() {
     {
       label: "Open Tickets",
       count: stats.open,
-      percentage: stats.total > 0 ? Math.round((stats.open / stats.total) * 100) : 0,
-      ringColor: RING_COLORS.open,
-      countColor: "#38bdf8",       // sky-400
-      trackColor: "#475569",       // slate-600
-      textColor: "#94a3b8",        // slate-400
+      percentage:
+        stats.total > 0 ? Math.round((stats.open / stats.total) * 100) : 0,
+      ringColor: "#f97316", // orange-500
+      countColor: "#38bdf8", // sky-400
+      trackColor: "#475569", // slate-600
+      textColor: "#ffffff",
       dark: true,
       key: "open",
     },
     {
       label: "Working",
       count: stats.working,
-      percentage: stats.total > 0 ? Math.round((stats.working / stats.total) * 100) : 0,
-      ringColor: RING_COLORS.working,
-      countColor: "#f59e0b",       // amber-500
+      percentage:
+        stats.total > 0 ? Math.round((stats.working / stats.total) * 100) : 0,
+      ringColor: "#f7cd4b",
+      countColor: "#f7cd4b",
       trackColor: "#e5e7eb",
       textColor: "#6b7280",
       dark: false,
@@ -290,8 +276,8 @@ export default function SupportTicketsPage() {
         stats.total > 0
           ? Math.round((stats.onSiteTechnician / stats.total) * 100)
           : 0,
-      ringColor: RING_COLORS.onSiteTechnician,
-      countColor: "#22c55e",       // green-500
+      ringColor: "#E18230",
+      countColor: "#E18230",
       trackColor: "#e5e7eb",
       textColor: "#6b7280",
       dark: false,
@@ -301,9 +287,11 @@ export default function SupportTicketsPage() {
       label: "Resolved",
       count: stats.resolved,
       percentage:
-        stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0,
-      ringColor: RING_COLORS.resolved,
-      countColor: "#22c55e",       // green-500
+        stats.total > 0
+          ? Math.round((stats.resolved / stats.total) * 100)
+          : 0,
+      ringColor: "#82cd66",
+      countColor: "#82cd66",
       trackColor: "#e5e7eb",
       textColor: "#6b7280",
       dark: false,
@@ -358,7 +346,10 @@ export default function SupportTicketsPage() {
             </Button>
           </Link>
           <Link href="/support-tickets/add">
-            <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
+            <Button
+              size="sm"
+              className="bg-cyan-500 hover:bg-cyan-600 text-white"
+            >
               <Plus className="mr-1 h-4 w-4" />
               Add Ticket
             </Button>
@@ -372,12 +363,10 @@ export default function SupportTicketsPage() {
           <Card
             key={card.key}
             className={
-              card.dark
-                ? "bg-slate-800 border-slate-700"
-                : "bg-white"
+              card.dark ? "bg-slate-800 border-slate-700" : "bg-white"
             }
           >
-            <CardContent className="flex items-center justify-between p-5">
+            <CardContent className="flex items-center justify-between p-5" style={{ height: 126 }}>
               <div>
                 <p
                   className={`text-sm font-medium ${
@@ -397,7 +386,7 @@ export default function SupportTicketsPage() {
                 percentage={card.percentage}
                 color={card.ringColor}
                 trackColor={card.trackColor}
-                textColor={card.dark ? "#94a3b8" : "#6b7280"}
+                textColor={card.textColor}
               />
             </CardContent>
           </Card>
@@ -413,7 +402,7 @@ export default function SupportTicketsPage() {
               onClick={() => handleTabChange(tab.value)}
               className={`whitespace-nowrap border-b-2 py-3 px-1 text-sm font-medium transition-colors ${
                 activeTab === tab.value
-                  ? "border-orange-500 text-orange-600"
+                  ? "border-cyan-500 text-cyan-600"
                   : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
               }`}
             >
@@ -422,22 +411,6 @@ export default function SupportTicketsPage() {
           ))}
         </nav>
       </div>
-
-      {/* Search */}
-      <form onSubmit={handleSearchSubmit} className="flex gap-2">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input
-            placeholder="Search tickets..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Button type="submit" variant="secondary">
-          Search
-        </Button>
-      </form>
 
       {/* Table */}
       <Card>
@@ -450,22 +423,57 @@ export default function SupportTicketsPage() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="bg-[#EBF5FF]">
                     <TableHead>
                       <span className="inline-flex items-center gap-1">
                         Ticket No.
                         <ArrowUpDown className="h-3 w-3 text-gray-400" />
                       </span>
                     </TableHead>
-                    <TableHead>Client Name</TableHead>
-                    <TableHead>Client Site</TableHead>
-                    <TableHead>Asset</TableHead>
-                    <TableHead>Job Title</TableHead>
-                    <TableHead>Age</TableHead>
-                    <TableHead>Owner</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-center">Edit</TableHead>
-                    <TableHead className="text-center">Navigate</TableHead>
+                    <TableHead>
+                      <span className="inline-flex items-center gap-1">
+                        Client Name
+                        <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                      </span>
+                    </TableHead>
+                    <TableHead>
+                      <span className="inline-flex items-center gap-1">
+                        Client Site
+                        <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                      </span>
+                    </TableHead>
+                    <TableHead>
+                      <span className="inline-flex items-center gap-1">
+                        Asset
+                        <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                      </span>
+                    </TableHead>
+                    <TableHead>
+                      <span className="inline-flex items-center gap-1">
+                        Job Title
+                        <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                      </span>
+                    </TableHead>
+                    <TableHead>
+                      <span className="inline-flex items-center gap-1">
+                        Age
+                        <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                      </span>
+                    </TableHead>
+                    <TableHead>
+                      <span className="inline-flex items-center gap-1">
+                        Owner
+                        <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                      </span>
+                    </TableHead>
+                    <TableHead>
+                      <span className="inline-flex items-center gap-1">
+                        Status
+                        <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                      </span>
+                    </TableHead>
+                    <TableHead></TableHead>
+                    <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -496,7 +504,7 @@ export default function SupportTicketsPage() {
                               <div
                                 key={owner._id}
                                 title={owner.name}
-                                className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-600 ring-2 ring-white"
+                                className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-700 text-xs font-medium text-white ring-2 ring-white"
                               >
                                 {getInitials(owner.name)}
                               </div>
@@ -512,27 +520,27 @@ export default function SupportTicketsPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          className={
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${
                             STATUS_BADGE_CLASSES[ticket.ticketStatus] ||
                             "bg-gray-100 text-gray-800"
-                          }
+                          }`}
                         >
                           {STATUS_LABELS[ticket.ticketStatus] || "Unknown"}
-                        </Badge>
+                        </span>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell>
                         <Link href={`/support-tickets/${ticket._id}`}>
-                          <Button variant="ghost" size="sm">
-                            <Pencil className="h-4 w-4 text-gray-500" />
-                          </Button>
+                          <button className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                            <Pencil className="h-4 w-4" />
+                          </button>
                         </Link>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell>
                         <Link href={`/support-tickets/${ticket._id}`}>
-                          <Button variant="ghost" size="sm">
-                            <ArrowRight className="h-4 w-4 text-gray-500" />
-                          </Button>
+                          <button className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                            <ArrowRight className="h-4 w-4" />
+                          </button>
                         </Link>
                       </TableCell>
                     </TableRow>
@@ -548,7 +556,8 @@ export default function SupportTicketsPage() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-500">
-            Page {page} of {totalPages} ({total} ticket{total !== 1 ? "s" : ""})
+            Page {page} of {totalPages} ({total} ticket
+            {total !== 1 ? "s" : ""})
           </p>
           <div className="flex gap-2">
             <Button
