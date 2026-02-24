@@ -107,10 +107,7 @@ export default function PublicHistoryPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Clock className="h-5 w-5 text-gray-400" />
-              History
-            </CardTitle>
+            <CardTitle className="text-lg">History</CardTitle>
             <Badge variant="secondary">
               {maintenanceLogs?.length || 0} entries
             </Badge>

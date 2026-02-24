@@ -774,7 +774,7 @@ export default function TechnicianDetailPage() {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-[#EBF5FF]">
+                  <TableRow>
                     <TableHead>Document Type</TableHead>
                     <TableHead>Upload Date</TableHead>
                     <TableHead>Expiry Date</TableHead>
@@ -904,7 +904,7 @@ export default function TechnicianDetailPage() {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-[#EBF5FF]">
+                  <TableRow>
                     <TableHead>Company</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Contact Number</TableHead>

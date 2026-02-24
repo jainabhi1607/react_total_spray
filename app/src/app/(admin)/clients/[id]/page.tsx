@@ -8,10 +8,7 @@ import {
   Pencil,
   Plus,
   Trash2,
-  MapPin,
   FileText,
-  Users,
-  StickyNote,
   Wrench,
   Upload,
   Loader2,
@@ -30,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -147,6 +144,38 @@ interface SupportTicket {
   ticketStatus: number;
 }
 
+interface ServiceAgreement {
+  _id: string;
+  title: string;
+  agreementNumber?: string;
+  serviceType?: string;
+  frequency?: number;
+  startDate?: string;
+  endDate?: string;
+  status: number;
+  coveredSiteIds?: string[];
+  contractValue?: number;
+  billingFrequency?: string;
+  notes?: string;
+  document?: string;
+  createdAt?: string;
+}
+
+const FREQUENCY_LABELS: Record<number, string> = {
+  1: "Monthly",
+  2: "Quarterly",
+  3: "Annually",
+};
+
+const SERVICE_TYPES = [
+  "Pest Control",
+  "Termite Protection",
+  "Hygiene Services",
+  "Bird Control",
+  "Vegetation Management",
+  "Other",
+];
+
 // ─── Tab Definitions ────────────────────────────────────────────────────────
 
 const TABS = [
@@ -173,6 +202,7 @@ export default function ClientDetailPage() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [documents, setDocuments] = useState<ClientDocument[]>([]);
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
+  const [serviceAgreements, setServiceAgreements] = useState<ServiceAgreement[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -266,6 +296,14 @@ export default function ClientDetailPage() {
     } catch {}
   }, [clientId]);
 
+  const fetchServiceAgreements = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/clients/${clientId}/service-agreements`);
+      const json = await res.json();
+      if (json.success) setServiceAgreements(json.data);
+    } catch {}
+  }, [clientId]);
+
   // Load all data upfront for stat cards + overview
   useEffect(() => {
     const load = async () => {
@@ -284,8 +322,9 @@ export default function ClientDetailPage() {
       fetchNotes();
       fetchDocuments();
       fetchSupportTickets();
+      fetchServiceAgreements();
     }
-  }, [loading, client, fetchSites, fetchAssets, fetchContacts, fetchNotes, fetchDocuments, fetchSupportTickets]);
+  }, [loading, client, fetchSites, fetchAssets, fetchContacts, fetchNotes, fetchDocuments, fetchSupportTickets, fetchServiceAgreements]);
 
   // ─── About section handlers ───────────────────────────────────────────
 
@@ -1117,9 +1156,7 @@ export default function ClientDetailPage() {
       )}
 
       {activeTab === "service-agreements" && (
-        <div className="flex items-center justify-center py-16">
-          <p className="text-gray-500 text-sm">Coming soon</p>
-        </div>
+        <ServiceAgreementsTab clientId={clientId} serviceAgreements={serviceAgreements} sites={sites} onRefresh={fetchServiceAgreements} />
       )}
 
       {activeTab === "work-history" && (
@@ -1231,13 +1268,7 @@ function SitesTab({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <MapPin className="h-5 w-5 text-gray-500" />
-            Sites
-          </CardTitle>
-          <CardDescription>{sites.length} site(s)</CardDescription>
-        </div>
+        <CardTitle className="text-lg">Sites ({sites.length})</CardTitle>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button size="sm" onClick={openAdd}>
@@ -1633,7 +1664,7 @@ function AssetsTab({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-lg font-semibold">Assets</CardTitle>
+        <CardTitle className="text-lg">Assets ({assets.length})</CardTitle>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button
@@ -1826,12 +1857,12 @@ function AssetsTab({
       <CardContent className="p-0">
         <Table>
           <TableHeader>
-            <TableRow className="bg-[#E8F6FC]">
-              <TableHead className="text-[#2EA4D0] font-medium">Site</TableHead>
-              <TableHead className="text-[#2EA4D0] font-medium">Machine Name</TableHead>
-              <TableHead className="text-[#2EA4D0] font-medium">Serial Number</TableHead>
-              <TableHead className="text-[#2EA4D0] font-medium">Make</TableHead>
-              <TableHead className="text-[#2EA4D0] font-medium">Model</TableHead>
+            <TableRow>
+              <TableHead>Site</TableHead>
+              <TableHead>Machine Name</TableHead>
+              <TableHead>Serial Number</TableHead>
+              <TableHead>Make</TableHead>
+              <TableHead>Model</TableHead>
               <TableHead className="text-right"></TableHead>
             </TableRow>
           </TableHeader>
@@ -1990,13 +2021,7 @@ function ContactsTab({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Users className="h-5 w-5 text-gray-500" />
-            Contacts
-          </CardTitle>
-          <CardDescription>{contacts.length} contact(s)</CardDescription>
-        </div>
+        <CardTitle className="text-lg">Contacts ({contacts.length})</CardTitle>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button size="sm" onClick={openAdd}>
@@ -2198,10 +2223,7 @@ function NotesTab({
       {/* Add Note Form */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <StickyNote className="h-5 w-5 text-gray-500" />
-            Add Note
-          </CardTitle>
+          <CardTitle className="text-lg">Add Note</CardTitle>
         </CardHeader>
         <CardContent>
           {error && (
@@ -2227,8 +2249,7 @@ function NotesTab({
       {/* Notes List */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Notes</CardTitle>
-          <CardDescription>{notes.length} note(s)</CardDescription>
+          <CardTitle className="text-lg">Notes ({notes.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {notes.length === 0 ? (
@@ -2274,13 +2295,7 @@ function DocumentsTab({ documents }: { documents: ClientDocument[] }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <FileText className="h-5 w-5 text-gray-500" />
-            Documents
-          </CardTitle>
-          <CardDescription>{documents.length} document(s)</CardDescription>
-        </div>
+        <CardTitle className="text-lg">Documents ({documents.length})</CardTitle>
         <Button size="sm" variant="outline" disabled>
           <Upload className="h-4 w-4" />
           Upload
@@ -2781,11 +2796,11 @@ function PortalUsersTab({ clientId }: { clientId: string }) {
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-[#F2FBFE]">
-                    <TableHead className="text-[#9CA8B5] font-medium">Date</TableHead>
-                    <TableHead className="text-[#9CA8B5] font-medium">IP</TableHead>
-                    <TableHead className="text-[#9CA8B5] font-medium">Location</TableHead>
-                    <TableHead className="text-[#9CA8B5] font-medium text-right">Access</TableHead>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>IP</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead className="text-right">Access</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -2834,18 +2849,20 @@ function PortalUsersTab({ clientId }: { clientId: string }) {
 
   // Listing view
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Portal Users</h2>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-lg">Portal Users ({users.length})</CardTitle>
         <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
           <DialogTrigger asChild>
             <Button
+              size="sm"
               className="bg-[#00AEEF] hover:bg-[#0098d4] text-white"
               onClick={() => {
                 setInviteEmail("");
                 setInviteError("");
               }}
             >
+              <Plus className="h-4 w-4" />
               Invite User
             </Button>
           </DialogTrigger>
@@ -2892,10 +2909,8 @@ function PortalUsersTab({ clientId }: { clientId: string }) {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
-
-      <Card>
-        <CardContent className="p-0">
+      </CardHeader>
+      <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center py-16">
               <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
@@ -2903,11 +2918,11 @@ function PortalUsersTab({ clientId }: { clientId: string }) {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="bg-[#E8F6FC]">
-                  <TableHead className="text-[#2EA4D0] font-medium">Name</TableHead>
-                  <TableHead className="text-[#2EA4D0] font-medium">Email</TableHead>
-                  <TableHead className="text-[#2EA4D0] font-medium">Last Login</TableHead>
-                  <TableHead className="text-[#2EA4D0] font-medium">Role</TableHead>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Last Login</TableHead>
+                  <TableHead>Role</TableHead>
                   <TableHead className="text-right"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -2950,6 +2965,463 @@ function PortalUsersTab({ clientId }: { clientId: string }) {
           )}
         </CardContent>
       </Card>
-    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Service Agreements Tab
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ServiceAgreementsTab({
+  clientId,
+  serviceAgreements,
+  sites,
+  onRefresh,
+}: {
+  clientId: string;
+  serviceAgreements: ServiceAgreement[];
+  sites: Site[];
+  onRefresh: () => void;
+}) {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [editing, setEditing] = useState<ServiceAgreement | null>(null);
+
+  // Form fields
+  const [title, setTitle] = useState("");
+  const [agreementNumber, setAgreementNumber] = useState("");
+  const [serviceType, setServiceType] = useState("");
+  const [frequency, setFrequency] = useState<number | "">("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [status, setStatus] = useState<number>(3);
+  const [coveredSiteIds, setCoveredSiteIds] = useState<string[]>([]);
+  const [contractValue, setContractValue] = useState("");
+  const [billingFrequency, setBillingFrequency] = useState("");
+  const [notes, setNotes] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [existingDocument, setExistingDocument] = useState("");
+
+  const resetForm = () => {
+    setTitle("");
+    setAgreementNumber("");
+    setServiceType("");
+    setFrequency("");
+    setStartDate("");
+    setEndDate("");
+    setStatus(3);
+    setCoveredSiteIds([]);
+    setContractValue("");
+    setBillingFrequency("");
+    setNotes("");
+    setFile(null);
+    setUploadProgress(0);
+    setExistingDocument("");
+    setEditing(null);
+    setError("");
+  };
+
+  const openAdd = () => {
+    resetForm();
+    setDialogOpen(true);
+  };
+
+  const openEdit = (ag: ServiceAgreement) => {
+    setEditing(ag);
+    setTitle(ag.title);
+    setAgreementNumber(ag.agreementNumber || "");
+    setServiceType(ag.serviceType || "");
+    setFrequency(ag.frequency || "");
+    setStartDate(ag.startDate ? ag.startDate.slice(0, 10) : "");
+    setEndDate(ag.endDate ? ag.endDate.slice(0, 10) : "");
+    setStatus(ag.status);
+    setCoveredSiteIds(ag.coveredSiteIds || []);
+    setContractValue(ag.contractValue != null ? String(ag.contractValue) : "");
+    setBillingFrequency(ag.billingFrequency || "");
+    setNotes(ag.notes || "");
+    setExistingDocument(ag.document || "");
+    setFile(null);
+    setUploadProgress(0);
+    setError("");
+    setDialogOpen(true);
+  };
+
+  const toggleSite = (siteId: string) => {
+    setCoveredSiteIds((prev) =>
+      prev.includes(siteId) ? prev.filter((id) => id !== siteId) : [...prev, siteId]
+    );
+  };
+
+  const uploadFile = (
+    f: File,
+    folder: string,
+    onProgress: (pct: number) => void
+  ): Promise<{ url: string; fileName: string; fileSize: number }> => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const formData = new FormData();
+      formData.append("file", f);
+      formData.append("folder", folder);
+
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable)
+          onProgress(Math.round((e.loaded / e.total) * 100));
+      });
+
+      xhr.addEventListener("load", () => {
+        try {
+          const json = JSON.parse(xhr.responseText);
+          if (json.success) resolve(json.data);
+          else reject(new Error(json.error || "Upload failed"));
+        } catch {
+          reject(new Error("Upload failed"));
+        }
+      });
+
+      xhr.addEventListener("error", () => reject(new Error("Upload failed")));
+      xhr.open("POST", "/api/upload");
+      xhr.send(formData);
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!title.trim()) {
+      setError("Title is required");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError("");
+
+      let documentPath = existingDocument;
+      if (file) {
+        const result = await uploadFile(file, "service-agreements", setUploadProgress);
+        documentPath = result.fileName;
+      }
+
+      const payload: Record<string, any> = {
+        title: title.trim(),
+        agreementNumber: agreementNumber.trim() || undefined,
+        serviceType: serviceType || undefined,
+        frequency: frequency || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        status,
+        coveredSiteIds,
+        contractValue: contractValue ? Number(contractValue) : undefined,
+        billingFrequency: billingFrequency.trim() || undefined,
+        notes: notes.trim() || undefined,
+        document: documentPath || undefined,
+      };
+
+      const url = editing
+        ? `/api/clients/${clientId}/service-agreements/${editing._id}`
+        : `/api/clients/${clientId}/service-agreements`;
+
+      const res = await fetch(url, {
+        method: editing ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || `Failed to ${editing ? "update" : "add"} agreement`);
+
+      setDialogOpen(false);
+      resetForm();
+      onRefresh();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this service agreement?")) return;
+    try {
+      const res = await fetch(`/api/clients/${clientId}/service-agreements/${id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || "Failed to delete agreement");
+      onRefresh();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const getStatusBadge = (s: number) => {
+    switch (s) {
+      case 1:
+        return <Badge variant="success">Active</Badge>;
+      case 2:
+        return <Badge variant="destructive">Expired</Badge>;
+      default:
+        return <Badge variant="secondary">Draft</Badge>;
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-lg">Service Agreements ({serviceAgreements.length})</CardTitle>
+        <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) resetForm(); setDialogOpen(open); }}>
+          <DialogTrigger asChild>
+            <Button
+              size="sm"
+              onClick={openAdd}
+              className="bg-[#00AEEF] hover:bg-[#0098d4] text-white"
+            >
+              <Plus className="h-4 w-4" />
+              Add Agreement
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editing ? "Edit" : "Add"} Service Agreement</DialogTitle>
+              {error && (
+                <div className="rounded-[10px] border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                  {error}
+                </div>
+              )}
+            </DialogHeader>
+
+            <div className="divide-y divide-gray-100">
+              <div className="flex items-center gap-4 py-3">
+                <Label className="w-40 shrink-0 text-sm font-semibold text-gray-900">
+                  Title <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  placeholder="Enter agreement title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
+
+              <div className="flex items-center gap-4 py-3">
+                <Label className="w-40 shrink-0 text-sm font-semibold text-gray-900">Agreement #</Label>
+                <Input
+                  placeholder="e.g. SA-001"
+                  value={agreementNumber}
+                  onChange={(e) => setAgreementNumber(e.target.value)}
+                />
+              </div>
+
+              <div className="flex items-center gap-4 py-3">
+                <Label className="w-40 shrink-0 text-sm font-semibold text-gray-900">Service Type</Label>
+                <select
+                  className="flex h-10 w-full rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  value={serviceType}
+                  onChange={(e) => setServiceType(e.target.value)}
+                >
+                  <option value="">Select service type</option>
+                  {SERVICE_TYPES.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-4 py-3">
+                <Label className="w-40 shrink-0 text-sm font-semibold text-gray-900">Frequency</Label>
+                <select
+                  className="flex h-10 w-full rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  value={frequency}
+                  onChange={(e) => setFrequency(e.target.value ? Number(e.target.value) : "")}
+                >
+                  <option value="">Select frequency</option>
+                  {Object.entries(FREQUENCY_LABELS).map(([k, v]) => (
+                    <option key={k} value={k}>{v}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-4 py-3">
+                <Label className="w-40 shrink-0 text-sm font-semibold text-gray-900">Start Date</Label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+
+              <div className="flex items-center gap-4 py-3">
+                <Label className="w-40 shrink-0 text-sm font-semibold text-gray-900">End Date</Label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+
+              <div className="flex items-center gap-4 py-3">
+                <Label className="w-40 shrink-0 text-sm font-semibold text-gray-900">Status</Label>
+                <select
+                  className="flex h-10 w-full rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  value={status}
+                  onChange={(e) => setStatus(Number(e.target.value))}
+                >
+                  <option value={3}>Draft</option>
+                  <option value={1}>Active</option>
+                  <option value={2}>Expired</option>
+                </select>
+              </div>
+
+              {sites.length > 0 && (
+                <div className="flex items-start gap-4 py-3">
+                  <Label className="w-40 shrink-0 text-sm font-semibold text-gray-900 pt-2">Covered Sites</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {sites.map((site) => (
+                      <button
+                        key={site._id}
+                        type="button"
+                        onClick={() => toggleSite(site._id)}
+                        className={`px-3 py-1.5 rounded-[10px] text-xs font-medium border transition-colors ${
+                          coveredSiteIds.includes(site._id)
+                            ? "border-[#2EA4D0] bg-[#E0F4FB] text-[#2EA4D0]"
+                            : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                        }`}
+                      >
+                        {site.siteName}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-4 py-3">
+                <Label className="w-40 shrink-0 text-sm font-semibold text-gray-900">Contract Value</Label>
+                <Input
+                  type="number"
+                  placeholder="e.g. 5000"
+                  value={contractValue}
+                  onChange={(e) => setContractValue(e.target.value)}
+                />
+              </div>
+
+              <div className="flex items-center gap-4 py-3">
+                <Label className="w-40 shrink-0 text-sm font-semibold text-gray-900">Billing Frequency</Label>
+                <Input
+                  placeholder="e.g. Monthly, Quarterly"
+                  value={billingFrequency}
+                  onChange={(e) => setBillingFrequency(e.target.value)}
+                />
+              </div>
+
+              <div className="flex items-center gap-4 py-3">
+                <Label className="w-40 shrink-0 text-sm font-semibold text-gray-900">Document</Label>
+                <div className="flex-1">
+                  <Input
+                    type="file"
+                    onChange={(e) => {
+                      setFile(e.target.files?.[0] || null);
+                      setUploadProgress(0);
+                    }}
+                  />
+                  {existingDocument && !file && (
+                    <p className="mt-1 text-xs text-gray-500">Current: {existingDocument}</p>
+                  )}
+                </div>
+              </div>
+
+              {file && (
+                <div className="flex items-center gap-4 py-3">
+                  <Label className="w-40 shrink-0 text-sm font-semibold text-gray-900">Upload Progress</Label>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
+                    <div
+                      className="h-full bg-cyan-500 transition-all"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-start gap-4 py-3">
+                <Label className="w-40 shrink-0 text-sm font-semibold text-gray-900 pt-2">Notes</Label>
+                <Textarea
+                  placeholder="Additional notes..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => { resetForm(); setDialogOpen(false); }}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleSubmit} disabled={submitting}>
+                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                {editing ? "Update" : "Add"} Agreement
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Agreement #</TableHead>
+              <TableHead>Title</TableHead>
+              <TableHead>Service Type</TableHead>
+              <TableHead>Frequency</TableHead>
+              <TableHead>Start Date</TableHead>
+              <TableHead>End Date</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {serviceAgreements.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                  No service agreements found
+                </TableCell>
+              </TableRow>
+            ) : (
+              serviceAgreements.map((ag) => (
+                <TableRow key={ag._id}>
+                  <TableCell className="font-medium">{ag.agreementNumber || "-"}</TableCell>
+                  <TableCell>{ag.title}</TableCell>
+                  <TableCell>{ag.serviceType || "-"}</TableCell>
+                  <TableCell>{ag.frequency ? FREQUENCY_LABELS[ag.frequency] || "-" : "-"}</TableCell>
+                  <TableCell>{ag.startDate ? formatDate(ag.startDate) : "-"}</TableCell>
+                  <TableCell>{ag.endDate ? formatDate(ag.endDate) : "-"}</TableCell>
+                  <TableCell>{getStatusBadge(ag.status)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEdit(ag)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(ag._id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 }

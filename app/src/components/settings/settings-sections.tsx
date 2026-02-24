@@ -255,9 +255,9 @@ export function SettingsListSection({
             <>
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-[#EBF5FF] hover:bg-[#EBF5FF]">
-                    <TableHead className="font-semibold text-gray-700">Title</TableHead>
-                    <TableHead className="w-[100px] text-right font-semibold text-gray-700">
+                  <TableRow>
+                    <TableHead className="font-semibold">Title</TableHead>
+                    <TableHead className="w-[100px] text-right font-semibold">
                       Action
                     </TableHead>
                   </TableRow>
@@ -911,9 +911,9 @@ export function AssetMakesSection() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="bg-[#EBF5FF] hover:bg-[#EBF5FF]">
-                  <TableHead className="font-semibold text-gray-700">Makes</TableHead>
-                  <TableHead className="text-right font-semibold text-gray-700" />
+                <TableRow>
+                  <TableHead className="font-semibold">Makes</TableHead>
+                  <TableHead className="text-right font-semibold" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1213,9 +1213,9 @@ export function AssetModelsSection() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="bg-[#EBF5FF] hover:bg-[#EBF5FF]">
-                  <TableHead className="font-semibold text-gray-700">Models</TableHead>
-                  <TableHead className="text-right font-semibold text-gray-700" />
+                <TableRow>
+                  <TableHead className="font-semibold">Models</TableHead>
+                  <TableHead className="text-right font-semibold" />
                 </TableRow>
               </TableHeader>
               <TableBody>

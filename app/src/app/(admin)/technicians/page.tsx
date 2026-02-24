@@ -180,7 +180,7 @@ export default function TechniciansPage() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="bg-[#EBF5FF]">
+                <TableRow>
                   <TableHead>Company</TableHead>
                   <TableHead>Tags</TableHead>
                   <TableHead>Email</TableHead>

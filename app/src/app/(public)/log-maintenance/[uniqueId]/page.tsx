@@ -197,10 +197,7 @@ export default function PublicLogMaintenancePage() {
       {/* Maintenance Form */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Wrench className="h-5 w-5 text-gray-400" />
-            Maintenance Entry
-          </CardTitle>
+          <CardTitle className="text-lg">Maintenance Entry</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">

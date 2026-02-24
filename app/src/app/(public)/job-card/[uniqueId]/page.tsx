@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
-import { Save, Star, AlertCircle, CheckCircle2, Calendar, FileText, Hash, PenLine, ImageIcon } from "lucide-react";
+import { Save, Star, AlertCircle, CheckCircle2, Calendar, Hash, PenLine, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -324,10 +324,7 @@ export default function PublicJobCardPage() {
       {jobCardDetail?.description && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <FileText className="h-5 w-5 text-gray-400" />
-              Description
-            </CardTitle>
+            <CardTitle className="text-lg">Description</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-700 whitespace-pre-wrap">

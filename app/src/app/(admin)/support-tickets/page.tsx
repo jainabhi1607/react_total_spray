@@ -424,7 +424,7 @@ export default function SupportTicketsPage() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-[#EBF5FF]">
+                  <TableRow>
                     <TableHead>
                       <span className="inline-flex items-center gap-1">
                         Ticket No.
