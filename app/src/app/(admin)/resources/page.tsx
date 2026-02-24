@@ -167,10 +167,10 @@ export default function ResourcesPage() {
           {filteredResources.map((resource) => (
             <div
               key={resource._id}
-              className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-5 py-4"
+              className="flex items-center gap-4 rounded-[10px] border border-gray-200 bg-white px-5 py-4"
             >
               {/* Thumbnail */}
-              <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+              <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[10px] bg-gray-100">
                 {resource.thumbnail ? (
                   <img
                     src={resource.thumbnail}
@@ -184,7 +184,7 @@ export default function ResourcesPage() {
                 )}
               </div>
               {/* Resource File */}
-              <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+              <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[10px] bg-gray-100">
                 {resource.resourceFile ? (
                   <img
                     src={resource.resourceFile}
@@ -203,13 +203,13 @@ export default function ResourcesPage() {
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => handleEdit(resource)}
-                  className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                  className="rounded-[10px] p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => handleDelete(resource._id)}
-                  className="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                  className="rounded-[10px] p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

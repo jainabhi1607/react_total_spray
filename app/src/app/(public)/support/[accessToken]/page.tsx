@@ -143,7 +143,7 @@ export default function PublicSupportPage() {
           alt="Total Spray Care"
           width={56}
           height={56}
-          className="rounded-xl"
+          className="rounded-[10px]"
         />
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
@@ -255,7 +255,7 @@ export default function PublicSupportPage() {
                 {[1, 2, 3].map((n) => (
                   <div
                     key={n}
-                    className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 p-6 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+                    className="flex flex-col items-center justify-center rounded-[10px] border border-dashed border-gray-300 p-6 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
                   >
                     <Upload className="h-6 w-6 text-gray-400 mb-2" />
                     <p className="text-xs text-gray-400">Upload file {n}</p>
@@ -266,7 +266,7 @@ export default function PublicSupportPage() {
 
             {/* Error */}
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+              <div className="p-3 bg-red-50 border border-red-200 rounded-[10px] text-sm text-red-700">
                 {error}
               </div>
             )}

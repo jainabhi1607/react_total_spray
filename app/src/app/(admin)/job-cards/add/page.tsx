@@ -403,7 +403,7 @@ export default function AddJobCardPage() {
               </div>
 
               {/* Recurring Job */}
-              <div className="space-y-3 rounded-xl border border-gray-200 p-4">
+              <div className="space-y-3 rounded-[10px] border border-gray-200 p-4">
                 <div className="flex items-center gap-2">
                   <Checkbox
                     id="recurringJob"
@@ -455,7 +455,7 @@ export default function AddJobCardPage() {
 
         {/* Error */}
         {error && (
-          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div className="mt-4 rounded-[10px] border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {error}
           </div>
         )}

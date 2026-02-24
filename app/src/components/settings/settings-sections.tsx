@@ -219,7 +219,7 @@ export function SettingsListSection({
   return (
     <div className="space-y-4">
       {error && (
-        <div className="rounded-xl bg-red-50 p-3 text-sm text-red-600">
+        <div className="rounded-[10px] bg-red-50 p-3 text-sm text-red-600">
           {error}
           <button onClick={() => setError(null)} className="ml-2 underline">
             Dismiss
@@ -457,7 +457,7 @@ export function EmailNotificationSection() {
   return (
     <div className="space-y-8">
       {error && (
-        <div className="rounded-xl bg-red-50 p-3 text-sm text-red-600">{error}</div>
+        <div className="rounded-[10px] bg-red-50 p-3 text-sm text-red-600">{error}</div>
       )}
 
       <hr className="border-gray-200" />
@@ -581,7 +581,7 @@ export function TableCrudSection({
     <Card>
       <CardContent className="space-y-4 pt-6">
         {error && (
-          <div className="rounded-xl bg-red-50 p-3 text-sm text-red-600">
+          <div className="rounded-[10px] bg-red-50 p-3 text-sm text-red-600">
             {error}
             <button onClick={() => setError(null)} className="ml-2 underline">
               Dismiss
@@ -887,7 +887,7 @@ export function AssetMakesSection() {
   return (
     <div className="space-y-4">
       {error && (
-        <div className="rounded-xl bg-red-50 p-3 text-sm text-red-600">
+        <div className="rounded-[10px] bg-red-50 p-3 text-sm text-red-600">
           {error}
           <button onClick={() => setError(null)} className="ml-2 underline">
             Dismiss
@@ -947,21 +947,21 @@ export function AssetMakesSection() {
                           <div className="flex flex-nowrap items-center justify-end gap-2">
                             <button
                               onClick={() => openLinkModels(make._id)}
-                              className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-500 transition-colors hover:bg-gray-50"
+                              className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-[10px] border border-gray-200 px-3 py-1.5 text-sm text-gray-500 transition-colors hover:bg-gray-50"
                             >
                               <Plus className="h-3.5 w-3.5" />
                               Add Model
                             </button>
                             <button
                               onClick={() => openEditMake(make)}
-                              className="shrink-0 rounded-md border border-gray-200 p-1.5 text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
+                              className="shrink-0 rounded-[10px] border border-gray-200 p-1.5 text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
                               title="Edit"
                             >
                               <Pencil className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleDeleteMake(make)}
-                              className="shrink-0 rounded-md border border-gray-200 p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                              className="shrink-0 rounded-[10px] border border-gray-200 p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
                               title="Delete"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -1189,7 +1189,7 @@ export function AssetModelsSection() {
   return (
     <div className="space-y-4">
       {error && (
-        <div className="rounded-xl bg-red-50 p-3 text-sm text-red-600">
+        <div className="rounded-[10px] bg-red-50 p-3 text-sm text-red-600">
           {error}
           <button onClick={() => setError(null)} className="ml-2 underline">
             Dismiss
@@ -1237,7 +1237,7 @@ export function AssetModelsSection() {
                               {model.title}
                             </span>
                             {makeName && (
-                              <span className="rounded-md bg-gray-100 px-3 py-1 text-sm text-gray-500">
+                              <span className="rounded-[10px] bg-gray-100 px-3 py-1 text-sm text-gray-500">
                                 {makeName}
                               </span>
                             )}
@@ -1252,7 +1252,7 @@ export function AssetModelsSection() {
                                 </span>
                                 <button
                                   onClick={() => openTypeDialog(model)}
-                                  className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-500 transition-colors hover:bg-gray-50"
+                                  className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-[10px] border border-gray-200 px-3 py-1.5 text-sm text-gray-500 transition-colors hover:bg-gray-50"
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
                                   Edit Type
@@ -1261,7 +1261,7 @@ export function AssetModelsSection() {
                             ) : (
                               <button
                                 onClick={() => openTypeDialog(model)}
-                                className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-500 transition-colors hover:bg-gray-50"
+                                className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-[10px] border border-gray-200 px-3 py-1.5 text-sm text-gray-500 transition-colors hover:bg-gray-50"
                               >
                                 <Plus className="h-3.5 w-3.5" />
                                 Add Type
@@ -1269,14 +1269,14 @@ export function AssetModelsSection() {
                             )}
                             <button
                               onClick={() => openEditModel(model)}
-                              className="shrink-0 rounded-md border border-gray-200 p-1.5 text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
+                              className="shrink-0 rounded-[10px] border border-gray-200 p-1.5 text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
                               title="Edit"
                             >
                               <Pencil className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleDeleteModel(model)}
-                              className="shrink-0 rounded-md border border-gray-200 p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                              className="shrink-0 rounded-[10px] border border-gray-200 p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
                               title="Delete"
                             >
                               <Trash2 className="h-4 w-4" />

@@ -180,7 +180,7 @@ export default function PublicJobCardPage() {
 
       case 4: // Photo
         return (
-          <div className="flex items-center gap-3 rounded-xl border border-dashed border-gray-300 p-4 bg-gray-50">
+          <div className="flex items-center gap-3 rounded-[10px] border border-dashed border-gray-300 p-4 bg-gray-50">
             <ImageIcon className="h-8 w-8 text-gray-400" />
             <div>
               <p className="text-sm font-medium text-gray-600">Photo Upload</p>
@@ -191,7 +191,7 @@ export default function PublicJobCardPage() {
 
       case 5: // Signature
         return (
-          <div className="rounded-xl border border-dashed border-gray-300 p-6 bg-gray-50 text-center">
+          <div className="rounded-[10px] border border-dashed border-gray-300 p-6 bg-gray-50 text-center">
             <PenLine className="h-8 w-8 text-gray-400 mx-auto mb-2" />
             <p className="text-sm font-medium text-gray-600">Sign here</p>
             <p className="text-xs text-gray-400 mt-1">Signature capture available on mobile app</p>
@@ -276,7 +276,7 @@ export default function PublicJobCardPage() {
           alt="Total Spray Care"
           width={56}
           height={56}
-          className="rounded-xl"
+          className="rounded-[10px]"
         />
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Total Spray Care</h1>
@@ -428,7 +428,7 @@ export default function PublicJobCardPage() {
       </div>
 
       {error && data && (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 text-center">
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-[10px] text-sm text-red-700 text-center">
           {error}
         </div>
       )}

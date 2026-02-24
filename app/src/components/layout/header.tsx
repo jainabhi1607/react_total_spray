@@ -2,27 +2,14 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   Search,
-  Bell,
   Menu,
-  User,
-  Settings,
   LogOut,
-  ChevronDown,
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 interface HeaderProps {
   user: {
@@ -46,101 +33,64 @@ export function Header({ user, onMenuToggle }: HeaderProps) {
     }
   };
 
-  const initials = `${user.name?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase();
-
-  const getRoleLabel = (role: number) => {
-    const labels: Record<number, string> = {
-      1: "Super Admin",
-      2: "Sub Admin",
-      3: "Admin",
-      4: "Client Admin",
-      6: "Client User",
-      7: "Technician",
-      9: "Technician",
-    };
-    return labels[role] || "User";
-  };
-
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 px-6">
-      {/* Mobile menu button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="lg:hidden"
-        onClick={onMenuToggle}
-      >
-        <Menu className="h-5 w-5" />
-      </Button>
-
-      {/* Search - centered */}
-      <div className="flex-1 flex justify-center">
-        <form onSubmit={handleSearch} className="w-full max-w-md">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input
-              type="search"
-              placeholder="Search clients, tickets, job cards..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-gray-50 border-gray-200 focus:bg-white"
-            />
-          </div>
-        </form>
-      </div>
-
-      <div className="flex items-center gap-3 ml-auto">
-        {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5 text-gray-600" />
-          <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-            3
-          </span>
+    <header className="sticky top-0 z-50 flex flex-col">
+      <div className="flex h-14 items-center bg-[#1c2b3a] px-5">
+        {/* Mobile menu button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden text-white hover:bg-white/10"
+          onClick={onMenuToggle}
+        >
+          <Menu className="h-5 w-5" />
         </Button>
 
-        {/* User menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-3 rounded-xl px-2 py-1.5 hover:bg-gray-50 transition-colors">
-              <Avatar className="h-8 w-8">
-                {user.image && <AvatarImage src={user.image} alt={user.name} />}
-                <AvatarFallback className="bg-blue-100 text-blue-700 text-xs">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <span className="hidden md:block text-sm font-medium text-gray-900">
-                {user.name} {user.lastName}
-              </span>
-              <ChevronDown className="hidden md:block h-4 w-4 text-gray-400" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>
-              <div className="flex flex-col">
-                <span>{user.name} {user.lastName}</span>
-                <span className="text-xs font-normal text-gray-500">{user.email}</span>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/settings/profile" className="cursor-pointer">
-                <User className="mr-2 h-4 w-4" /> My Profile
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/settings" className="cursor-pointer">
-                <Settings className="mr-2 h-4 w-4" /> Settings
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/api/auth/signout" className="cursor-pointer text-red-600">
-                <LogOut className="mr-2 h-4 w-4" /> Logout
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Logo */}
+        <Link href="/dashboard" className="flex items-center shrink-0 ml-[15px]">
+          <Image
+            src="/logo.svg"
+            alt="Total Spray Care"
+            width={100}
+            height={100}
+            className="object-contain"
+          />
+        </Link>
+
+        {/* Search - centered */}
+        <div className="flex-1 flex justify-center px-8">
+          <form onSubmit={handleSearch} className="w-full max-w-md">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                type="search"
+                placeholder=""
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-9 rounded-[10px] bg-[#263d50] border border-[#344e63] pl-9 pr-4 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-cyan-500"
+              />
+            </div>
+          </form>
+        </div>
+
+        {/* Right side: Welcome + Logout */}
+        <div className="flex items-center gap-5 shrink-0">
+          <span className="hidden md:block text-sm text-white">
+            Welcome back, {user.name} {user.lastName}!
+          </span>
+
+          <Link
+            href="/api/auth/signout"
+            className="flex items-center gap-2 text-sm text-white hover:text-cyan-400 transition-colors"
+          >
+            <span className="hidden sm:inline font-medium">Logout</span>
+            <LogOut className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
+
+      {/* Cyan gradient line */}
+      <div className="h-[3px] bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-500" />
     </header>
   );
 }

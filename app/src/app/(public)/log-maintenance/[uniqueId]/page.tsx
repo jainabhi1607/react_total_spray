@@ -153,7 +153,7 @@ export default function PublicLogMaintenancePage() {
           alt="Total Spray Care"
           width={56}
           height={56}
-          className="rounded-xl"
+          className="rounded-[10px]"
         />
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
@@ -259,7 +259,7 @@ export default function PublicLogMaintenancePage() {
 
             {/* Error */}
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+              <div className="p-3 bg-red-50 border border-red-200 rounded-[10px] text-sm text-red-700">
                 {error}
               </div>
             )}

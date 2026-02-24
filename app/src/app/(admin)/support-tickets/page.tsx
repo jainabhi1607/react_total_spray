@@ -532,14 +532,14 @@ export default function SupportTicketsPage() {
                       </TableCell>
                       <TableCell>
                         <Link href={`/support-tickets/${ticket._id}`}>
-                          <button className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                          <button className="rounded-[10px] p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
                             <Pencil className="h-4 w-4" />
                           </button>
                         </Link>
                       </TableCell>
                       <TableCell>
                         <Link href={`/support-tickets/${ticket._id}`}>
-                          <button className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                          <button className="rounded-[10px] p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
                             <ArrowRight className="h-4 w-4" />
                           </button>
                         </Link>

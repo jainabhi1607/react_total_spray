@@ -96,7 +96,7 @@ export default function AddTechnicianPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              <div className="rounded-[10px] border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                 {error}
               </div>
             )}

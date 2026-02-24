@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Building2, TicketCheck, ClipboardList, Wrench } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageLoading } from "@/components/ui/loading";
@@ -108,30 +107,26 @@ const statCards = [
   {
     key: "clientCount" as const,
     label: "Active Clients",
-    icon: Building2,
+    iconSrc: "/clients.svg",
     iconBg: "bg-blue-100",
-    iconColor: "text-blue-600",
   },
   {
     key: "ticketCount" as const,
     label: "Open Tickets",
-    icon: TicketCheck,
+    iconSrc: "/support_tickets.svg",
     iconBg: "bg-orange-100",
-    iconColor: "text-orange-600",
   },
   {
     key: "jobCardCount" as const,
     label: "Open Job Cards",
-    icon: ClipboardList,
+    iconSrc: "/briefcase.svg",
     iconBg: "bg-green-100",
-    iconColor: "text-green-600",
   },
   {
     key: "technicianCount" as const,
     label: "Active Technicians",
-    icon: Wrench,
+    iconSrc: "/tool.svg",
     iconBg: "bg-purple-100",
-    iconColor: "text-purple-600",
   },
 ];
 
@@ -196,14 +191,13 @@ export default function DashboardPage() {
       {/* Stats cards row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {statCards.map((card) => {
-          const Icon = card.icon;
           return (
             <Card key={card.key}>
               <CardContent className="flex items-center gap-4 p-5">
                 <div
-                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${card.iconBg}`}
+                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] ${card.iconBg}`}
                 >
-                  <Icon className={`h-6 w-6 ${card.iconColor}`} />
+                  <img src={card.iconSrc} alt="" className="h-6 w-6" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900">

@@ -62,7 +62,7 @@ export default function EditClientPage() {
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Edit Client</h1>
         </div>
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-[10px] border border-red-200 bg-red-50 p-4 text-sm text-red-800">
           {error || "The requested client could not be found."}
         </div>
       </div>

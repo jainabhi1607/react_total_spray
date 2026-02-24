@@ -354,7 +354,7 @@ export default function ChecklistDetailPage() {
               {sortedItems.map((item, index) => (
                 <div
                   key={item._id}
-                  className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 transition-colors hover:bg-gray-50"
+                  className="flex items-center gap-3 rounded-[10px] border border-gray-200 bg-white p-3 transition-colors hover:bg-gray-50"
                 >
                   <div className="flex-shrink-0 cursor-grab text-gray-400">
                     <GripVertical className="h-5 w-5" />
@@ -396,7 +396,7 @@ export default function ChecklistDetailPage() {
           )}
 
           {/* Add item form */}
-          <div className="mt-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4">
+          <div className="mt-4 rounded-[10px] border border-dashed border-gray-300 bg-gray-50 p-4">
             <p className="mb-3 text-sm font-medium text-gray-700">
               Add New Item
             </p>

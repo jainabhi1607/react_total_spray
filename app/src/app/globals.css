@@ -4,6 +4,12 @@
   --font-sans: var(--font-inter);
   --color-background: #ffffff;
   --color-foreground: #111827;
+  --radius-sm: 10px;
+  --radius-md: 10px;
+  --radius-lg: 10px;
+  --radius-xl: 10px;
+  --radius-2xl: 10px;
+  --radius-3xl: 10px;
 }
 
 body {
@@ -43,4 +49,14 @@ body {
 
 .slide-in-from-bottom-5 {
   animation-name: slide-in-from-bottom-5;
+}
+
+/* Sidebar icon tint on hover/active */
+.sidebar-icon-tint {
+  filter: none;
+  transition: filter 0.15s;
+}
+.group:hover .sidebar-icon-tint,
+.sidebar-icon-active {
+  filter: brightness(0) saturate(100%) invert(55%) sepia(60%) saturate(600%) hue-rotate(155deg) brightness(92%) contrast(90%) !important;
 }

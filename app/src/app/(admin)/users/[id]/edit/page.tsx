@@ -178,7 +178,7 @@ export default function EditUserPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="rounded-xl bg-red-50 p-3 text-sm text-red-600">{error}</div>
+              <div className="rounded-[10px] bg-red-50 p-3 text-sm text-red-600">{error}</div>
             )}
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

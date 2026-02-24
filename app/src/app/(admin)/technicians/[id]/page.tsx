@@ -192,7 +192,7 @@ function AddSubTechnicianDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5 pt-2">
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            <div className="rounded-[10px] border border-red-200 bg-red-50 p-3 text-sm text-red-800">
               {error}
             </div>
           )}
@@ -628,7 +628,7 @@ export default function TechnicianDetailPage() {
                 </div>
                 <button
                   onClick={() => setTechDialogOpen(true)}
-                  className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                  className="rounded-[10px] p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
@@ -712,7 +712,7 @@ export default function TechnicianDetailPage() {
                         setNotesValue(technician.technicianDetail?.notes || "");
                         setNotesEditing(true);
                       }}
-                      className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                      className="rounded-[10px] p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
@@ -721,7 +721,7 @@ export default function TechnicianDetailPage() {
                 {notesEditing ? (
                   <div className="mt-2 space-y-2">
                     <textarea
-                      className="w-full rounded-lg border border-gray-200 p-2 text-sm focus:border-cyan-500 focus:outline-none"
+                      className="w-full rounded-[10px] border border-gray-200 p-2 text-sm focus:border-cyan-500 focus:outline-none"
                       rows={3}
                       value={notesValue}
                       onChange={(e) => setNotesValue(e.target.value)}
@@ -834,7 +834,7 @@ export default function TechnicianDetailPage() {
                             <div className="flex items-center justify-end gap-1">
                               <button
                                 onClick={() => handleEditInsurance(ins)}
-                                className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                className="rounded-[10px] p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                                 title="Edit"
                               >
                                 <Pencil className="h-4 w-4" />
@@ -844,7 +844,7 @@ export default function TechnicianDetailPage() {
                                   href={`/uploads/insurance/${ins.fileName}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                  className="rounded-[10px] p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                                   title="View"
                                 >
                                   <ExternalLink className="h-4 w-4" />
@@ -854,7 +854,7 @@ export default function TechnicianDetailPage() {
                                 <a
                                   href={`/uploads/insurance/${ins.fileName}`}
                                   download
-                                  className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                  className="rounded-[10px] p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                                   title="Download"
                                 >
                                   <Download className="h-4 w-4" />
@@ -864,7 +864,7 @@ export default function TechnicianDetailPage() {
                                 onClick={() =>
                                   handleDeleteInsurance(ins._id)
                                 }
-                                className="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                                className="rounded-[10px] p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
                                 title="Delete"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -927,13 +927,13 @@ export default function TechnicianDetailPage() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => handleEditSub(sub)}
-                            className="rounded-md border border-gray-200 p-1.5 text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+                            className="rounded-[10px] border border-gray-200 p-1.5 text-gray-400 hover:bg-gray-50 hover:text-gray-600"
                           >
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
                           <button
                             onClick={() => handleDeleteSub(sub._id)}
-                            className="rounded-md border border-gray-200 p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                            className="rounded-[10px] border border-gray-200 p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>

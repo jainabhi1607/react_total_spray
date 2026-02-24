@@ -703,7 +703,7 @@ export default function SupportTicketDetailPage() {
                   {comments.map((comment) => (
                     <div
                       key={comment._id}
-                      className="rounded-xl border border-gray-200 p-4"
+                      className="rounded-[10px] border border-gray-200 p-4"
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
@@ -808,10 +808,10 @@ export default function SupportTicketDetailPage() {
                   {attachments.map((attachment) => (
                     <div
                       key={attachment._id}
-                      className="flex items-center justify-between rounded-xl border border-gray-200 p-4"
+                      className="flex items-center justify-between rounded-[10px] border border-gray-200 p-4"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-gray-100">
                           <Paperclip className="h-5 w-5 text-gray-500" />
                         </div>
                         <div>
@@ -840,7 +840,7 @@ export default function SupportTicketDetailPage() {
               )}
 
               {/* Upload placeholder */}
-              <div className="rounded-xl border-2 border-dashed border-gray-300 p-8 text-center">
+              <div className="rounded-[10px] border-2 border-dashed border-gray-300 p-8 text-center">
                 <Upload className="mx-auto h-8 w-8 text-gray-400" />
                 <p className="mt-2 text-sm text-gray-500">
                   File upload functionality
@@ -876,7 +876,7 @@ export default function SupportTicketDetailPage() {
                   {technicians.map((tech) => (
                     <div
                       key={tech._id}
-                      className="flex items-center justify-between rounded-xl border border-gray-200 p-4"
+                      className="flex items-center justify-between rounded-[10px] border border-gray-200 p-4"
                     >
                       <div>
                         <p className="text-sm font-medium text-gray-900">

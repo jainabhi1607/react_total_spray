@@ -642,7 +642,7 @@ export default function JobCardDetailPage() {
 
               {/* Recurring info */}
               {jobCard.recurringJob && (
-                <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                <div className="rounded-[10px] border border-blue-200 bg-blue-50 p-4">
                   <h3 className="text-sm font-medium text-blue-800">
                     Recurring Job
                   </h3>
@@ -749,7 +749,7 @@ export default function JobCardDetailPage() {
                     return (
                       <div
                         key={asset._id}
-                        className="rounded-xl border border-gray-200 p-4"
+                        className="rounded-[10px] border border-gray-200 p-4"
                       >
                         <div className="flex items-center justify-between">
                           <div>
@@ -849,7 +849,7 @@ export default function JobCardDetailPage() {
                   {comments.map((comment) => (
                     <div
                       key={comment._id}
-                      className="rounded-xl border border-gray-200 p-4"
+                      className="rounded-[10px] border border-gray-200 p-4"
                     >
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium text-gray-900">

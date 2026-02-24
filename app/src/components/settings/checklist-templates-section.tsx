@@ -549,7 +549,7 @@ export function ChecklistTemplatesSection() {
                 templates.map((t) => (
                   <div
                     key={t._id}
-                    className={`flex items-center justify-between rounded-xl border p-4 transition-colors ${
+                    className={`flex items-center justify-between rounded-[10px] border p-4 transition-colors ${
                       selectedId === t._id
                         ? "border-cyan-300 bg-cyan-50"
                         : "border-gray-200 hover:border-gray-300"
@@ -736,7 +736,7 @@ export function ChecklistTemplatesSection() {
                               handleDrop(dragIndex, index);
                           }}
                           style={{ padding: "27px 15px 27px 35px", lineHeight: "30px" }}
-                          className={`flex items-center gap-3 rounded-[5px] border border-[#d0dfe6] transition-all ${
+                          className={`flex items-center gap-3 rounded-[10px] border border-[#d0dfe6] transition-all ${
                             isSectionBreak
                               ? "!bg-gray-800 !text-white !border-gray-700"
                               : "bg-white hover:bg-gray-50"
@@ -999,7 +999,7 @@ export function ChecklistTemplatesSection() {
                 Item Image
               </Label>
               <div className="flex flex-1 items-center gap-3">
-                <label className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50">
+                <label className="flex cursor-pointer items-center gap-2 rounded-[10px] border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50">
                   <Upload className="h-4 w-4" />
                   {addItemFile ? addItemFile.name : "Choose File"}
                   <input
@@ -1133,7 +1133,7 @@ export function ChecklistTemplatesSection() {
                         </button>
                       </>
                     ) : (
-                      <label className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50">
+                      <label className="flex cursor-pointer items-center gap-2 rounded-[10px] border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50">
                         <Upload className="h-4 w-4" />
                         Choose File
                         <input

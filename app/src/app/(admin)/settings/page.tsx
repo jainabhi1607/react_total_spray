@@ -70,9 +70,9 @@ export default function SettingsPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {SETTINGS_ITEMS.map((item) => (
           <Link key={item.href} href={item.href}>
-            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-5 transition-shadow hover:shadow-sm">
+            <div className="flex items-center justify-between rounded-[10px] border border-gray-200 bg-white p-5 transition-shadow hover:shadow-sm">
               <div className="flex items-center gap-4">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-blue-50">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-blue-50">
                   <item.icon className="h-5 w-5 text-blue-400" />
                 </div>
                 <div>

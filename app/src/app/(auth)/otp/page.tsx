@@ -88,7 +88,7 @@ function OtpForm() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">{error}</div>
+              <div className="rounded-[10px] bg-red-50 border border-red-200 p-3 text-sm text-red-700">{error}</div>
             )}
             <div className="flex gap-2 justify-center">
               {otp.map((digit, index) => (

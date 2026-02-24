@@ -68,7 +68,7 @@ export default function PublicHistoryPage() {
           alt="Total Spray Care"
           width={56}
           height={56}
-          className="rounded-xl"
+          className="rounded-[10px]"
         />
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">

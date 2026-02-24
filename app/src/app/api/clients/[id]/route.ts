@@ -9,6 +9,7 @@ import {
 } from "@/lib/api-helpers";
 import Client from "@/models/Client";
 import ClientDetail from "@/models/ClientDetail";
+import { generateAccessToken } from "@/lib/utils";
 
 export async function GET(
   req: NextRequest,
@@ -49,7 +50,7 @@ export async function PUT(
     const { id } = await params;
 
     const body = await req.json();
-    const { companyName, address, abn, singleSite, companyLogo, status, about } = body;
+    const { companyName, address, abn, singleSite, companyLogo, status, about, activateAccessToken, deactivateAccessToken } = body;
 
     const client = await Client.findById(id);
     if (!client) {
@@ -62,6 +63,8 @@ export async function PUT(
     if (singleSite !== undefined) client.singleSite = singleSite;
     if (companyLogo !== undefined) client.companyLogo = companyLogo;
     if (status !== undefined) client.status = status;
+    if (activateAccessToken) client.accessToken = generateAccessToken();
+    if (deactivateAccessToken) client.accessToken = "";
 
     await client.save();
 

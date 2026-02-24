@@ -194,7 +194,7 @@ export function ResourceDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5 pt-2">
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            <div className="rounded-[10px] border border-red-200 bg-red-50 p-3 text-sm text-red-800">
               {error}
             </div>
           )}
@@ -212,7 +212,7 @@ export function ResourceDialog({
             <Label htmlFor="dr-category">Category</Label>
             <select
               id="dr-category"
-              className="flex h-10 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              className="flex h-10 w-full rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               value={form.resourceCategoryId}
               onChange={(e) => setForm((f) => ({ ...f, resourceCategoryId: e.target.value }))}
             >

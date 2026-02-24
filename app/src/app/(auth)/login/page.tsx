@@ -53,7 +53,7 @@ function LoginForm() {
 
   return (
     <div className="w-full max-w-md">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-8 py-10">
+      <div className="bg-white rounded-[10px] shadow-sm border border-gray-100 px-8 py-10">
         {/* Logo */}
         <div className="flex justify-center mb-6">
           <Image
@@ -77,7 +77,7 @@ function LoginForm() {
 
         {/* Error Message */}
         {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700 mb-4">
+          <div className="rounded-[10px] bg-red-50 border border-red-200 p-3 text-sm text-red-700 mb-4">
             {error}
           </div>
         )}
@@ -99,7 +99,7 @@ function LoginForm() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-[10px] border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500"
             />
           </div>
 
@@ -120,7 +120,7 @@ function LoginForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500 pr-11"
+                className="w-full rounded-[10px] border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500 pr-11"
               />
               <button
                 type="button"
@@ -161,7 +161,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-[#1a3a3a] py-3 text-sm font-semibold text-white transition-colors hover:bg-[#243f3f] focus:outline-none focus:ring-2 focus:ring-[#1a3a3a] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full rounded-[10px] bg-[#1a3a3a] py-3 text-sm font-semibold text-white transition-colors hover:bg-[#243f3f] focus:outline-none focus:ring-2 focus:ring-[#1a3a3a] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">

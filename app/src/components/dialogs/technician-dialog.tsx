@@ -179,7 +179,7 @@ export function TechnicianDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5 pt-2">
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            <div className="rounded-[10px] border border-red-200 bg-red-50 p-3 text-sm text-red-800">
               {error}
             </div>
           )}

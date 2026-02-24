@@ -422,12 +422,44 @@ export default function ClientDetailPage() {
   };
 
 
-  // ─── Copy support ticket URL ──────────────────────────────────────────
+  // ─── Support Ticket URL handlers ─────────────────────────────────────
 
   const handleCopyUrl = () => {
     if (!client?.accessToken) return;
-    const url = `${window.location.origin}/support-portal/${client.accessToken}`;
+    const url = `${window.location.origin}/support/${client.accessToken}`;
     navigator.clipboard.writeText(url);
+  };
+
+  const handleActivateUrl = async () => {
+    if (!confirm("Are you sure you want to activate the Support Ticket URL?")) return;
+    try {
+      const res = await fetch(`/api/clients/${clientId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activateAccessToken: true }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || json.message || "Failed to activate");
+      fetchClient();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleDeactivateUrl = async () => {
+    if (!confirm("Are you sure you want to deactivate the Support Ticket URL?")) return;
+    try {
+      const res = await fetch(`/api/clients/${clientId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deactivateAccessToken: true }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || json.message || "Failed to deactivate");
+      fetchClient();
+    } catch (err: any) {
+      alert(err.message);
+    }
   };
 
   // ─── Support tickets grouped by title ─────────────────────────────────
@@ -455,7 +487,7 @@ export default function ClientDetailPage() {
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Client Not Found</h1>
         </div>
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-[10px] border border-red-200 bg-red-50 p-4 text-sm text-red-800">
           {error || "The requested client could not be found."}
         </div>
       </div>
@@ -477,7 +509,7 @@ export default function ClientDetailPage() {
         {sites.length > 0 && (
           <div className="relative">
             <select
-              className="appearance-none rounded-xl border border-gray-200 bg-white px-4 py-2 pr-10 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="appearance-none rounded-[10px] border border-gray-200 bg-white px-4 py-2 pr-10 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
             >
               <option value="">Select Site</option>
               {sites.map((s) => (
@@ -506,7 +538,7 @@ export default function ClientDetailPage() {
               onClick={() => setActiveTab(tab.value)}
               className={`whitespace-nowrap border-b-2 text-sm font-normal transition-colors ${
                 activeTab === tab.value
-                  ? "border-cyan-500 text-gray-900"
+                  ? "border-[#00AEEF] text-gray-900"
                   : "border-transparent text-gray-900 hover:border-gray-300"
               }`}
               style={{ lineHeight: "30px", paddingLeft: 25, paddingRight: 25, fontSize: 14 }}
@@ -521,7 +553,7 @@ export default function ClientDetailPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Support Tickets - dark card */}
         <Card className="bg-slate-800 border-slate-700">
-          <CardContent className="flex items-center justify-between p-5" style={{ height: 106 }}>
+          <CardContent className="flex items-center justify-between p-5" style={{ height: 98 }}>
             <p className="text-sm font-medium text-slate-300">Support Tickets</p>
             <p className="text-3xl font-bold" style={{ color: "#00AEEF" }}>
               {supportTickets.length}
@@ -530,7 +562,7 @@ export default function ClientDetailPage() {
         </Card>
         {/* Assets */}
         <Card className="bg-white">
-          <CardContent className="flex items-center justify-between p-5" style={{ height: 106 }}>
+          <CardContent className="flex items-center justify-between p-5" style={{ height: 98 }}>
             <p className="text-sm font-medium text-gray-500">Assets</p>
             <p className="text-3xl font-bold" style={{ color: "#f7cd4b" }}>
               {assets.length}
@@ -539,7 +571,7 @@ export default function ClientDetailPage() {
         </Card>
         {/* Sites */}
         <Card className="bg-white">
-          <CardContent className="flex items-center justify-between p-5" style={{ height: 106 }}>
+          <CardContent className="flex items-center justify-between p-5" style={{ height: 98 }}>
             <p className="text-sm font-medium text-gray-500">Sites</p>
             <p className="text-3xl font-bold" style={{ color: "#E18230" }}>
               {sites.length}
@@ -548,7 +580,7 @@ export default function ClientDetailPage() {
         </Card>
         {/* Contacts */}
         <Card className="bg-white">
-          <CardContent className="flex items-center justify-between p-5" style={{ height: 106 }}>
+          <CardContent className="flex items-center justify-between p-5" style={{ height: 98 }}>
             <p className="text-sm font-medium text-gray-500">Contacts</p>
             <p className="text-3xl font-bold" style={{ color: "#82cd66" }}>
               {contacts.length}
@@ -568,7 +600,7 @@ export default function ClientDetailPage() {
                 <CardTitle className="text-lg">Client Information</CardTitle>
                 <button
                   onClick={() => setEditDialogOpen(true)}
-                  className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                  className="rounded-[10px] p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
@@ -601,7 +633,7 @@ export default function ClientDetailPage() {
                 <CardTitle className="text-lg">About</CardTitle>
                 <button
                   onClick={handleEditAbout}
-                  className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                  className="rounded-[10px] p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
@@ -646,7 +678,7 @@ export default function ClientDetailPage() {
                 <CardTitle className="text-lg">Attachments</CardTitle>
                 <button
                   onClick={() => { setPendingFiles([]); setUploadDialogOpen(true); }}
-                  className="rounded-md border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                  className="rounded-[10px] border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
                 >
                   <Upload className="h-4 w-4" />
                 </button>
@@ -660,7 +692,7 @@ export default function ClientDetailPage() {
                       const name = doc.fileName || doc.documentName || "";
                       const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(name);
                       return (
-                        <div key={doc._id} className="w-40 rounded-xl border border-gray-200 bg-white p-3">
+                        <div key={doc._id} className="w-40 rounded-[10px] border border-gray-200 bg-white p-3">
                           {/* Action icons */}
                           <div className="flex items-center gap-2.5 mb-2">
                             <a
@@ -723,7 +755,7 @@ export default function ClientDetailPage() {
                 >
                   {/* Lightbox container */}
                   <div
-                    className="relative mx-4 flex max-h-[90vh] max-w-[90vw] items-center justify-center rounded-2xl bg-white p-6 shadow-2xl"
+                    className="relative mx-4 flex max-h-[90vh] max-w-[90vw] items-center justify-center rounded-[10px] bg-white p-6 shadow-2xl"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {/* Close button */}
@@ -752,7 +784,7 @@ export default function ClientDetailPage() {
                     <img
                       src={`/uploads/documents/${currentDoc.fileName}`}
                       alt={currentDoc.documentName || "Attachment"}
-                      className="max-h-[80vh] max-w-[80vw] rounded-lg object-contain"
+                      className="max-h-[80vh] max-w-[80vw] rounded-[10px] object-contain"
                     />
 
                     {/* Next arrow */}
@@ -783,7 +815,7 @@ export default function ClientDetailPage() {
                   onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                   onDragLeave={() => setDragOver(false)}
                   onDrop={handleDrop}
-                  className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-10 transition-colors ${
+                  className={`flex flex-col items-center justify-center rounded-[10px] border-2 border-dashed p-10 transition-colors ${
                     dragOver
                       ? "border-cyan-500 bg-cyan-50"
                       : "border-cyan-300 bg-cyan-50/30"
@@ -849,7 +881,7 @@ export default function ClientDetailPage() {
                 ) : (
                   <div className="space-y-2">
                     {Object.entries(ticketsByTitle).map(([key, { title, count }]) => (
-                      <div key={key} className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-4 py-2.5">
+                      <div key={key} className="flex items-center justify-between rounded-[10px] border border-gray-100 bg-gray-50 px-4 py-2.5">
                         <span className="text-sm text-gray-700">{title}</span>
                         <span className="text-sm font-semibold text-gray-900">{count}</span>
                       </div>
@@ -861,26 +893,50 @@ export default function ClientDetailPage() {
 
             {/* Support Ticket URL */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Support Ticket URL</CardTitle>
-              </CardHeader>
-              <CardContent>
+              <CardContent className="p-6">
                 {client.accessToken ? (
                   <div className="space-y-3">
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-                      <p className="text-xs text-gray-500 truncate">
-                        {typeof window !== "undefined" ? `${window.location.origin}/support-portal/${client.accessToken}` : `/support-portal/${client.accessToken}`}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button size="sm" variant="outline" onClick={handleCopyUrl}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-bold text-gray-900">Support Ticket URL</span>
+                        <button
+                          onClick={handleCopyUrl}
+                          className="flex items-center gap-1.5 text-sm text-[#00AEEF] hover:text-[#009ad6] font-medium"
+                        >
+                          <Copy className="h-4 w-4" />
+                          Copy link
+                        </button>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleDeactivateUrl}
+                        className="border-gray-300 text-gray-600 hover:bg-gray-50 px-4"
+                      >
                         <Copy className="h-4 w-4" />
-                        Copy Link
+                        Deactivate
                       </Button>
+                    </div>
+                    <div className="rounded-[10px] bg-[#eef6fa] px-4 py-3">
+                      <p className="text-sm text-gray-600 break-all">
+                        {typeof window !== "undefined"
+                          ? `${window.location.origin}/support/${client.accessToken}`
+                          : `/support/${client.accessToken}`}
+                      </p>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-center text-sm text-gray-500 py-4">No access token configured</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Support Ticket URL</span>
+                    <Button
+                      size="sm"
+                      onClick={handleActivateUrl}
+                      className="bg-[#00AEEF] hover:bg-[#009ad6] text-white px-5"
+                    >
+                      <Copy className="h-4 w-4" />
+                      Activate
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -892,7 +948,7 @@ export default function ClientDetailPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Add note */}
-                <div className="rounded-xl border border-gray-200 bg-sky-50/40 p-4">
+                <div className="rounded-[10px] border border-gray-200 bg-sky-50/40 p-4">
                   <Textarea
                     placeholder="Start typing..."
                     value={noteText}
@@ -910,7 +966,7 @@ export default function ClientDetailPage() {
                             <button
                               key={t.value}
                               onClick={() => setSelectedNoteType(t.value)}
-                              className={`flex h-9 w-9 items-center justify-center rounded-lg border transition-colors ${
+                              className={`flex h-9 w-9 items-center justify-center rounded-[10px] border transition-colors ${
                                 selectedNoteType === t.value
                                   ? "border-cyan-500 bg-cyan-50"
                                   : "border-gray-200 bg-white hover:border-gray-300"
@@ -941,7 +997,7 @@ export default function ClientDetailPage() {
                 ) : (
                   <div className="space-y-3">
                     {notes.map((note) => (
-                      <div key={note._id} className="rounded-xl border border-gray-200 bg-white p-4">
+                      <div key={note._id} className="rounded-[10px] border border-gray-200 bg-white p-4">
                         {/* Note header */}
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
@@ -967,14 +1023,14 @@ export default function ClientDetailPage() {
                                 setEditingNoteId(note._id);
                                 setEditNoteText(note.notes);
                               }}
-                              className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                              className="flex h-7 w-7 items-center justify-center rounded-[10px] border border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50"
                               title="Edit"
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </button>
                             <button
                               onClick={() => handleDeleteNote(note._id)}
-                              className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 hover:bg-gray-50 hover:opacity-70"
+                              className="flex h-7 w-7 items-center justify-center rounded-[10px] border border-gray-200 hover:bg-gray-50 hover:opacity-70"
                               title="Delete"
                             >
                               <img src="/trash.svg" alt="Delete" className="h-3.5 w-3.5" />
@@ -1173,7 +1229,7 @@ function SitesTab({
               </DialogDescription>
             </DialogHeader>
             {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              <div className="rounded-[10px] border border-red-200 bg-red-50 p-3 text-sm text-red-800">
                 {error}
               </div>
             )}
@@ -1401,7 +1457,7 @@ function AssetsTab({
               </DialogDescription>
             </DialogHeader>
             {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              <div className="rounded-[10px] border border-red-200 bg-red-50 p-3 text-sm text-red-800">
                 {error}
               </div>
             )}
@@ -1434,7 +1490,7 @@ function AssetsTab({
                 <Label htmlFor="assetSite">Site</Label>
                 <select
                   id="assetSite"
-                  className="flex h-10 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  className="flex h-10 w-full rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                   value={form.clientSiteId}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, clientSiteId: e.target.value }))
@@ -1646,7 +1702,7 @@ function ContactsTab({
               </DialogDescription>
             </DialogHeader>
             {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              <div className="rounded-[10px] border border-red-200 bg-red-50 p-3 text-sm text-red-800">
                 {error}
               </div>
             )}
@@ -1715,7 +1771,7 @@ function ContactsTab({
                 <Label htmlFor="contactSite">Site</Label>
                 <select
                   id="contactSite"
-                  className="flex h-10 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  className="flex h-10 w-full rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                   value={form.clientSiteId}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, clientSiteId: e.target.value }))
@@ -1851,7 +1907,7 @@ function NotesTab({
         </CardHeader>
         <CardContent>
           {error && (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            <div className="mb-4 rounded-[10px] border border-red-200 bg-red-50 p-3 text-sm text-red-800">
               {error}
             </div>
           )}
@@ -1884,7 +1940,7 @@ function NotesTab({
               {notes.map((note) => (
                 <div
                   key={note._id}
-                  className="rounded-xl border border-gray-100 bg-gray-50 p-4"
+                  className="rounded-[10px] border border-gray-100 bg-gray-50 p-4"
                 >
                   <p className="text-gray-800 whitespace-pre-wrap">
                     {note.notes}

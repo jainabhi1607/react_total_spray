@@ -162,12 +162,12 @@ export default function JobCardsListPage() {
         <CardContent className="p-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             {/* Status tabs */}
-            <div className="flex flex-wrap gap-1 rounded-xl bg-gray-100 p-1">
+            <div className="flex flex-wrap gap-1 rounded-[10px] bg-gray-100 p-1">
               {STATUS_TABS.map((tab) => (
                 <button
                   key={tab.value}
                   onClick={() => setStatusFilter(tab.value)}
-                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={`rounded-[10px] px-3 py-1.5 text-sm font-medium transition-colors ${
                     statusFilter === tab.value
                       ? "bg-white text-gray-950 shadow-sm"
                       : "text-gray-500 hover:text-gray-700"

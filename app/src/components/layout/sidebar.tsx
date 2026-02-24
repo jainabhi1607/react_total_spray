@@ -2,7 +2,6 @@
 
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -73,27 +72,14 @@ export function Sidebar({ userRole, collapsed, onToggle }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen border-r border-gray-200 bg-white transition-all duration-300",
+        "fixed left-0 top-[calc(3.5rem+3px)] z-40 h-[calc(100vh-3.5rem-3px)] bg-[#e4f5fa] transition-all duration-300",
         collapsed ? "w-16" : "w-64"
       )}
     >
-      {/* Logo */}
-      <div className="flex items-center justify-center border-b border-gray-200 py-3 px-2">
-        <Link href="/dashboard" className="flex items-center justify-center">
-          <Image
-            src="/logo.jpg"
-            alt="Total Spray Care"
-            width={130}
-            height={130}
-            className={cn("object-contain", collapsed ? "w-10 h-10" : "w-[120px] h-auto")}
-          />
-        </Link>
-      </div>
-
       {/* Toggle */}
       <button
         onClick={onToggle}
-        className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm hover:bg-gray-50"
+        className="absolute -right-3 top-6 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm hover:bg-gray-50"
       >
         {collapsed ? (
           <ChevronRight className="h-3 w-3 text-gray-600" />
@@ -103,8 +89,8 @@ export function Sidebar({ userRole, collapsed, onToggle }: SidebarProps) {
       </button>
 
       {/* Navigation */}
-      <ScrollArea className="h-[calc(100vh-8rem)]">
-        <nav className="flex flex-col gap-0.5 p-3">
+      <ScrollArea className="h-[calc(100vh-3.5rem-3px-4rem)]">
+        <nav className="flex flex-col gap-1 py-4 pl-[20px] pr-3">
           {filteredItems.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -115,11 +101,11 @@ export function Sidebar({ userRole, collapsed, onToggle }: SidebarProps) {
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors",
+                    "group flex items-center gap-3 rounded-[10px] py-2.5 pl-4 pr-3 text-[12px] font-normal transition-colors",
                     isActive
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
-                    collapsed && "justify-center px-2"
+                      ? "bg-[#B7EBFF] text-[#2EA4D0]"
+                      : "text-[#323E42] hover:bg-[#B7EBFF] hover:text-[#2EA4D0]",
+                    collapsed && "justify-center px-2 rounded-full"
                   )}
                   title={collapsed ? item.label : undefined}
                 >
@@ -127,21 +113,18 @@ export function Sidebar({ userRole, collapsed, onToggle }: SidebarProps) {
                     <img
                       src={item.iconSrc}
                       alt=""
-                      className="h-[18px] w-[18px] shrink-0"
+                      className={cn("h-[16px] w-[16px] shrink-0 sidebar-icon-tint", isActive && "sidebar-icon-active")}
                     />
                   ) : item.icon ? (
-                    <item.icon className={cn("h-[18px] w-[18px] shrink-0", isActive && "text-blue-600")} />
+                    <item.icon className={cn("h-[16px] w-[16px] shrink-0", isActive ? "text-[#2EA4D0]" : "text-gray-500 group-hover:text-[#2EA4D0]")} />
                   ) : null}
                   {!collapsed && <span>{item.label}</span>}
                   {!collapsed && item.badge !== undefined && item.badge > 0 && (
-                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-100 px-1.5 text-xs font-semibold text-red-700">
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-[#29b6f6] px-1.5 text-[11px] font-bold text-white border border-white">
                       {item.badge}
                     </span>
                   )}
                 </Link>
-                {item.dividerAfter && (
-                  <div className="my-1.5 h-px bg-gray-100" />
-                )}
               </React.Fragment>
             );
           })}
@@ -149,15 +132,15 @@ export function Sidebar({ userRole, collapsed, onToggle }: SidebarProps) {
       </ScrollArea>
 
       {/* Logout */}
-      <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 p-3">
+      <div className="absolute bottom-0 left-0 right-0 py-3 pl-[20px] pr-3">
         <Link
           href="/api/auth/signout"
           className={cn(
-            "flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium text-gray-600 hover:bg-red-50 hover:text-red-700 transition-colors",
+            "group flex items-center gap-3 rounded-[10px] py-2.5 pl-4 pr-3 text-[12px] font-normal text-[#323E42] hover:bg-[#B7EBFF] hover:text-[#2EA4D0] transition-colors",
             collapsed && "justify-center px-2"
           )}
         >
-          <LogOut className="h-[18px] w-[18px] shrink-0" />
+          <LogOut className="h-[16px] w-[16px] shrink-0 text-gray-500 group-hover:text-[#2EA4D0]" />
           {!collapsed && <span>Logout</span>}
         </Link>
       </div>
