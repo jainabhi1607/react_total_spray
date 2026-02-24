@@ -16,7 +16,11 @@
       "WebFetch(domain:localhost)",
       "Bash(curl:*)",
       "Bash(echo === Client API ===:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(echo Done:*)",
+      "Bash(grep:*)",
+      "Bash(wc:*)",
+      "Bash(find:*)"
     ]
   }
 }
