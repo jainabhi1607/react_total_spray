@@ -8,6 +8,8 @@ import {
   handleApiError,
 } from "@/lib/api-helpers";
 import ClientAsset from "@/models/ClientAsset";
+import "@/models/AssetMake";
+import "@/models/AssetModel";
 
 export async function GET(
   req: NextRequest,
@@ -38,6 +40,8 @@ export async function GET(
     }
 
     const assets = await ClientAsset.find(query)
+      .populate("assetMakeId", "title")
+      .populate("assetModelId", "title")
       .sort({ createdAt: -1 })
       .lean();
 

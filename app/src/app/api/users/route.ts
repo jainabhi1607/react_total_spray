@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
     const role = searchParams.get("role");
 
     const query: Record<string, any> = { status: { $ne: 2 } };
+    const clientId = searchParams.get("clientId");
 
     if (search) {
       query.$or = [
@@ -32,6 +33,10 @@ export async function GET(req: NextRequest) {
 
     if (role) {
       query.role = parseInt(role);
+    }
+
+    if (clientId) {
+      query.clientId = clientId;
     }
 
     const [users, total] = await Promise.all([

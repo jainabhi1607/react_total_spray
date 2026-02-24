@@ -20,6 +20,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  ExternalLink,
+  User,
   X,
 } from "lucide-react";
 import { AddClientDialog } from "@/components/dialogs/add-client-dialog";
@@ -47,7 +49,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PageLoading } from "@/components/ui/loading";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatDateTime } from "@/lib/utils";
 
 // ─── Type definitions ───────────────────────────────────────────────────────
 
@@ -81,8 +83,33 @@ interface Asset {
   machineName: string;
   serialNo?: string;
   clientSiteId?: string;
+  assetTypeId?: string;
+  assetMakeId?: string | { _id: string; title: string };
+  assetModelId?: string | { _id: string; title: string };
   status: number;
   createdAt?: string;
+}
+
+interface AssetTypeOption {
+  _id: string;
+  title: string;
+}
+
+interface AssetMakeOption {
+  _id: string;
+  title: string;
+}
+
+interface AssetModelOption {
+  _id: string;
+  title: string;
+  assetTypeId?: string;
+}
+
+interface AssetMakeModelMapping {
+  _id: string;
+  assetMakeId: string;
+  assetModelId: string;
 }
 
 interface Contact {
@@ -538,7 +565,7 @@ export default function ClientDetailPage() {
               onClick={() => setActiveTab(tab.value)}
               className={`whitespace-nowrap border-b-2 text-sm font-normal transition-colors ${
                 activeTab === tab.value
-                  ? "border-[#00AEEF] text-gray-900"
+                  ? "border-[#00AEEF] text-[#00AEEF]"
                   : "border-transparent text-gray-900 hover:border-gray-300"
               }`}
               style={{ lineHeight: "30px", paddingLeft: 25, paddingRight: 25, fontSize: 14 }}
@@ -549,48 +576,48 @@ export default function ClientDetailPage() {
         </nav>
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Support Tickets - dark card */}
-        <Card className="bg-slate-800 border-slate-700">
-          <CardContent className="flex items-center justify-between p-5" style={{ height: 98 }}>
-            <p className="text-sm font-medium text-slate-300">Support Tickets</p>
-            <p className="text-3xl font-bold" style={{ color: "#00AEEF" }}>
-              {supportTickets.length}
-            </p>
-          </CardContent>
-        </Card>
-        {/* Assets */}
-        <Card className="bg-white">
-          <CardContent className="flex items-center justify-between p-5" style={{ height: 98 }}>
-            <p className="text-sm font-medium text-gray-500">Assets</p>
-            <p className="text-3xl font-bold" style={{ color: "#f7cd4b" }}>
-              {assets.length}
-            </p>
-          </CardContent>
-        </Card>
-        {/* Sites */}
-        <Card className="bg-white">
-          <CardContent className="flex items-center justify-between p-5" style={{ height: 98 }}>
-            <p className="text-sm font-medium text-gray-500">Sites</p>
-            <p className="text-3xl font-bold" style={{ color: "#E18230" }}>
-              {sites.length}
-            </p>
-          </CardContent>
-        </Card>
-        {/* Contacts */}
-        <Card className="bg-white">
-          <CardContent className="flex items-center justify-between p-5" style={{ height: 98 }}>
-            <p className="text-sm font-medium text-gray-500">Contacts</p>
-            <p className="text-3xl font-bold" style={{ color: "#82cd66" }}>
-              {contacts.length}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Tab Content */}
       {activeTab === "overview" && (
+        <>
+        {/* Stat Cards */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Support Tickets - dark card */}
+          <Card className="bg-slate-800 border-slate-700">
+            <CardContent className="flex items-center justify-between p-5" style={{ height: 98 }}>
+              <p className="text-sm font-medium text-slate-300">Support Tickets</p>
+              <p className="text-3xl font-bold" style={{ color: "#00AEEF" }}>
+                {supportTickets.length}
+              </p>
+            </CardContent>
+          </Card>
+          {/* Assets */}
+          <Card className="bg-white">
+            <CardContent className="flex items-center justify-between p-5" style={{ height: 98 }}>
+              <p className="text-sm font-medium text-gray-500">Assets</p>
+              <p className="text-3xl font-bold" style={{ color: "#f7cd4b" }}>
+                {assets.length}
+              </p>
+            </CardContent>
+          </Card>
+          {/* Sites */}
+          <Card className="bg-white">
+            <CardContent className="flex items-center justify-between p-5" style={{ height: 98 }}>
+              <p className="text-sm font-medium text-gray-500">Sites</p>
+              <p className="text-3xl font-bold" style={{ color: "#E18230" }}>
+                {sites.length}
+              </p>
+            </CardContent>
+          </Card>
+          {/* Contacts */}
+          <Card className="bg-white">
+            <CardContent className="flex items-center justify-between p-5" style={{ height: 98 }}>
+              <p className="text-sm font-medium text-gray-500">Contacts</p>
+              <p className="text-3xl font-bold" style={{ color: "#82cd66" }}>
+                {contacts.length}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
         <div className="grid gap-6 md:grid-cols-12">
           {/* Left Column */}
           <div className="md:col-span-7 space-y-6">
@@ -1074,6 +1101,7 @@ export default function ClientDetailPage() {
             </Card>
           </div>
         </div>
+        </>
       )}
 
       {activeTab === "sites" && (
@@ -1101,9 +1129,7 @@ export default function ClientDetailPage() {
       )}
 
       {activeTab === "portal-users" && (
-        <div className="flex items-center justify-center py-16">
-          <p className="text-gray-500 text-sm">Coming soon</p>
-        </div>
+        <PortalUsersTab clientId={clientId} />
       )}
     </div>
   );
@@ -1362,25 +1388,169 @@ function AssetsTab({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
 
-  const [form, setForm] = useState({
-    machineName: "",
-    serialNo: "",
-    clientSiteId: "",
-  });
+  // Form fields
+  const [machineName, setMachineName] = useState("");
+  const [serialNo, setSerialNo] = useState("");
+  const [clientSiteId, setClientSiteId] = useState("");
+
+  // Asset settings data
+  const [assetTypes, setAssetTypes] = useState<AssetTypeOption[]>([]);
+  const [assetMakes, setAssetMakes] = useState<AssetMakeOption[]>([]);
+  const [assetModels, setAssetModels] = useState<AssetModelOption[]>([]);
+  const [makeModelMappings, setMakeModelMappings] = useState<AssetMakeModelMapping[]>([]);
+  const [loadingSettings, setLoadingSettings] = useState(false);
+
+  // Selection state
+  const [selectedTypeIds, setSelectedTypeIds] = useState<Set<string>>(new Set());
+  const [selectedMakeId, setSelectedMakeId] = useState("");
+  const [selectedModelId, setSelectedModelId] = useState("");
+
+  const fetchAssetSettings = async (asset?: Asset | null) => {
+    setLoadingSettings(true);
+    try {
+      const [typesRes, makesRes, modelsRes, mappingsRes] = await Promise.all([
+        fetch("/api/settings/asset-types").then((r) => r.json()),
+        fetch("/api/settings/asset-makes").then((r) => r.json()),
+        fetch("/api/settings/asset-models").then((r) => r.json()),
+        fetch("/api/settings/asset-make-models").then((r) => r.json()),
+      ]);
+
+      const types = typesRes.success ? typesRes.data : [];
+      const makes = makesRes.success ? makesRes.data : [];
+      const models = modelsRes.success ? modelsRes.data : [];
+      const mappings = mappingsRes.success ? mappingsRes.data : [];
+
+      setAssetTypes(types);
+      setAssetMakes(makes);
+      setAssetModels(models);
+      setMakeModelMappings(mappings);
+
+      // Select all types by default
+      setSelectedTypeIds(new Set(types.map((t: AssetTypeOption) => t._id)));
+
+      // If editing, pre-select make and model
+      if (asset) {
+        const makeId = typeof asset.assetMakeId === "object" ? asset.assetMakeId._id : asset.assetMakeId || "";
+        const modelId = typeof asset.assetModelId === "object" ? asset.assetModelId._id : asset.assetModelId || "";
+        setSelectedMakeId(makeId);
+        setSelectedModelId(modelId);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
 
   const resetForm = () => {
-    setForm({ machineName: "", serialNo: "", clientSiteId: "" });
+    setMachineName("");
+    setSerialNo("");
+    setClientSiteId("");
+    setEditingAsset(null);
+    setSelectedTypeIds(new Set(assetTypes.map((t) => t._id)));
+    setSelectedMakeId("");
+    setSelectedModelId("");
     setError("");
   };
 
   const openAdd = () => {
     resetForm();
+    fetchAssetSettings();
     setDialogOpen(true);
   };
 
+  const openEdit = (asset: Asset) => {
+    setEditingAsset(asset);
+    setMachineName(asset.machineName);
+    setSerialNo(asset.serialNo || "");
+    setClientSiteId(asset.clientSiteId || "");
+    setError("");
+    fetchAssetSettings(asset);
+    setDialogOpen(true);
+  };
+
+  // Toggle a type selection
+  const toggleType = (typeId: string) => {
+    setSelectedTypeIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(typeId)) {
+        next.delete(typeId);
+      } else {
+        next.add(typeId);
+      }
+      return next;
+    });
+    // Clear make/model when types change
+    setSelectedMakeId("");
+    setSelectedModelId("");
+  };
+
+  // Compute filtered makes based on selected types
+  // A make is shown if it has at least one make-model mapping where the model's assetTypeId is in selectedTypeIds
+  const filteredMakes = (() => {
+    if (selectedTypeIds.size === 0) return [];
+
+    // Get model IDs that belong to selected types
+    const typeModelIds = new Set(
+      assetModels
+        .filter((m) => m.assetTypeId && selectedTypeIds.has(m.assetTypeId))
+        .map((m) => m._id)
+    );
+
+    // Get make IDs that have mappings to those models
+    const validMakeIds = new Set(
+      makeModelMappings
+        .filter((mm) => typeModelIds.has(mm.assetModelId))
+        .map((mm) => mm.assetMakeId)
+    );
+
+    // Also include makes that have ANY mapping (if no type filter would exclude them)
+    // If all types are selected, show all makes
+    if (selectedTypeIds.size === assetTypes.length) {
+      return assetMakes;
+    }
+
+    return assetMakes.filter((m) => validMakeIds.has(m._id));
+  })();
+
+  // Compute filtered models for the selected make
+  const filteredModels = (() => {
+    if (!selectedMakeId) return [];
+
+    // Get model IDs mapped to this make
+    const mappedModelIds = new Set(
+      makeModelMappings
+        .filter((mm) => mm.assetMakeId === selectedMakeId)
+        .map((mm) => mm.assetModelId)
+    );
+
+    // Filter models by mapped IDs and selected types
+    return assetModels.filter(
+      (m) =>
+        mappedModelIds.has(m._id) &&
+        (!m.assetTypeId || selectedTypeIds.has(m.assetTypeId))
+    );
+  })();
+
+  // Clear model if make changes and current model is not valid
+  useEffect(() => {
+    if (selectedModelId && !filteredModels.find((m) => m._id === selectedModelId)) {
+      setSelectedModelId("");
+    }
+  }, [selectedMakeId, filteredModels, selectedModelId]);
+
+  // Clear make if it's no longer in filtered makes
+  useEffect(() => {
+    if (selectedMakeId && !filteredMakes.find((m) => m._id === selectedMakeId)) {
+      setSelectedMakeId("");
+      setSelectedModelId("");
+    }
+  }, [selectedTypeIds, filteredMakes, selectedMakeId]);
+
   const handleSubmit = async () => {
-    if (!form.machineName.trim()) {
+    if (!machineName.trim()) {
       setError("Machine name is required");
       return;
     }
@@ -1389,18 +1559,34 @@ function AssetsTab({
       setSubmitting(true);
       setError("");
 
-      const res = await fetch(`/api/clients/${clientId}/assets`, {
-        method: "POST",
+      // Determine the assetTypeId from the selected model if available
+      let assetTypeId: string | undefined;
+      if (selectedModelId) {
+        const model = assetModels.find((m) => m._id === selectedModelId);
+        if (model?.assetTypeId) assetTypeId = model.assetTypeId;
+      }
+
+      const payload = {
+        machineName: machineName.trim(),
+        serialNo: serialNo.trim() || undefined,
+        clientSiteId: clientSiteId || undefined,
+        assetTypeId,
+        assetMakeId: selectedMakeId || undefined,
+        assetModelId: selectedModelId || undefined,
+      };
+
+      const url = editingAsset
+        ? `/api/clients/${clientId}/assets/${editingAsset._id}`
+        : `/api/clients/${clientId}/assets`;
+
+      const res = await fetch(url, {
+        method: editingAsset ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          machineName: form.machineName.trim(),
-          serialNo: form.serialNo.trim(),
-          clientSiteId: form.clientSiteId || undefined,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const json = await res.json();
-      if (!json.success) throw new Error(json.error || "Failed to add asset");
+      if (!json.success) throw new Error(json.error || `Failed to ${editingAsset ? "update" : "add"} asset`);
 
       setDialogOpen(false);
       resetForm();
@@ -1432,69 +1618,41 @@ function AssetsTab({
     return site?.siteName || "-";
   };
 
+  const getMakeName = (makeId?: string | { _id: string; title: string }) => {
+    if (!makeId) return "";
+    if (typeof makeId === "object") return makeId.title;
+    return "";
+  };
+
+  const getModelName = (modelId?: string | { _id: string; title: string }) => {
+    if (!modelId) return "";
+    if (typeof modelId === "object") return modelId.title;
+    return "";
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Wrench className="h-5 w-5 text-gray-500" />
-            Assets
-          </CardTitle>
-          <CardDescription>{assets.length} asset(s)</CardDescription>
-        </div>
+        <CardTitle className="text-lg font-semibold">Assets</CardTitle>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" onClick={openAdd}>
+            <Button
+              size="sm"
+              onClick={openAdd}
+              className="bg-[#00AEEF] hover:bg-[#0098d4] text-white"
+            >
               <Plus className="h-4 w-4" />
-              Add Asset
+              Add Machine
             </Button>
           </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Asset</DialogTitle>
-              <DialogDescription>
-                Enter the details for the new asset.
-              </DialogDescription>
-            </DialogHeader>
-            {error && (
-              <div className="rounded-[10px] border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                {error}
-              </div>
-            )}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="machineName">
-                  Machine Name <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="machineName"
-                  placeholder="Enter machine name"
-                  value={form.machineName}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, machineName: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="serialNo">Serial Number</Label>
-                <Input
-                  id="serialNo"
-                  placeholder="Enter serial number"
-                  value={form.serialNo}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, serialNo: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="assetSite">Site</Label>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader className="p-0">
+              <div className="flex items-center gap-3">
+                <DialogTitle className="text-base font-semibold">{editingAsset ? "Edit Asset" : "Add Asset"}</DialogTitle>
                 <select
-                  id="assetSite"
-                  className="flex h-10 w-full rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-                  value={form.clientSiteId}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, clientSiteId: e.target.value }))
-                  }
+                  className="h-9 rounded-[10px] border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={clientSiteId}
+                  onChange={(e) => setClientSiteId(e.target.value)}
                 >
                   <option value="">Select a site</option>
                   {sites.map((site) => (
@@ -1504,65 +1662,217 @@ function AssetsTab({
                   ))}
                 </select>
               </div>
+              <DialogDescription className="sr-only">
+                {editingAsset ? "Edit asset details" : "Add a new asset to this client"}
+              </DialogDescription>
+            </DialogHeader>
+
+            {error && (
+              <div className="rounded-[10px] border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                {error}
+              </div>
+            )}
+
+            {/* Machine Name & Serial Number */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-sm text-gray-600">Machine Name</Label>
+                <Input
+                  placeholder="Enter machine name"
+                  value={machineName}
+                  onChange={(e) => setMachineName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm text-gray-600">Serial Number</Label>
+                <Input
+                  placeholder="Enter serial number"
+                  value={serialNo}
+                  onChange={(e) => setSerialNo(e.target.value)}
+                />
+              </div>
             </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
+
+            <hr className="border-gray-200" />
+
+            {/* Three-column Type / Make / Model selector */}
+            {loadingSettings ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-4 min-h-[280px]">
+                {/* Type Column */}
+                <div className="flex flex-col">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">Type</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {assetTypes.map((type) => {
+                      const isSelected = selectedTypeIds.has(type._id);
+                      return (
+                        <button
+                          key={type._id}
+                          type="button"
+                          onClick={() => toggleType(type._id)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                            isSelected
+                              ? "bg-[#E0F4FB] text-[#2EA4D0] border border-[#2EA4D0]"
+                              : "bg-gray-100 text-gray-500 border border-gray-200"
+                          }`}
+                        >
+                          {type.title}
+                        </button>
+                      );
+                    })}
+                    {assetTypes.length === 0 && (
+                      <p className="text-sm text-gray-400">No types available</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Make Column */}
+                <div className="flex flex-col">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">Make</h4>
+                  <div className="flex flex-col gap-2 overflow-y-auto max-h-[260px] pr-1">
+                    {filteredMakes.map((make) => {
+                      const isSelected = selectedMakeId === make._id;
+                      return (
+                        <button
+                          key={make._id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedMakeId(isSelected ? "" : make._id);
+                            setSelectedModelId("");
+                          }}
+                          className={`px-3 py-2 rounded-[10px] text-sm text-left transition-colors border ${
+                            isSelected
+                              ? "border-[#2EA4D0] bg-[#E0F4FB] text-[#2EA4D0] font-medium"
+                              : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                          }`}
+                        >
+                          {make.title}
+                        </button>
+                      );
+                    })}
+                    {filteredMakes.length === 0 && (
+                      <p className="text-sm text-gray-400">
+                        {selectedTypeIds.size === 0
+                          ? "Select a type to see makes"
+                          : "No makes available"}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Model Column */}
+                <div className="flex flex-col">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">Model</h4>
+                  <div className="flex flex-col gap-2 overflow-y-auto max-h-[260px] pr-1">
+                    {selectedMakeId ? (
+                      filteredModels.length > 0 ? (
+                        filteredModels.map((model) => {
+                          const isSelected = selectedModelId === model._id;
+                          return (
+                            <button
+                              key={model._id}
+                              type="button"
+                              onClick={() =>
+                                setSelectedModelId(isSelected ? "" : model._id)
+                              }
+                              className={`px-3 py-2 rounded-[10px] text-sm text-left transition-colors border ${
+                                isSelected
+                                  ? "border-[#2EA4D0] bg-[#E0F4FB] text-[#2EA4D0] font-medium"
+                                  : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                              }`}
+                            >
+                              {model.title}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <p className="text-sm text-gray-400">No models available</p>
+                      )
+                    ) : (
+                      <p className="text-sm text-gray-400">Select a make to see models</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <hr className="border-gray-200" />
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-4">
+              <button
+                type="button"
                 onClick={() => setDialogOpen(false)}
                 disabled={submitting}
+                className="text-sm text-gray-500 hover:text-gray-700"
               >
                 Cancel
-              </Button>
-              <Button onClick={handleSubmit} disabled={submitting}>
+              </button>
+              <Button
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="bg-[#00AEEF] hover:bg-[#0098d4] text-white"
+              >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                Add Asset
+                {editingAsset ? "Update Asset" : "Add Asset"}
               </Button>
-            </DialogFooter>
+            </div>
           </DialogContent>
         </Dialog>
       </CardHeader>
       <CardContent className="p-0">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Machine Name</TableHead>
-              <TableHead>Serial No</TableHead>
-              <TableHead>Site</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+            <TableRow className="bg-[#E8F6FC]">
+              <TableHead className="text-[#2EA4D0] font-medium">Site</TableHead>
+              <TableHead className="text-[#2EA4D0] font-medium">Machine Name</TableHead>
+              <TableHead className="text-[#2EA4D0] font-medium">Serial Number</TableHead>
+              <TableHead className="text-[#2EA4D0] font-medium">Make</TableHead>
+              <TableHead className="text-[#2EA4D0] font-medium">Model</TableHead>
+              <TableHead className="text-right"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {assets.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                   No assets found
                 </TableCell>
               </TableRow>
             ) : (
               assets.map((asset) => (
                 <TableRow key={asset._id}>
-                  <TableCell className="font-medium">
-                    {asset.machineName}
-                  </TableCell>
-                  <TableCell>{asset.serialNo || "-"}</TableCell>
                   <TableCell>{getSiteName(asset.clientSiteId)}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={asset.status === 1 ? "success" : "destructive"}
-                    >
-                      {asset.status === 1 ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
+                  <TableCell>{asset.machineName}</TableCell>
+                  <TableCell>{asset.serialNo || ""}</TableCell>
+                  <TableCell>{getMakeName(asset.assetMakeId)}</TableCell>
+                  <TableCell>{getModelName(asset.assetModelId)}</TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(asset._id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        className="h-9 w-9 inline-flex items-center justify-center rounded-[10px] border border-gray-200 text-gray-500 hover:bg-gray-50"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openEdit(asset)}
+                        className="h-9 w-9 inline-flex items-center justify-center rounded-[10px] border border-gray-200 text-gray-500 hover:bg-gray-50"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(asset._id)}
+                        className="h-9 w-9 inline-flex items-center justify-center rounded-[10px] border border-gray-200 text-gray-500 hover:bg-gray-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -1697,78 +2007,15 @@ function ContactsTab({
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add Contact</DialogTitle>
-              <DialogDescription>
-                Enter the details for the new contact.
-              </DialogDescription>
             </DialogHeader>
             {error && (
               <div className="rounded-[10px] border border-red-200 bg-red-50 p-3 text-sm text-red-800">
                 {error}
               </div>
             )}
-            <div className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="contactName">
-                    First Name <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="contactName"
-                    placeholder="First name"
-                    value={form.name}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, name: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="contactLastName">Last Name</Label>
-                  <Input
-                    id="contactLastName"
-                    placeholder="Last name"
-                    value={form.lastName}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, lastName: e.target.value }))
-                    }
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="contactEmail">Email</Label>
-                <Input
-                  id="contactEmail"
-                  type="email"
-                  placeholder="Email address"
-                  value={form.email}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, email: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="contactPhone">Phone</Label>
-                <Input
-                  id="contactPhone"
-                  placeholder="Phone number"
-                  value={form.phone}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, phone: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="contactPosition">Position</Label>
-                <Input
-                  id="contactPosition"
-                  placeholder="Job title / position"
-                  value={form.position}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, position: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="contactSite">Site</Label>
+            <div className="divide-y divide-gray-100">
+              <div className="flex items-center gap-4 py-3">
+                <Label htmlFor="contactSite" className="w-32 shrink-0 text-sm font-semibold text-gray-900">Select Site</Label>
                 <select
                   id="contactSite"
                   className="flex h-10 w-full rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
@@ -1777,7 +2024,7 @@ function ContactsTab({
                     setForm((f) => ({ ...f, clientSiteId: e.target.value }))
                   }
                 >
-                  <option value="">Select a site</option>
+                  <option value="">Set as General Contact</option>
                   {sites.map((site) => (
                     <option key={site._id} value={site._id}>
                       {site.siteName}
@@ -1785,20 +2032,71 @@ function ContactsTab({
                   ))}
                 </select>
               </div>
+              <div className="flex items-center gap-4 py-3">
+                <Label htmlFor="contactName" className="w-32 shrink-0 text-sm font-semibold text-gray-900">First Name</Label>
+                <Input
+                  id="contactName"
+                  value={form.name}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, name: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="flex items-center gap-4 py-3">
+                <Label htmlFor="contactLastName" className="w-32 shrink-0 text-sm font-semibold text-gray-900">Last Name</Label>
+                <Input
+                  id="contactLastName"
+                  value={form.lastName}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, lastName: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="flex items-center gap-4 py-3">
+                <Label htmlFor="contactPosition" className="w-32 shrink-0 text-sm font-semibold text-gray-900">Position</Label>
+                <Input
+                  id="contactPosition"
+                  value={form.position}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, position: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="flex items-center gap-4 py-3">
+                <Label htmlFor="contactEmail" className="w-32 shrink-0 text-sm font-semibold text-gray-900">Email</Label>
+                <Input
+                  id="contactEmail"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, email: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="flex items-center gap-4 py-3">
+                <Label htmlFor="contactPhone" className="w-32 shrink-0 text-sm font-semibold text-gray-900">Phone</Label>
+                <Input
+                  id="contactPhone"
+                  value={form.phone}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, phone: e.target.value }))
+                  }
+                />
+              </div>
             </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setDialogOpen(false)}
-                disabled={submitting}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleSubmit} disabled={submitting}>
+            <div className="flex items-center gap-3 pt-2">
+              <Button onClick={handleSubmit} disabled={submitting} className="bg-[#00AEEF] hover:bg-[#009ad6] text-white">
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 Add Contact
               </Button>
-            </DialogFooter>
+              <button
+                onClick={() => setDialogOpen(false)}
+                disabled={submitting}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Cancel
+              </button>
+            </div>
           </DialogContent>
         </Dialog>
       </CardHeader>
@@ -2025,5 +2323,633 @@ function DocumentsTab({ documents }: { documents: ClientDocument[] }) {
         </Table>
       </CardContent>
     </Card>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Portal Users Tab
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface PortalUser {
+  _id: string;
+  name: string;
+  lastName?: string;
+  email: string;
+  phone?: string;
+  position?: string;
+  role: number;
+  status: number;
+  lastLogin?: string;
+  createdAt?: string;
+  userDetail?: {
+    _id: string;
+    profilePic?: string;
+  };
+}
+
+interface LoginEntry {
+  _id: string;
+  ipAddress?: string;
+  city?: string;
+  dateTime?: string;
+  loginResponse?: string;
+}
+
+function PortalUsersTab({ clientId }: { clientId: string }) {
+  const [users, setUsers] = useState<PortalUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
+  const [inviteError, setInviteError] = useState("");
+
+  // View user state
+  const [viewingUser, setViewingUser] = useState<PortalUser | null>(null);
+  const [loginHistory, setLoginHistory] = useState<LoginEntry[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // Edit user state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState("");
+  const [editForm, setEditForm] = useState({
+    name: "",
+    lastName: "",
+    phone: "",
+    position: "",
+    role: 4,
+  });
+
+  // Change password state
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordForm, setPasswordForm] = useState({ password: "", confirmPassword: "" });
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/users?clientId=${clientId}&limit=100`);
+      const json = await res.json();
+      if (json.success) {
+        const data = json.data?.data || json.data || [];
+        setUsers(Array.isArray(data) ? data : []);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  }, [clientId]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const getRoleName = (role: number) => {
+    if (role === 4) return "Administrator";
+    if (role === 6) return "Client User";
+    return "User";
+  };
+
+  const handleInvite = async () => {
+    if (!inviteEmail.trim()) {
+      setInviteError("Email is required");
+      return;
+    }
+
+    try {
+      setInviteSubmitting(true);
+      setInviteError("");
+
+      // Create user with pending status, then send invite
+      const createRes = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: inviteEmail.split("@")[0],
+          email: inviteEmail.trim(),
+          password: crypto.randomUUID(),
+          role: 4,
+          clientId,
+        }),
+      });
+
+      const createJson = await createRes.json();
+      if (!createJson.success) throw new Error(createJson.error || "Failed to create user");
+
+      const userId = createJson.data._id;
+
+      // Send invite
+      const inviteRes = await fetch(`/api/users/${userId}/invite`, {
+        method: "POST",
+      });
+
+      const inviteJson = await inviteRes.json();
+      if (!inviteJson.success) throw new Error(inviteJson.error || "Failed to send invite");
+
+      setInviteOpen(false);
+      setInviteEmail("");
+      fetchUsers();
+    } catch (err: any) {
+      setInviteError(err.message);
+    } finally {
+      setInviteSubmitting(false);
+    }
+  };
+
+  const openUserView = async (user: PortalUser) => {
+    setViewingUser(user);
+    setLoadingHistory(true);
+    try {
+      const res = await fetch(`/api/users/${user._id}/login-history`);
+      const json = await res.json();
+      if (json.success) {
+        setLoginHistory(json.data || []);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const openEditUser = () => {
+    if (!viewingUser) return;
+    setEditForm({
+      name: viewingUser.name || "",
+      lastName: viewingUser.lastName || "",
+      phone: viewingUser.phone || "",
+      position: viewingUser.position || "",
+      role: viewingUser.role,
+    });
+    setEditError("");
+    setEditOpen(true);
+  };
+
+  const handleEditUser = async () => {
+    if (!viewingUser) return;
+    if (!editForm.name.trim()) {
+      setEditError("First name is required");
+      return;
+    }
+    try {
+      setEditSubmitting(true);
+      setEditError("");
+      const res = await fetch(`/api/users/${viewingUser._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editForm.name.trim(),
+          lastName: editForm.lastName.trim(),
+          phone: editForm.phone.trim(),
+          position: editForm.position.trim(),
+          role: editForm.role,
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || "Failed to update user");
+
+      // Update local state
+      const updated = {
+        ...viewingUser,
+        name: editForm.name.trim(),
+        lastName: editForm.lastName.trim(),
+        phone: editForm.phone.trim(),
+        position: editForm.position.trim(),
+        role: editForm.role,
+      };
+      setViewingUser(updated);
+      setEditOpen(false);
+      fetchUsers();
+    } catch (err: any) {
+      setEditError(err.message);
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const openChangePassword = () => {
+    setPasswordForm({ password: "", confirmPassword: "" });
+    setPasswordError("");
+    setPasswordOpen(true);
+  };
+
+  const handleChangePassword = async () => {
+    if (!viewingUser) return;
+    if (!passwordForm.password) {
+      setPasswordError("Password is required");
+      return;
+    }
+    if (passwordForm.password !== passwordForm.confirmPassword) {
+      setPasswordError("Passwords do not match");
+      return;
+    }
+    try {
+      setPasswordSubmitting(true);
+      setPasswordError("");
+      const res = await fetch(`/api/users/${viewingUser._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: passwordForm.password }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || "Failed to change password");
+      setPasswordOpen(false);
+    } catch (err: any) {
+      setPasswordError(err.message);
+    } finally {
+      setPasswordSubmitting(false);
+    }
+  };
+
+  // View user detail page
+  if (viewingUser) {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setViewingUser(null)}
+            className="h-10 w-10 inline-flex items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h2 className="text-2xl font-bold">
+            {viewingUser.name}{viewingUser.lastName ? ` ${viewingUser.lastName}` : ""}
+          </h2>
+          <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-50 text-green-600 border border-green-200">
+            {getRoleName(viewingUser.role)}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Card - Avatar & Details */}
+          <Card className="lg:col-span-4">
+            <CardContent className="p-6">
+              {/* Avatar */}
+              <div className="flex justify-center mb-6">
+                <div className="h-40 w-40 rounded-full bg-[#E8F6FC] flex items-center justify-center">
+                  <User className="h-20 w-20 text-[#b0d8e8]" />
+                </div>
+              </div>
+
+              {/* User Details */}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-semibold">User Details</h3>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={openEditUser}
+                    className="h-9 w-9 inline-flex items-center justify-center rounded-[10px] border border-gray-200 text-gray-500 hover:bg-gray-50"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openChangePassword}
+                    className="h-9 w-9 inline-flex items-center justify-center rounded-[10px] border border-gray-200 text-gray-500 hover:bg-gray-50"
+                  >
+                    <img src="/change-password.svg" alt="Change password" width={16} height={16} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[#2EA4D0]">Name</span>
+                  <span className="text-sm text-gray-800">
+                    {viewingUser.name}{viewingUser.lastName ? ` ${viewingUser.lastName}` : ""}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[#2EA4D0]">Email</span>
+                  <span className="text-sm text-gray-800">{viewingUser.email}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[#2EA4D0]">Phone</span>
+                  <span className="text-sm text-gray-400">{viewingUser.phone || "Not set"}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[#2EA4D0]">Position</span>
+                  <span className="text-sm text-gray-400">{viewingUser.position || "Not set"}</span>
+                </div>
+                <div className="flex items-center">
+                  <span className="text-sm text-[#2EA4D0]">User Groups</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Edit Details Dialog */}
+          <Dialog open={editOpen} onOpenChange={setEditOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="text-base font-semibold">Edit Details</DialogTitle>
+                <DialogDescription className="sr-only">Edit portal user details</DialogDescription>
+              </DialogHeader>
+
+              {editError && (
+                <div className="rounded-[10px] border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                  {editError}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Label className="w-32 shrink-0 text-sm text-gray-600">First Name</Label>
+                  <Input
+                    value={editForm.name}
+                    onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <Label className="w-32 shrink-0 text-sm text-gray-600">Last Name</Label>
+                  <Input
+                    value={editForm.lastName}
+                    onChange={(e) => setEditForm((f) => ({ ...f, lastName: e.target.value }))}
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <Label className="w-32 shrink-0 text-sm text-gray-600">Phone Number</Label>
+                  <Input
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <Label className="w-32 shrink-0 text-sm text-gray-600">Position</Label>
+                  <Input
+                    value={editForm.position}
+                    onChange={(e) => setEditForm((f) => ({ ...f, position: e.target.value }))}
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <Label className="w-32 shrink-0 text-sm text-gray-600">Role</Label>
+                  <select
+                    className="flex h-10 w-full rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={editForm.role}
+                    onChange={(e) => setEditForm((f) => ({ ...f, role: parseInt(e.target.value) }))}
+                  >
+                    <option value={4}>Administrator</option>
+                    <option value={6}>Client User</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 pt-2">
+                <Button
+                  onClick={handleEditUser}
+                  disabled={editSubmitting}
+                  className="bg-[#00AEEF] hover:bg-[#0098d4] text-white"
+                >
+                  {editSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Update
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setEditOpen(false)}
+                  disabled={editSubmitting}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Cancel
+                </button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Change Password Dialog */}
+          <Dialog open={passwordOpen} onOpenChange={setPasswordOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="text-base font-semibold">Change Password</DialogTitle>
+                <DialogDescription className="sr-only">Change portal user password</DialogDescription>
+              </DialogHeader>
+
+              {passwordError && (
+                <div className="rounded-[10px] border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                  {passwordError}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Label className="w-40 shrink-0 text-sm text-gray-600">Password</Label>
+                  <Input
+                    type="password"
+                    value={passwordForm.password}
+                    onChange={(e) => setPasswordForm((f) => ({ ...f, password: e.target.value }))}
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <Label className="w-40 shrink-0 text-sm text-gray-600">Confirm Password</Label>
+                  <Input
+                    type="password"
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) => setPasswordForm((f) => ({ ...f, confirmPassword: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 pt-2">
+                <Button
+                  onClick={handleChangePassword}
+                  disabled={passwordSubmitting}
+                  className="bg-[#00AEEF] hover:bg-[#0098d4] text-white"
+                >
+                  {passwordSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Update
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setPasswordOpen(false)}
+                  disabled={passwordSubmitting}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Cancel
+                </button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Right Card - Login History */}
+          <Card className="lg:col-span-8 p-6">
+            <CardHeader className="p-0 pb-4">
+              <CardTitle className="text-base font-semibold">Login History</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-[#F2FBFE]">
+                    <TableHead className="text-[#9CA8B5] font-medium">Date</TableHead>
+                    <TableHead className="text-[#9CA8B5] font-medium">IP</TableHead>
+                    <TableHead className="text-[#9CA8B5] font-medium">Location</TableHead>
+                    <TableHead className="text-[#9CA8B5] font-medium text-right">Access</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loadingHistory ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-8">
+                        <Loader2 className="h-5 w-5 animate-spin text-gray-400 mx-auto" />
+                      </TableCell>
+                    </TableRow>
+                  ) : loginHistory.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                        No login history
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    loginHistory.map((entry) => (
+                      <TableRow key={entry._id}>
+                        <TableCell className="text-sm">
+                          {entry.dateTime ? formatDateTime(entry.dateTime) : "-"}
+                        </TableCell>
+                        <TableCell className="text-sm">{entry.ipAddress || "-"}</TableCell>
+                        <TableCell className="text-sm">{entry.city || "-"}</TableCell>
+                        <TableCell className="text-right">
+                          <span
+                            className={`px-3 py-1 rounded-[10px] text-xs font-medium border ${
+                              entry.loginResponse === "Success"
+                                ? "text-green-600 border-green-200 bg-green-50"
+                                : "text-red-600 border-red-200 bg-red-50"
+                            }`}
+                          >
+                            {entry.loginResponse || "-"}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Listing view
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold">Portal Users</h2>
+        <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+          <DialogTrigger asChild>
+            <Button
+              className="bg-[#00AEEF] hover:bg-[#0098d4] text-white"
+              onClick={() => {
+                setInviteEmail("");
+                setInviteError("");
+              }}
+            >
+              Invite User
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-base font-semibold">Invite User</DialogTitle>
+              <DialogDescription className="text-sm text-gray-600 mt-2">
+                Enter the email address below of a colleague you would like to invite to be able to login and manage your Total Spraybooth Care system.
+              </DialogDescription>
+            </DialogHeader>
+
+            {inviteError && (
+              <div className="rounded-[10px] border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                {inviteError}
+              </div>
+            )}
+
+            <div className="py-2">
+              <Input
+                placeholder="Email address"
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+              />
+            </div>
+
+            <div className="flex items-center gap-4 pt-2">
+              <Button
+                onClick={handleInvite}
+                disabled={inviteSubmitting}
+                className="bg-[#00AEEF] hover:bg-[#0098d4] text-white"
+              >
+                {inviteSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                Send Invite
+              </Button>
+              <button
+                type="button"
+                onClick={() => setInviteOpen(false)}
+                disabled={inviteSubmitting}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Cancel
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-[#E8F6FC]">
+                  <TableHead className="text-[#2EA4D0] font-medium">Name</TableHead>
+                  <TableHead className="text-[#2EA4D0] font-medium">Email</TableHead>
+                  <TableHead className="text-[#2EA4D0] font-medium">Last Login</TableHead>
+                  <TableHead className="text-[#2EA4D0] font-medium">Role</TableHead>
+                  <TableHead className="text-right"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                      No portal users found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  users.map((user) => (
+                    <TableRow key={user._id}>
+                      <TableCell>
+                        {user.name}{user.lastName ? ` ${user.lastName}` : ""}
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        {user.lastLogin ? formatDateTime(user.lastLogin) : "-"}
+                      </TableCell>
+                      <TableCell>
+                        <span className="px-3 py-1 rounded-[10px] text-xs font-medium bg-green-50 text-green-600 border border-green-200">
+                          {getRoleName(user.role)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <button
+                          type="button"
+                          onClick={() => openUserView(user)}
+                          className="text-sm text-gray-600 hover:text-gray-800 inline-flex items-center gap-1"
+                        >
+                          View <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

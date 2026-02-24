@@ -17,104 +17,49 @@ src/
   models/          # Mongoose models (57 total)
   lib/             # DB connection, auth config, API helpers, utils
   types/           # TypeScript type definitions
-  proxy.ts         # Route protection middleware (renamed from middleware.ts for Next.js 16)
+  proxy.ts         # Route protection middleware
 ```
 
 ## Key Conventions
 - API responses: `{ success: true, data: ... }` or `{ success: false, error: "..." }`
-- Paginated APIs return: `{ data: { data: [...], total, page, limit, totalPages } }`
-- Error field is `json.error` (not `json.message`) — always check `json.error || json.message`
-- Auth: `requireAuth()` for logged-in users, `requireAdmin()` for admin-only
-- Mongoose populate requires referenced model to be imported in the route file
-- Junction tables for many-to-many: AssetMakeModel, ChecklistTemplateTag, TechnicianTag
-- Dialog style: horizontal label+input layout, `<hr>` dividers, cyan button + Cancel text
-- Action buttons use `whitespace-nowrap shrink-0` to prevent wrapping
+- Paginated APIs: `{ data: { data: [...], total, page, limit, totalPages } }`
+- Error field: check `json.error || json.message`
+- Auth: `requireAuth()` / `requireAdmin()`
+- Mongoose populate requires model import in route file
+- Junction tables: AssetMakeModel, ChecklistTemplateTag, TechnicianTag
+- Dialog style: horizontal label+input, `<hr>` dividers, cyan button + Cancel text
+- **Global border-radius**: `rounded-[10px]` everywhere (set in globals.css theme + all components)
+- **Sidebar**: light cyan bg (`#e4f5fa`), active/hover `bg-[#B7EBFF] text-[#2EA4D0]`, icons 16px, text `#323E42` 12px normal, 20px left padding
+- **Header**: full-width dark bg (`#1c2b3a`), logo.svg 100px, centered search, welcome text + logout, cyan gradient bottom line
+- Sidebar icons use CSS filter for color tint on hover/active (`.sidebar-icon-tint`/`.sidebar-icon-active` in globals.css)
+- Dashboard stat cards use sidebar SVG icons (`/clients.svg`, `/support_tickets.svg`, `/briefcase.svg`, `/tool.svg`)
 
 ## Completed Work
 
-### Infrastructure
-- Renamed `middleware.ts` to `proxy.ts` for Next.js 16 compatibility
-- Updated favicon, sidebar logo, and header layout
+### Layout & Theming
+- Full-width dark header with logo.svg, search bar, welcome text, logout
+- Sidebar below header with cyan theme, icon tint on active/hover
+- Global `rounded-[10px]` across all UI components and pages
+- Active tab underline color: `#00AEEF`
 
-### Settings Page Redesign
-- Card grid layout at `/settings` linking to sub-routes
-- Dynamic section page at `/settings/[section]` renders section-specific components
-- **Tags Settings**: Full CRUD with color-coded tag management
-- **Support Ticket Titles**: List-based CRUD via `SettingsListSection`
-- **Job Card Types**: List-based CRUD via `SettingsListSection`
-- **Resource Categories**: List-based CRUD via `SettingsListSection`
-- **Email Notifications**: Dedicated section component
+### Settings
+- Card grid at `/settings` → dynamic `/settings/[section]`
+- Tags, Support Ticket Titles, Job Card Types, Resource Categories, Email Notifications
+- Asset Settings: Makes/Models/Types tabs, junction table linking
+- Checklist Templates: two-panel, drag-and-drop, tags, section breaks, response types
 
-### Asset Settings (`/settings/asset-settings`)
-- Three-tab layout: Makes, Models, Types (underline-style tabs)
-- **Asset Makes**: CRUD + model linking via checkbox popup using `AssetMakeModel` junction table
-- **Asset Models**: Simple CRUD (title only), make assignment from Makes tab only
-- **Asset Types**: CRUD with type management
-- Models already linked to other makes are filtered from selection list (1 model = 1 make)
-- All action buttons stay on 1 line (no text wrapping)
-
-### Checklist Templates (`/settings/checklist-templates`)
-- Two-panel layout: template list (left) + detail panel (right)
-- Left panel: search, "Add New Template" button, template cards with edit/delete
-- Right panel when template selected:
-  - Editable title (click to edit inline)
-  - **Tags**: Cyan pill badges with X to remove, "+" button opens toggle dialog
-  - **Add Tags dialog**: Available tags as toggleable pill buttons (cyan=assigned, gray=unassigned)
-  - **"+ Add Section Break"** and **"+ Add Checklist Item"** action links
-  - **Section Break dialog**: Details input, cyan button
-  - **Add Checklist Item dialog**: Details, Response Type dropdown, mandatory checkbox, image upload
-  - **Edit Checklist Item dialog**: Same fields + shows existing image filename with delete/replace
-  - **Items list**: move.svg drag handle, sequential numbering, details with red asterisk if mandatory, colored type badge, edit/delete icons
-  - **Section breaks**: Dark bg row with bold title + "Section Break" label
-  - **Drag and drop**: HTML5 drag API, order persisted via batch PUT
-  - Item row CSS: `border: 1px solid #d0dfe6; padding: 27px 15px 27px 35px; border-radius: 5px; margin-bottom: 10px; line-height: 30px`
-- Response types: Checkbox, Pass/Fail/N/A, Image, Comment, Yes/No, Poor/Fair/Good, Signature, Set Date & Time, Text Only - No Response
-- Section Break uses `checklistItemType = 0`
-- API fields: `checklistItemType` (number), `makeResponseMandatory` (0/1), `orderNo`, `fileName`, `fileSize`
-- Tags use junction table: POST `{ checklistTagId }`, DELETE uses checklistTagId in URL
+### Pages
+- **Dashboard**: stat cards with sidebar SVG icons, recent tickets/job cards, status breakdowns
+- **Clients**: listing + detail page with Overview/Service Agreements/Work History/Sites/Contacts/Assets/Portal Users tabs
+  - 98px stat boxes, attachments with lightbox, notes with type icons, support tickets by title
+  - Support Ticket URL: activate/deactivate flow with confirmation, copy link, URL display
+  - API: `activateAccessToken`/`deactivateAccessToken` fields on PUT `/api/clients/[id]`
+- **Technicians**: listing, view page with tabs, tags, notes, sub-technicians, insurance, archive
+- **Resources**: category tabs, card grid, add/edit dialog with file upload
+- **Support Tickets**: redesigned listing
 
 ### Reusable Components
-- **AddClientDialog** (`components/dialogs/add-client-dialog.tsx`): Shared dialog used in support-tickets and clients/add
-- **ChecklistTemplatesSection** (`components/settings/checklist-templates-section.tsx`): Full two-panel checklist management
-- **Settings sections** (`components/settings/settings-sections.tsx`): TagsSettings, SettingsListSection, AssetSettings, EmailNotification, TableCrudSection
-
-### Resources Page (`/resources`)
-- Category tabs (underline-style) from settings, first tab active by default
-- 2-column card grid: thumbnail + resource file images, title, edit/delete icons
-- Add/Edit Resource dialog (`components/dialogs/resource-dialog.tsx`) with file upload via XHR progress
-- File upload API at `/api/upload` saves to `public/uploads/{folder}/`
-- API: `import "@/models/ResourceCategory"` for populate, `status: { $ne: 2 }` filter
-- Deleted old `/resources/add` page (replaced by dialog)
-
-### Technicians Page (`/technicians`)
-- Listing: table with Company, Tags (pill badges), Email, Contact Number, Insurance, Actions (eye+pencil)
-- API enriches listing with tags via `TechnicianTag` + `Tag` populate
-- Parent/child model: `parentId` field — listing filters parent-only by default, `?parentId=` for children
-- **View page** (`/technicians/[id]`): Overview/Work History/Insurance tabs, right sidebar (Insurance, Support Tickets, Notes)
-  - Tags: pill badges with "+" toggle dialog (cyan=assigned, gray=unassigned)
-  - Notes: inline editable, saves to `TechnicianDetail`
-  - Sub-technicians table with Add/Edit dialog (Name, Email+Phone, Licence Number+Expiry side-by-side)
-  - Archive button (soft delete)
-- `import "@/models/Tag"` added to technician routes for populate
-
-### Client Detail Page (`/clients/[id]`)
-- Overview tab: Client Info, About (editable), Attachments, Support Tickets by Title, Support Ticket URL, General Site Notes
-- Tabs: Overview, Service Agreements, Work History, Sites, Contacts, Assets, Portal Users
-- **Attachments**: Upload dialog (drag & drop), download + delete icons per card, image lightbox slider with prev/next arrows
-- **Image Lightbox**: Click thumbnail to open, constrained to viewport (`max-h-[80vh] max-w-[80vw]`), left/right chevron nav, close via X or backdrop
-- **General Site Notes**: Textarea with "Save As" + 5 note type icons (phone/mail/message/meeting/document) — hidden until focused
-  - Note types: 1=Phone, 2=Email, 3=Message, 4=Meeting, 5=Document (icons from `/public/*.svg`)
-  - Each note card: type icon + user name + cyan date, edit (inline) + delete buttons
-  - API: `GET/POST /api/clients/[id]/notes`, `PUT/DELETE /api/clients/[id]/notes/[noteId]`
-- Sites/Assets/Contacts tabs: table CRUD with add/edit/delete dialogs
-- Stat cards: Support Tickets (dark), Assets (yellow), Sites (orange), Contacts (green)
-
-### API Fixes Applied
-- Removed `.populate()` calls from asset settings routes (resolves client-side instead)
-- Added `import "@/models/ChecklistTag"` to checklist detail and tags routes for populate
-- Reverted AssetModel schema to original (removed `assetMakeId` field, uses junction table instead)
-- Fixed error handling across settings: check `json.error || json.message`
-- Fixed paginated response handling: `Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : []`
+- AddClientDialog, ChecklistTemplatesSection, SettingsListSection, ResourceDialog, TechnicianDialog, InsuranceDialog
 
 ## Running
 ```bash
