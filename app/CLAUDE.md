@@ -14,7 +14,7 @@ src/
   app/(public)/    # Public access pages (job-card view, support portal)
   app/api/         # REST API routes (all return { success, data/error })
   components/      # Shared UI components
-  models/          # Mongoose models (57 total)
+  models/          # Mongoose models (58 total, includes ServiceAgreement)
   lib/             # DB connection, auth config, API helpers, utils
   types/           # TypeScript type definitions
   proxy.ts         # Route protection middleware
@@ -33,6 +33,8 @@ src/
 - **Header**: full-width dark bg (`#1c2b3a`), logo.svg 100px, centered search, welcome text + logout, cyan gradient bottom line
 - Sidebar icons use CSS filter for color tint on hover/active (`.sidebar-icon-tint`/`.sidebar-icon-active` in globals.css)
 - Dashboard stat cards use sidebar SVG icons (`/clients.svg`, `/support_tickets.svg`, `/briefcase.svg`, `/tool.svg`)
+- **Table headers**: `bg-[#F2FBFE]`, `text-black`, `px-5` (20px) — set globally in `components/ui/table.tsx` (`TableHeader` bg, `TableHead` defaults). Do NOT add per-table color overrides.
+- **Section headings**: Single-line `Title (count)` format, no icons in CardTitle. Example: `Sites (2)`, `Contacts (5)`
 
 ## Completed Work
 
@@ -54,6 +56,8 @@ src/
   - 98px stat boxes, attachments with lightbox, notes with type icons, support tickets by title
   - Support Ticket URL: activate/deactivate flow with confirmation, copy link, URL display
   - API: `activateAccessToken`/`deactivateAccessToken` fields on PUT `/api/clients/[id]`
+  - Service Agreements: full CRUD (model, API, UI) with covered sites, file upload, auto-expire
+  - Portal Users: Card layout with table, invite dialog, view/edit/change-password, login history
 - **Technicians**: listing, view page with tabs, tags, notes, sub-technicians, insurance, archive
 - **Resources**: category tabs, card grid, add/edit dialog with file upload
 - **Support Tickets**: redesigned listing
