@@ -1931,6 +1931,7 @@ function ContactsTab({
   onRefresh: () => void;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -1952,11 +1953,26 @@ function ContactsTab({
       position: "",
       clientSiteId: "",
     });
+    setEditingContact(null);
     setError("");
   };
 
   const openAdd = () => {
     resetForm();
+    setDialogOpen(true);
+  };
+
+  const openEdit = (contact: Contact) => {
+    setEditingContact(contact);
+    setForm({
+      name: contact.name,
+      lastName: contact.lastName || "",
+      email: contact.email || "",
+      phone: contact.phone || "",
+      position: contact.position || "",
+      clientSiteId: contact.clientSiteId || "",
+    });
+    setError("");
     setDialogOpen(true);
   };
 
@@ -1970,8 +1986,12 @@ function ContactsTab({
       setSubmitting(true);
       setError("");
 
-      const res = await fetch(`/api/clients/${clientId}/contacts`, {
-        method: "POST",
+      const url = editingContact
+        ? `/api/clients/${clientId}/contacts/${editingContact._id}`
+        : `/api/clients/${clientId}/contacts`;
+
+      const res = await fetch(url, {
+        method: editingContact ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: form.name.trim(),
@@ -1984,7 +2004,7 @@ function ContactsTab({
       });
 
       const json = await res.json();
-      if (!json.success) throw new Error(json.error || "Failed to add contact");
+      if (!json.success) throw new Error(json.error || "Failed to save contact");
 
       setDialogOpen(false);
       resetForm();
@@ -2031,7 +2051,7 @@ function ContactsTab({
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add Contact</DialogTitle>
+              <DialogTitle>{editingContact ? "Edit Contact" : "Add Contact"}</DialogTitle>
             </DialogHeader>
             {error && (
               <div className="rounded-[10px] border border-red-200 bg-red-50 p-3 text-sm text-red-800">
@@ -2112,12 +2132,12 @@ function ContactsTab({
             <div className="flex items-center gap-3 pt-2">
               <Button onClick={handleSubmit} disabled={submitting} className="bg-[#00AEEF] hover:bg-[#009ad6] text-white">
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                Add Contact
+                {editingContact ? "Update" : "Add"} Contact
               </Button>
               <button
                 onClick={() => setDialogOpen(false)}
                 disabled={submitting}
-                className="text-sm text-gray-500 hover:text-gray-700"
+                className="text-sm text-gray-500 cursor-pointer hover:text-gray-700"
               >
                 Cancel
               </button>
@@ -2156,14 +2176,22 @@ function ContactsTab({
                   <TableCell>{contact.position || "-"}</TableCell>
                   <TableCell>{getSiteName(contact.clientSiteId)}</TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(contact._id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => openEdit(contact)}
+                        className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-gray-100 hover:text-gray-600"
+                        title="Edit"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(contact._id)}
+                        className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-red-50 hover:text-red-500"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
