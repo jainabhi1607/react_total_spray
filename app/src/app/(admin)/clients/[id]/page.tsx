@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -207,6 +207,7 @@ export default function ClientDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
+  const [selectedSiteId, setSelectedSiteId] = useState<string>("");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   // About section edit state
@@ -231,6 +232,43 @@ export default function ClientDetailPage() {
   // Image lightbox state
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  // ─── Filtered data (site filter) ─────────────────────────────────────
+
+  const selectedSiteName = useMemo(
+    () => sites.find((s) => s._id === selectedSiteId)?.siteName || "",
+    [sites, selectedSiteId]
+  );
+
+  const filteredSites = useMemo(
+    () => (selectedSiteId ? sites.filter((s) => s._id === selectedSiteId) : sites),
+    [sites, selectedSiteId]
+  );
+
+  const filteredAssets = useMemo(
+    () => (selectedSiteId ? assets.filter((a) => a.clientSiteId === selectedSiteId) : assets),
+    [assets, selectedSiteId]
+  );
+
+  const filteredContacts = useMemo(
+    () => (selectedSiteId ? contacts.filter((c) => c.clientSiteId === selectedSiteId) : contacts),
+    [contacts, selectedSiteId]
+  );
+
+  const filteredServiceAgreements = useMemo(
+    () =>
+      selectedSiteId
+        ? serviceAgreements.filter((sa) => sa.coveredSiteIds?.includes(selectedSiteId))
+        : serviceAgreements,
+    [serviceAgreements, selectedSiteId]
+  );
+
+  // Clear filter if selected site no longer exists
+  useEffect(() => {
+    if (selectedSiteId && sites.length > 0 && !sites.find((s) => s._id === selectedSiteId)) {
+      setSelectedSiteId("");
+    }
+  }, [sites, selectedSiteId]);
 
   // ─── Fetch functions ──────────────────────────────────────────────────
 
@@ -563,19 +601,19 @@ export default function ClientDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/clients">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900">{client.companyName}</h1>
-        </div>
+      <div className="flex items-center gap-4">
+        <Link href="/clients">
+          <Button variant="ghost" size="icon">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </Link>
+        <h1 className="text-2xl font-bold text-gray-900">{client.companyName}</h1>
         {sites.length > 0 && (
           <div className="relative">
             <select
-              className="appearance-none rounded-[10px] border border-gray-200 bg-white px-4 py-2 pr-10 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              value={selectedSiteId}
+              onChange={(e) => setSelectedSiteId(e.target.value)}
+              className="appearance-none rounded-[10px] border border-gray-200 bg-white px-4 py-2 pr-10 text-sm font-medium text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-500"
             >
               <option value="">Select Site</option>
               {sites.map((s) => (
@@ -586,6 +624,25 @@ export default function ClientDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Site Filter Banner */}
+      {selectedSiteId && selectedSiteName && (
+        <div
+          className="flex items-center justify-between rounded-[10px] px-4 py-3"
+          style={{ backgroundColor: "#FFF0E0", border: "1px solid #F5D5B0" }}
+        >
+          <p className="text-sm text-gray-700">
+            You are viewing the <span className="font-bold">{selectedSiteName}</span>
+          </p>
+          <button
+            onClick={() => setSelectedSiteId("")}
+            className="flex items-center gap-1 text-sm font-medium text-gray-600 cursor-pointer hover:text-gray-800"
+          >
+            Remove Filter
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Edit Client Dialog */}
       <AddClientDialog
@@ -634,7 +691,7 @@ export default function ClientDetailPage() {
             <CardContent className="flex items-center justify-between p-5" style={{ height: 98 }}>
               <p className="text-sm font-medium text-gray-500">Assets</p>
               <p className="text-3xl font-bold" style={{ color: "#f7cd4b" }}>
-                {assets.length}
+                {filteredAssets.length}
               </p>
             </CardContent>
           </Card>
@@ -643,7 +700,7 @@ export default function ClientDetailPage() {
             <CardContent className="flex items-center justify-between p-5" style={{ height: 98 }}>
               <p className="text-sm font-medium text-gray-500">Sites</p>
               <p className="text-3xl font-bold" style={{ color: "#E18230" }}>
-                {sites.length}
+                {filteredSites.length}
               </p>
             </CardContent>
           </Card>
@@ -652,7 +709,7 @@ export default function ClientDetailPage() {
             <CardContent className="flex items-center justify-between p-5" style={{ height: 98 }}>
               <p className="text-sm font-medium text-gray-500">Contacts</p>
               <p className="text-3xl font-bold" style={{ color: "#82cd66" }}>
-                {contacts.length}
+                {filteredContacts.length}
               </p>
             </CardContent>
           </Card>
@@ -1144,19 +1201,19 @@ export default function ClientDetailPage() {
       )}
 
       {activeTab === "sites" && (
-        <SitesTab clientId={clientId} sites={sites} onRefresh={fetchSites} />
+        <SitesTab clientId={clientId} sites={filteredSites} onRefresh={fetchSites} />
       )}
 
       {activeTab === "assets" && (
-        <AssetsTab clientId={clientId} assets={assets} sites={sites} onRefresh={fetchAssets} />
+        <AssetsTab clientId={clientId} assets={filteredAssets} sites={sites} onRefresh={fetchAssets} />
       )}
 
       {activeTab === "contacts" && (
-        <ContactsTab clientId={clientId} contacts={contacts} sites={sites} onRefresh={fetchContacts} />
+        <ContactsTab clientId={clientId} contacts={filteredContacts} sites={sites} onRefresh={fetchContacts} />
       )}
 
       {activeTab === "service-agreements" && (
-        <ServiceAgreementsTab clientId={clientId} serviceAgreements={serviceAgreements} sites={sites} onRefresh={fetchServiceAgreements} />
+        <ServiceAgreementsTab clientId={clientId} serviceAgreements={filteredServiceAgreements} sites={sites} onRefresh={fetchServiceAgreements} />
       )}
 
       {activeTab === "work-history" && (
