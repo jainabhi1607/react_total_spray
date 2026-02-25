@@ -21,7 +21,13 @@
       "Bash(grep:*)",
       "Bash(wc:*)",
       "Bash(find:*)",
-      "Bash(cd H:/coxy/total_spray_care/app && npx tsc --noEmit 2>&1)"
+      "Bash(cd H:/coxy/total_spray_care/app && npx tsc --noEmit 2>&1)",
+      "Bash(cd D:/coxy/total_spray_care/app && npx tsc --noEmit --pretty 2>&1 | head -30)",
+      "Bash(cd D:/coxy/total_spray_care/app && npx tsc --noEmit --pretty 2>&1 | head -40)",
+      "Bash(cd D:/coxy/total_spray_care/app && npx tsc --noEmit --pretty 2>&1 | head -20)",
+      "Bash(cd D:/coxy/total_spray_care && git add \"app/CLAUDE.md\" \"app/src/app/\\(admin\\)/assets/page.tsx\" \"app/src/app/\\(admin\\)/assets/[id]/page.tsx\" \"app/src/app/\\(admin\\)/clients/[id]/page.tsx\" \"app/src/app/\\(admin\\)/support-tickets/page.tsx\" \"app/src/app/api/support-tickets/route.ts\" \"app/src/app/api/assets/route.ts\" \"app/src/app/api/assets/[id]/route.ts\" \"app/src/components/dialogs/add-asset-dialog.tsx\" \"app/src/components/dialogs/add-site-dialog.tsx\")",
+      "Bash(cd D:/coxy/total_spray_care && git commit -m \"$\\(cat <<'EOF'\nAdd assets page redesign, asset detail view, and reusable site/asset dialogs\n\n- Redesign assets listing with client/site filters, searchable client dropdown, last ticket date\n- Add asset detail page \\(/assets/[id]\\) with Overview/Maintenance/Activity tabs, stat cards, notes editing, image placeholder, QR code section\n- Extract AddSiteDialog and AddAssetDialog into reusable components \\(components/dialogs/\\)\n- Both dialogs support standalone mode \\(with client selector\\) and embedded mode \\(with clientId prop\\)\n- Wire Add Site/Add Asset buttons on support tickets page to open dialogs instead of navigating away\n- Replace inline site/asset dialogs in client detail page with shared components\n- Add /api/assets endpoint for global asset listing with populated client/site and last ticket aggregation\n- Add /api/assets/[id] endpoint for single asset detail with support request count\n- Update support ticket circle color to match count text color\n- Start ticket numbers at 10000\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(cd D:/coxy/total_spray_care && git push)"
     ]
   }
 }
