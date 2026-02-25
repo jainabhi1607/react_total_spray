@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageLoading } from "@/components/ui/loading";
 import { AddClientDialog } from "@/components/dialogs/add-client-dialog";
+import { AddSupportTicketDialog } from "@/components/dialogs/add-support-ticket-dialog";
 import {
   Table,
   TableBody,
@@ -178,6 +179,8 @@ export default function SupportTicketsPage() {
 
   // Add Client dialog state
   const [addClientOpen, setAddClientOpen] = useState(false);
+  // Add Ticket dialog state
+  const [addTicketOpen, setAddTicketOpen] = useState(false);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -345,15 +348,14 @@ export default function SupportTicketsPage() {
               Add Asset
             </Button>
           </Link>
-          <Link href="/support-tickets/add">
-            <Button
-              size="sm"
-              className="bg-cyan-500 hover:bg-cyan-600 text-white"
-            >
-              <Plus className="mr-1 h-4 w-4" />
-              Add Ticket
-            </Button>
-          </Link>
+          <Button
+            size="sm"
+            className="bg-cyan-500 hover:bg-cyan-600 text-white"
+            onClick={() => setAddTicketOpen(true)}
+          >
+            <Plus className="mr-1 h-4 w-4" />
+            Add Ticket
+          </Button>
         </div>
       </div>
 
@@ -587,6 +589,13 @@ export default function SupportTicketsPage() {
       <AddClientDialog
         open={addClientOpen}
         onOpenChange={setAddClientOpen}
+      />
+
+      {/* Add Ticket Dialog */}
+      <AddSupportTicketDialog
+        open={addTicketOpen}
+        onOpenChange={setAddTicketOpen}
+        onSuccess={() => { fetchTickets(); fetchStats(); }}
       />
     </div>
   );
