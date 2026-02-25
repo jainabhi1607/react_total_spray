@@ -20,7 +20,8 @@
       "Bash(echo Done:*)",
       "Bash(grep:*)",
       "Bash(wc:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(cd H:/coxy/total_spray_care/app && npx tsc --noEmit 2>&1)"
     ]
   }
 }
