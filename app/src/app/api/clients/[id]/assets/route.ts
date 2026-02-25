@@ -7,9 +7,14 @@ import {
   errorResponse,
   handleApiError,
 } from "@/lib/api-helpers";
+import crypto from "crypto";
 import ClientAsset from "@/models/ClientAsset";
 import "@/models/AssetMake";
 import "@/models/AssetModel";
+
+function generatePublicCode(): string {
+  return crypto.randomBytes(24).toString("base64url");
+}
 
 export async function GET(
   req: NextRequest,
@@ -85,6 +90,7 @@ export async function POST(
       assetModelId,
       notes,
       dateTime: new Date(),
+      publicCode: generatePublicCode(),
       status: 1,
     });
 

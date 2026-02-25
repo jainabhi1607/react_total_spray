@@ -12,6 +12,7 @@ export interface IClientAssetDocument extends Document {
   notes?: string;
   notesEditDateTime?: Date;
   dateTime?: Date;
+  publicCode?: string;
   status: number;
 }
 
@@ -28,6 +29,7 @@ const ClientAssetSchema = new Schema<IClientAssetDocument>(
     notes: { type: String },
     notesEditDateTime: { type: Date },
     dateTime: { type: Date },
+    publicCode: { type: String, unique: true, sparse: true },
     status: { type: Number, default: 1 },
   },
   { timestamps: true }
