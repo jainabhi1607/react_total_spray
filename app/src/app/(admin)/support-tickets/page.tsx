@@ -16,6 +16,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PageLoading } from "@/components/ui/loading";
 import { AddClientDialog } from "@/components/dialogs/add-client-dialog";
 import { AddSupportTicketDialog } from "@/components/dialogs/add-support-ticket-dialog";
+import { AddSiteDialog } from "@/components/dialogs/add-site-dialog";
+import { AddAssetDialog } from "@/components/dialogs/add-asset-dialog";
 import {
   Table,
   TableBody,
@@ -179,6 +181,10 @@ export default function SupportTicketsPage() {
 
   // Add Client dialog state
   const [addClientOpen, setAddClientOpen] = useState(false);
+  // Add Site dialog state
+  const [addSiteOpen, setAddSiteOpen] = useState(false);
+  // Add Asset dialog state
+  const [addAssetOpen, setAddAssetOpen] = useState(false);
   // Add Ticket dialog state
   const [addTicketOpen, setAddTicketOpen] = useState(false);
 
@@ -253,7 +259,7 @@ export default function SupportTicketsPage() {
       count: stats.open,
       percentage:
         stats.total > 0 ? Math.round((stats.open / stats.total) * 100) : 0,
-      ringColor: "#f97316", // orange-500
+      ringColor: "#38bdf8", // sky-400
       countColor: "#38bdf8", // sky-400
       trackColor: "#475569", // slate-600
       textColor: "#ffffff",
@@ -336,18 +342,22 @@ export default function SupportTicketsPage() {
             <Plus className="mr-1 h-4 w-4" />
             Add Client
           </Button>
-          <Link href="/clients">
-            <Button variant="outline" size="sm">
-              <Plus className="mr-1 h-4 w-4" />
-              Add Site
-            </Button>
-          </Link>
-          <Link href="/assets">
-            <Button variant="outline" size="sm">
-              <Plus className="mr-1 h-4 w-4" />
-              Add Asset
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setAddSiteOpen(true)}
+          >
+            <Plus className="mr-1 h-4 w-4" />
+            Add Site
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setAddAssetOpen(true)}
+          >
+            <Plus className="mr-1 h-4 w-4" />
+            Add Asset
+          </Button>
           <Button
             size="sm"
             className="bg-cyan-500 hover:bg-cyan-600 text-white"
@@ -476,7 +486,6 @@ export default function SupportTicketsPage() {
                       </span>
                     </TableHead>
                     <TableHead></TableHead>
-                    <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -532,19 +541,19 @@ export default function SupportTicketsPage() {
                           {STATUS_LABELS[ticket.ticketStatus] || "Unknown"}
                         </span>
                       </TableCell>
-                      <TableCell>
-                        <Link href={`/support-tickets/${ticket._id}`}>
-                          <button className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-gray-100 hover:text-gray-600">
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <Link href={`/support-tickets/${ticket._id}`}>
-                          <button className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-gray-100 hover:text-gray-600">
-                            <ArrowRight className="h-4 w-4" />
-                          </button>
-                        </Link>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Link href={`/support-tickets/${ticket._id}`}>
+                            <button className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-gray-100 hover:text-gray-600">
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                          </Link>
+                          <Link href={`/support-tickets/${ticket._id}`}>
+                            <button className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-gray-100 hover:text-gray-600">
+                              <ArrowRight className="h-4 w-4" />
+                            </button>
+                          </Link>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -589,6 +598,18 @@ export default function SupportTicketsPage() {
       <AddClientDialog
         open={addClientOpen}
         onOpenChange={setAddClientOpen}
+      />
+
+      {/* Add Site Dialog */}
+      <AddSiteDialog
+        open={addSiteOpen}
+        onOpenChange={setAddSiteOpen}
+      />
+
+      {/* Add Asset Dialog */}
+      <AddAssetDialog
+        open={addAssetOpen}
+        onOpenChange={setAddAssetOpen}
       />
 
       {/* Add Ticket Dialog */}

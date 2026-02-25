@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
       .sort({ ticketNo: -1 })
       .select("ticketNo")
       .lean();
-    const ticketNo = lastTicket ? (lastTicket as any).ticketNo + 1 : 1;
+    const ticketNo = lastTicket ? (lastTicket as any).ticketNo + 1 : 10000;
 
     const ticket = await SupportTicket.create({
       ticketNo,

@@ -22,6 +22,9 @@ import {
   X,
 } from "lucide-react";
 import { AddClientDialog } from "@/components/dialogs/add-client-dialog";
+import { AddSiteDialog } from "@/components/dialogs/add-site-dialog";
+import { AddAssetDialog } from "@/components/dialogs/add-asset-dialog";
+import type { AssetData } from "@/components/dialogs/add-asset-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1244,68 +1247,15 @@ function SitesTab({
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<Site | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-
-  const [form, setForm] = useState({ siteName: "", address: "", siteId: "" });
-
-  const resetForm = () => {
-    setForm({ siteName: "", address: "", siteId: "" });
-    setEditingSite(null);
-    setError("");
-  };
 
   const openAdd = () => {
-    resetForm();
+    setEditingSite(null);
     setDialogOpen(true);
   };
 
   const openEdit = (site: Site) => {
     setEditingSite(site);
-    setForm({
-      siteName: site.siteName,
-      address: site.address || "",
-      siteId: site.siteId || "",
-    });
-    setError("");
     setDialogOpen(true);
-  };
-
-  const handleSubmit = async () => {
-    if (!form.siteName.trim()) {
-      setError("Site name is required");
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      setError("");
-
-      const url = editingSite
-        ? `/api/clients/${clientId}/sites/${editingSite._id}`
-        : `/api/clients/${clientId}/sites`;
-
-      const res = await fetch(url, {
-        method: editingSite ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          siteName: form.siteName.trim(),
-          address: form.address.trim(),
-          siteId: form.siteId.trim(),
-        }),
-      });
-
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error || "Failed to save site");
-
-      setDialogOpen(false);
-      resetForm();
-      onRefresh();
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   const handleDelete = async (siteId: string) => {
@@ -1326,79 +1276,17 @@ function SitesTab({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg">Sites ({sites.length})</CardTitle>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" onClick={openAdd}>
-              <Plus className="h-4 w-4" />
-              Add Site
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingSite ? "Edit Site" : "Add Site"}</DialogTitle>
-              <DialogDescription>
-                {editingSite
-                  ? "Update the site details below."
-                  : "Enter the details for the new site."}
-              </DialogDescription>
-            </DialogHeader>
-            {error && (
-              <div className="rounded-[10px] border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                {error}
-              </div>
-            )}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="siteName">
-                  Site Name <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="siteName"
-                  placeholder="Enter site name"
-                  value={form.siteName}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, siteName: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="siteAddress">Address</Label>
-                <Input
-                  id="siteAddress"
-                  placeholder="Enter address"
-                  value={form.address}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, address: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="siteCode">Site ID / Code</Label>
-                <Input
-                  id="siteCode"
-                  placeholder="Enter site ID"
-                  value={form.siteId}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, siteId: e.target.value }))
-                  }
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setDialogOpen(false)}
-                disabled={submitting}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleSubmit} disabled={submitting}>
-                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                {editingSite ? "Update" : "Add"} Site
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Button size="sm" onClick={openAdd}>
+          <Plus className="h-4 w-4" />
+          Add Site
+        </Button>
+        <AddSiteDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          clientId={clientId}
+          site={editingSite}
+          onSuccess={onRefresh}
+        />
       </CardHeader>
       <CardContent className="p-0">
         <Table>
@@ -1474,216 +1362,16 @@ function AssetsTab({
   onRefresh: () => void;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
-
-  // Form fields
-  const [machineName, setMachineName] = useState("");
-  const [serialNo, setSerialNo] = useState("");
-  const [clientSiteId, setClientSiteId] = useState("");
-
-  // Asset settings data
-  const [assetTypes, setAssetTypes] = useState<AssetTypeOption[]>([]);
-  const [assetMakes, setAssetMakes] = useState<AssetMakeOption[]>([]);
-  const [assetModels, setAssetModels] = useState<AssetModelOption[]>([]);
-  const [makeModelMappings, setMakeModelMappings] = useState<AssetMakeModelMapping[]>([]);
-  const [loadingSettings, setLoadingSettings] = useState(false);
-
-  // Selection state
-  const [selectedTypeIds, setSelectedTypeIds] = useState<Set<string>>(new Set());
-  const [selectedMakeId, setSelectedMakeId] = useState("");
-  const [selectedModelId, setSelectedModelId] = useState("");
-
-  const fetchAssetSettings = async (asset?: Asset | null) => {
-    setLoadingSettings(true);
-    try {
-      const [typesRes, makesRes, modelsRes, mappingsRes] = await Promise.all([
-        fetch("/api/settings/asset-types").then((r) => r.json()),
-        fetch("/api/settings/asset-makes").then((r) => r.json()),
-        fetch("/api/settings/asset-models").then((r) => r.json()),
-        fetch("/api/settings/asset-make-models").then((r) => r.json()),
-      ]);
-
-      const types = typesRes.success ? typesRes.data : [];
-      const makes = makesRes.success ? makesRes.data : [];
-      const models = modelsRes.success ? modelsRes.data : [];
-      const mappings = mappingsRes.success ? mappingsRes.data : [];
-
-      setAssetTypes(types);
-      setAssetMakes(makes);
-      setAssetModels(models);
-      setMakeModelMappings(mappings);
-
-      // Select all types by default
-      setSelectedTypeIds(new Set(types.map((t: AssetTypeOption) => t._id)));
-
-      // If editing, pre-select make and model
-      if (asset) {
-        const makeId = typeof asset.assetMakeId === "object" ? asset.assetMakeId._id : asset.assetMakeId || "";
-        const modelId = typeof asset.assetModelId === "object" ? asset.assetModelId._id : asset.assetModelId || "";
-        setSelectedMakeId(makeId);
-        setSelectedModelId(modelId);
-      }
-    } catch {
-      // ignore
-    } finally {
-      setLoadingSettings(false);
-    }
-  };
-
-  const resetForm = () => {
-    setMachineName("");
-    setSerialNo("");
-    setClientSiteId("");
-    setEditingAsset(null);
-    setSelectedTypeIds(new Set(assetTypes.map((t) => t._id)));
-    setSelectedMakeId("");
-    setSelectedModelId("");
-    setError("");
-  };
+  const [editingAsset, setEditingAsset] = useState<AssetData | null>(null);
 
   const openAdd = () => {
-    resetForm();
-    fetchAssetSettings();
+    setEditingAsset(null);
     setDialogOpen(true);
   };
 
   const openEdit = (asset: Asset) => {
-    setEditingAsset(asset);
-    setMachineName(asset.machineName);
-    setSerialNo(asset.serialNo || "");
-    setClientSiteId(asset.clientSiteId || "");
-    setError("");
-    fetchAssetSettings(asset);
+    setEditingAsset(asset as AssetData);
     setDialogOpen(true);
-  };
-
-  // Toggle a type selection
-  const toggleType = (typeId: string) => {
-    setSelectedTypeIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(typeId)) {
-        next.delete(typeId);
-      } else {
-        next.add(typeId);
-      }
-      return next;
-    });
-    // Clear make/model when types change
-    setSelectedMakeId("");
-    setSelectedModelId("");
-  };
-
-  // Compute filtered makes based on selected types
-  // A make is shown if it has at least one make-model mapping where the model's assetTypeId is in selectedTypeIds
-  const filteredMakes = (() => {
-    if (selectedTypeIds.size === 0) return [];
-
-    // Get model IDs that belong to selected types
-    const typeModelIds = new Set(
-      assetModels
-        .filter((m) => m.assetTypeId && selectedTypeIds.has(m.assetTypeId))
-        .map((m) => m._id)
-    );
-
-    // Get make IDs that have mappings to those models
-    const validMakeIds = new Set(
-      makeModelMappings
-        .filter((mm) => typeModelIds.has(mm.assetModelId))
-        .map((mm) => mm.assetMakeId)
-    );
-
-    // Also include makes that have ANY mapping (if no type filter would exclude them)
-    // If all types are selected, show all makes
-    if (selectedTypeIds.size === assetTypes.length) {
-      return assetMakes;
-    }
-
-    return assetMakes.filter((m) => validMakeIds.has(m._id));
-  })();
-
-  // Compute filtered models for the selected make
-  const filteredModels = (() => {
-    if (!selectedMakeId) return [];
-
-    // Get model IDs mapped to this make
-    const mappedModelIds = new Set(
-      makeModelMappings
-        .filter((mm) => mm.assetMakeId === selectedMakeId)
-        .map((mm) => mm.assetModelId)
-    );
-
-    // Filter models by mapped IDs and selected types
-    return assetModels.filter(
-      (m) =>
-        mappedModelIds.has(m._id) &&
-        (!m.assetTypeId || selectedTypeIds.has(m.assetTypeId))
-    );
-  })();
-
-  // Clear model if make changes and current model is not valid
-  useEffect(() => {
-    if (selectedModelId && !filteredModels.find((m) => m._id === selectedModelId)) {
-      setSelectedModelId("");
-    }
-  }, [selectedMakeId, filteredModels, selectedModelId]);
-
-  // Clear make if it's no longer in filtered makes
-  useEffect(() => {
-    if (selectedMakeId && !filteredMakes.find((m) => m._id === selectedMakeId)) {
-      setSelectedMakeId("");
-      setSelectedModelId("");
-    }
-  }, [selectedTypeIds, filteredMakes, selectedMakeId]);
-
-  const handleSubmit = async () => {
-    if (!machineName.trim()) {
-      setError("Machine name is required");
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      setError("");
-
-      // Determine the assetTypeId from the selected model if available
-      let assetTypeId: string | undefined;
-      if (selectedModelId) {
-        const model = assetModels.find((m) => m._id === selectedModelId);
-        if (model?.assetTypeId) assetTypeId = model.assetTypeId;
-      }
-
-      const payload = {
-        machineName: machineName.trim(),
-        serialNo: serialNo.trim() || undefined,
-        clientSiteId: clientSiteId || undefined,
-        assetTypeId,
-        assetMakeId: selectedMakeId || undefined,
-        assetModelId: selectedModelId || undefined,
-      };
-
-      const url = editingAsset
-        ? `/api/clients/${clientId}/assets/${editingAsset._id}`
-        : `/api/clients/${clientId}/assets`;
-
-      const res = await fetch(url, {
-        method: editingAsset ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error || `Failed to ${editingAsset ? "update" : "add"} asset`);
-
-      setDialogOpen(false);
-      resetForm();
-      onRefresh();
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   const handleDelete = async (assetId: string) => {
@@ -1722,194 +1410,22 @@ function AssetsTab({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg">Assets ({assets.length})</CardTitle>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              size="sm"
-              onClick={openAdd}
-              className="bg-[#00AEEF] hover:bg-[#0098d4] text-white"
-            >
-              <Plus className="h-4 w-4" />
-              Add Machine
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl">
-            <DialogHeader className="p-0">
-              <div className="flex items-center gap-3">
-                <DialogTitle className="text-base font-semibold">{editingAsset ? "Edit Asset" : "Add Asset"}</DialogTitle>
-                <select
-                  className="h-9 rounded-[10px] border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={clientSiteId}
-                  onChange={(e) => setClientSiteId(e.target.value)}
-                >
-                  <option value="">Select a site</option>
-                  {sites.map((site) => (
-                    <option key={site._id} value={site._id}>
-                      {site.siteName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <DialogDescription className="sr-only">
-                {editingAsset ? "Edit asset details" : "Add a new asset to this client"}
-              </DialogDescription>
-            </DialogHeader>
-
-            {error && (
-              <div className="rounded-[10px] border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                {error}
-              </div>
-            )}
-
-            {/* Machine Name & Serial Number */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-sm text-gray-600">Machine Name</Label>
-                <Input
-                  placeholder="Enter machine name"
-                  value={machineName}
-                  onChange={(e) => setMachineName(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-sm text-gray-600">Serial Number</Label>
-                <Input
-                  placeholder="Enter serial number"
-                  value={serialNo}
-                  onChange={(e) => setSerialNo(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <hr className="border-gray-200" />
-
-            {/* Three-column Type / Make / Model selector */}
-            {loadingSettings ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-4 min-h-[280px]">
-                {/* Type Column */}
-                <div className="flex flex-col">
-                  <h4 className="text-sm font-medium text-gray-700 mb-3">Type</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {assetTypes.map((type) => {
-                      const isSelected = selectedTypeIds.has(type._id);
-                      return (
-                        <button
-                          key={type._id}
-                          type="button"
-                          onClick={() => toggleType(type._id)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                            isSelected
-                              ? "bg-[#E0F4FB] text-[#2EA4D0] border border-[#2EA4D0]"
-                              : "bg-gray-100 text-gray-500 border border-gray-200"
-                          }`}
-                        >
-                          {type.title}
-                        </button>
-                      );
-                    })}
-                    {assetTypes.length === 0 && (
-                      <p className="text-sm text-gray-400">No types available</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Make Column */}
-                <div className="flex flex-col">
-                  <h4 className="text-sm font-medium text-gray-700 mb-3">Make</h4>
-                  <div className="flex flex-col gap-2 overflow-y-auto max-h-[260px] pr-1">
-                    {filteredMakes.map((make) => {
-                      const isSelected = selectedMakeId === make._id;
-                      return (
-                        <button
-                          key={make._id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedMakeId(isSelected ? "" : make._id);
-                            setSelectedModelId("");
-                          }}
-                          className={`px-3 py-2 rounded-[10px] text-sm text-left transition-colors border ${
-                            isSelected
-                              ? "border-[#2EA4D0] bg-[#E0F4FB] text-[#2EA4D0] font-medium"
-                              : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                          }`}
-                        >
-                          {make.title}
-                        </button>
-                      );
-                    })}
-                    {filteredMakes.length === 0 && (
-                      <p className="text-sm text-gray-400">
-                        {selectedTypeIds.size === 0
-                          ? "Select a type to see makes"
-                          : "No makes available"}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Model Column */}
-                <div className="flex flex-col">
-                  <h4 className="text-sm font-medium text-gray-700 mb-3">Model</h4>
-                  <div className="flex flex-col gap-2 overflow-y-auto max-h-[260px] pr-1">
-                    {selectedMakeId ? (
-                      filteredModels.length > 0 ? (
-                        filteredModels.map((model) => {
-                          const isSelected = selectedModelId === model._id;
-                          return (
-                            <button
-                              key={model._id}
-                              type="button"
-                              onClick={() =>
-                                setSelectedModelId(isSelected ? "" : model._id)
-                              }
-                              className={`px-3 py-2 rounded-[10px] text-sm text-left transition-colors border ${
-                                isSelected
-                                  ? "border-[#2EA4D0] bg-[#E0F4FB] text-[#2EA4D0] font-medium"
-                                  : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                              }`}
-                            >
-                              {model.title}
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <p className="text-sm text-gray-400">No models available</p>
-                      )
-                    ) : (
-                      <p className="text-sm text-gray-400">Select a make to see models</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <hr className="border-gray-200" />
-
-            {/* Footer */}
-            <div className="flex items-center justify-end gap-4">
-              <button
-                type="button"
-                onClick={() => setDialogOpen(false)}
-                disabled={submitting}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
-                Cancel
-              </button>
-              <Button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="bg-[#00AEEF] hover:bg-[#0098d4] text-white"
-              >
-                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                {editingAsset ? "Update Asset" : "Add Asset"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Button
+          size="sm"
+          onClick={openAdd}
+          className="bg-[#00AEEF] hover:bg-[#0098d4] text-white"
+        >
+          <Plus className="h-4 w-4" />
+          Add Machine
+        </Button>
+        <AddAssetDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          clientId={clientId}
+          sites={sites}
+          asset={editingAsset}
+          onSuccess={onRefresh}
+        />
       </CardHeader>
       <CardContent className="p-0">
         <Table>
