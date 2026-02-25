@@ -602,7 +602,7 @@ export default function ClientDetailPage() {
             <button
               key={tab.value}
               onClick={() => setActiveTab(tab.value)}
-              className={`whitespace-nowrap border-b-2 text-sm font-normal transition-colors ${
+              className={`whitespace-nowrap border-b-2 text-sm font-normal cursor-pointer transition-colors ${
                 activeTab === tab.value
                   ? "border-[#00AEEF] text-[#00AEEF]"
                   : "border-transparent text-gray-900 hover:border-gray-300"
@@ -666,7 +666,7 @@ export default function ClientDetailPage() {
                 <CardTitle className="text-lg">Client Information</CardTitle>
                 <button
                   onClick={() => setEditDialogOpen(true)}
-                  className="rounded-[10px] p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                  className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-gray-100 hover:text-gray-600"
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
@@ -699,7 +699,7 @@ export default function ClientDetailPage() {
                 <CardTitle className="text-lg">About</CardTitle>
                 <button
                   onClick={handleEditAbout}
-                  className="rounded-[10px] p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                  className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-gray-100 hover:text-gray-600"
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
@@ -744,7 +744,7 @@ export default function ClientDetailPage() {
                 <CardTitle className="text-lg">Attachments</CardTitle>
                 <button
                   onClick={() => { setPendingFiles([]); setUploadDialogOpen(true); }}
-                  className="rounded-[10px] border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                  className="rounded-[10px] border border-gray-200 p-1.5 text-gray-500 cursor-pointer hover:bg-gray-50 hover:text-gray-700"
                 >
                   <Upload className="h-4 w-4" />
                 </button>
@@ -764,14 +764,14 @@ export default function ClientDetailPage() {
                             <a
                               href={`/uploads/documents/${doc.fileName}`}
                               download={doc.documentName || doc.fileName}
-                              className="rounded p-0.5 text-gray-400 hover:text-gray-600"
+                              className="rounded p-0.5 text-gray-400 cursor-pointer hover:text-gray-600"
                               title="Download"
                             >
                               <Download className="h-5 w-5" strokeWidth={1.5} />
                             </a>
                             <button
                               onClick={() => handleDeleteDocument(doc._id)}
-                              className="rounded p-0.5 hover:opacity-70"
+                              className="rounded p-0.5 cursor-pointer hover:opacity-70"
                               title="Delete"
                             >
                               <img src="/trash.svg" alt="Delete" className="h-5 w-5" />
@@ -827,7 +827,7 @@ export default function ClientDetailPage() {
                     {/* Close button */}
                     <button
                       onClick={() => setLightboxOpen(false)}
-                      className="absolute right-3 top-3 z-10 rounded-full bg-white p-1.5 text-gray-400 shadow hover:text-gray-600"
+                      className="absolute right-3 top-3 z-10 rounded-full bg-white p-1.5 text-gray-400 cursor-pointer shadow hover:text-gray-600"
                     >
                       <X className="h-5 w-5" />
                     </button>
@@ -840,7 +840,7 @@ export default function ClientDetailPage() {
                             prev <= 0 ? imageDocuments.length - 1 : prev - 1
                           )
                         }
-                        className="absolute -left-14 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-gray-500 shadow-lg hover:text-gray-800"
+                        className="absolute -left-14 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-gray-500 cursor-pointer shadow-lg hover:text-gray-800"
                       >
                         <ChevronLeft className="h-6 w-6" />
                       </button>
@@ -861,7 +861,7 @@ export default function ClientDetailPage() {
                             prev >= imageDocuments.length - 1 ? 0 : prev + 1
                           )
                         }
-                        className="absolute -right-14 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-gray-500 shadow-lg hover:text-gray-800"
+                        className="absolute -right-14 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-gray-500 cursor-pointer shadow-lg hover:text-gray-800"
                       >
                         <ChevronRight className="h-6 w-6" />
                       </button>

@@ -221,7 +221,7 @@ export function SettingsListSection({
       {error && (
         <div className="rounded-[10px] bg-red-50 p-3 text-sm text-red-600">
           {error}
-          <button onClick={() => setError(null)} className="ml-2 underline">
+          <button onClick={() => setError(null)} className="ml-2 underline cursor-pointer">
             Dismiss
           </button>
         </div>
@@ -284,14 +284,14 @@ export function SettingsListSection({
                           <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={() => openEdit(item)}
-                              className="rounded p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                              className="rounded p-1.5 text-gray-400 cursor-pointer transition-colors hover:bg-gray-100 hover:text-gray-600"
                               title="Edit"
                             >
                               <Pencil className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleDelete(item)}
-                              className="rounded p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                              className="rounded p-1.5 text-gray-400 cursor-pointer transition-colors hover:bg-red-50 hover:text-red-600"
                               title="Delete"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -583,7 +583,7 @@ export function TableCrudSection({
         {error && (
           <div className="rounded-[10px] bg-red-50 p-3 text-sm text-red-600">
             {error}
-            <button onClick={() => setError(null)} className="ml-2 underline">
+            <button onClick={() => setError(null)} className="ml-2 underline cursor-pointer">
               Dismiss
             </button>
           </div>
@@ -889,7 +889,7 @@ export function AssetMakesSection() {
       {error && (
         <div className="rounded-[10px] bg-red-50 p-3 text-sm text-red-600">
           {error}
-          <button onClick={() => setError(null)} className="ml-2 underline">
+          <button onClick={() => setError(null)} className="ml-2 underline cursor-pointer">
             Dismiss
           </button>
         </div>
@@ -1191,7 +1191,7 @@ export function AssetModelsSection() {
       {error && (
         <div className="rounded-[10px] bg-red-50 p-3 text-sm text-red-600">
           {error}
-          <button onClick={() => setError(null)} className="ml-2 underline">
+          <button onClick={() => setError(null)} className="ml-2 underline cursor-pointer">
             Dismiss
           </button>
         </div>

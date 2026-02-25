@@ -79,7 +79,7 @@ export function Sidebar({ userRole, collapsed, onToggle }: SidebarProps) {
       {/* Toggle */}
       <button
         onClick={onToggle}
-        className="absolute -right-3 top-6 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm hover:bg-gray-50"
+        className="absolute -right-3 top-6 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm cursor-pointer hover:bg-gray-50"
       >
         {collapsed ? (
           <ChevronRight className="h-3 w-3 text-gray-600" />

@@ -203,13 +203,13 @@ export default function ResourcesPage() {
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => handleEdit(resource)}
-                  className="rounded-[10px] p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                  className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-gray-100 hover:text-gray-600"
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => handleDelete(resource._id)}
-                  className="rounded-[10px] p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                  className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-red-50 hover:text-red-500"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

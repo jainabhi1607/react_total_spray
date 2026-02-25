@@ -218,13 +218,13 @@ export default function TechniciansPage() {
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Link href={`/technicians/${tech._id}`}>
-                          <button className="rounded-[10px] p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                          <button className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-gray-100 hover:text-gray-600">
                             <Eye className="h-4 w-4" />
                           </button>
                         </Link>
                         <button
                           onClick={() => handleEdit(tech)}
-                          className="rounded-[10px] p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                          className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-gray-100 hover:text-gray-600"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>

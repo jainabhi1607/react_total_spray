@@ -564,14 +564,14 @@ export function ChecklistTemplatesSection() {
                     <div className="ml-3 flex shrink-0 items-center gap-1.5">
                       <button
                         onClick={() => handleSelect(t._id)}
-                        className="rounded p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                        className="rounded p-1.5 text-gray-400 cursor-pointer transition-colors hover:bg-gray-100 hover:text-gray-600"
                         title="Edit"
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteTemplate(t._id)}
-                        className="rounded p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                        className="rounded p-1.5 text-gray-400 cursor-pointer transition-colors hover:bg-red-50 hover:text-red-600"
                         title="Delete"
                       >
                         <Trash2 className="h-4 w-4" />

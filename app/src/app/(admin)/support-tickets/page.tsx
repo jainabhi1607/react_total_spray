@@ -400,7 +400,7 @@ export default function SupportTicketsPage() {
             <button
               key={tab.value}
               onClick={() => handleTabChange(tab.value)}
-              className={`whitespace-nowrap border-b-2 text-sm font-normal transition-colors ${
+              className={`whitespace-nowrap border-b-2 text-sm font-normal cursor-pointer transition-colors ${
                 activeTab === tab.value
                   ? "border-cyan-500 text-gray-900"
                   : "border-transparent text-gray-900 hover:border-gray-300"
@@ -532,14 +532,14 @@ export default function SupportTicketsPage() {
                       </TableCell>
                       <TableCell>
                         <Link href={`/support-tickets/${ticket._id}`}>
-                          <button className="rounded-[10px] p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                          <button className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-gray-100 hover:text-gray-600">
                             <Pencil className="h-4 w-4" />
                           </button>
                         </Link>
                       </TableCell>
                       <TableCell>
                         <Link href={`/support-tickets/${ticket._id}`}>
-                          <button className="rounded-[10px] p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                          <button className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-gray-100 hover:text-gray-600">
                             <ArrowRight className="h-4 w-4" />
                           </button>
                         </Link>

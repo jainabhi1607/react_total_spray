@@ -551,7 +551,7 @@ export default function TechnicianDetailPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/technicians">
-            <button className="rounded-full border border-gray-200 p-1.5 hover:bg-gray-50">
+            <button className="rounded-full border border-gray-200 p-1.5 cursor-pointer hover:bg-gray-50">
               <ArrowLeft className="h-5 w-5 text-gray-600" />
             </button>
           </Link>
@@ -628,7 +628,7 @@ export default function TechnicianDetailPage() {
                 </div>
                 <button
                   onClick={() => setTechDialogOpen(true)}
-                  className="rounded-[10px] p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                  className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-gray-100 hover:text-gray-600"
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
@@ -834,7 +834,7 @@ export default function TechnicianDetailPage() {
                             <div className="flex items-center justify-end gap-1">
                               <button
                                 onClick={() => handleEditInsurance(ins)}
-                                className="rounded-[10px] p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-gray-100 hover:text-gray-600"
                                 title="Edit"
                               >
                                 <Pencil className="h-4 w-4" />
@@ -844,7 +844,7 @@ export default function TechnicianDetailPage() {
                                   href={`/uploads/insurance/${ins.fileName}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="rounded-[10px] p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                  className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-gray-100 hover:text-gray-600"
                                   title="View"
                                 >
                                   <ExternalLink className="h-4 w-4" />
@@ -854,7 +854,7 @@ export default function TechnicianDetailPage() {
                                 <a
                                   href={`/uploads/insurance/${ins.fileName}`}
                                   download
-                                  className="rounded-[10px] p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                  className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-gray-100 hover:text-gray-600"
                                   title="Download"
                                 >
                                   <Download className="h-4 w-4" />
@@ -864,7 +864,7 @@ export default function TechnicianDetailPage() {
                                 onClick={() =>
                                   handleDeleteInsurance(ins._id)
                                 }
-                                className="rounded-[10px] p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                                className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-red-50 hover:text-red-500"
                                 title="Delete"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -927,13 +927,13 @@ export default function TechnicianDetailPage() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => handleEditSub(sub)}
-                            className="rounded-[10px] border border-gray-200 p-1.5 text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+                            className="rounded-[10px] border border-gray-200 p-1.5 text-gray-400 cursor-pointer hover:bg-gray-50 hover:text-gray-600"
                           >
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
                           <button
                             onClick={() => handleDeleteSub(sub._id)}
-                            className="rounded-[10px] border border-gray-200 p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                            className="rounded-[10px] border border-gray-200 p-1.5 text-gray-400 cursor-pointer hover:bg-red-50 hover:text-red-500"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>

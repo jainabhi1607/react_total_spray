@@ -113,7 +113,7 @@ function OtpForm() {
                 type="button"
                 onClick={handleResend}
                 disabled={resendLoading}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50"
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer disabled:opacity-50"
               >
                 {resendLoading ? "Sending..." : "Resend code"}
               </button>
