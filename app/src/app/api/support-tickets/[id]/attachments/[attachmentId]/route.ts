@@ -21,6 +21,7 @@ export async function PUT(
     const update: Record<string, any> = {};
 
     if (body.visibility !== undefined) update.visibility = body.visibility;
+    if (body.documentName !== undefined) update.documentName = body.documentName;
 
     const attachment = await SupportTicketAttachment.findOneAndUpdate(
       { _id: attachmentId, supportTicketId: id },

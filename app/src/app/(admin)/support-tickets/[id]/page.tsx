@@ -289,6 +289,11 @@ export default function SupportTicketDetailPage() {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Edit filename dialog
+  const [editFilenameAttId, setEditFilenameAttId] = useState<string | null>(null);
+  const [editFilenameName, setEditFilenameName] = useState("");
+  const [savingFilename, setSavingFilename] = useState(false);
+
   // Timer state
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -888,6 +893,29 @@ export default function SupportTicketDetailPage() {
     }
   }
 
+  async function handleSaveFilename() {
+    if (!editFilenameAttId || !editFilenameName.trim()) return;
+    setSavingFilename(true);
+    try {
+      const res = await fetch(`/api/support-tickets/${ticketId}/attachments/${editFilenameAttId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentName: editFilenameName.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error("Failed");
+      setAttachments((prev) =>
+        prev.map((a) => (a._id === editFilenameAttId ? { ...a, documentName: editFilenameName.trim() } : a))
+      );
+      setEditFilenameAttId(null);
+      setEditFilenameName("");
+    } catch {
+      alert("Failed to update filename");
+    } finally {
+      setSavingFilename(false);
+    }
+  }
+
   // ─── Render ───────────────────────────────────────────────────────────
 
   if (loading) return <PageLoading />;
@@ -1033,9 +1061,9 @@ export default function SupportTicketDetailPage() {
       </div>
 
       {/* ─── Two Column Layout ───────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* ─── LEFT COLUMN (2/3) ─────────────────────────────────── */}
-        <div className="space-y-6 lg:col-span-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* ─── LEFT COLUMN ─────────────────────────────────────── */}
+        <div className="space-y-6">
           {/* Client Info Card */}
           <Card>
             <CardContent className="p-6 space-y-5">
@@ -1075,7 +1103,7 @@ export default function SupportTicketDetailPage() {
                 </button>
               </div>
 
-              <hr className="border-gray-100" />
+              <hr style={{ borderTop: "1px solid #D4E3EB" }} />
 
               {/* Sites row */}
               <div className="flex items-center justify-between">
@@ -1092,7 +1120,7 @@ export default function SupportTicketDetailPage() {
                 )}
               </div>
 
-              <hr className="border-gray-100" />
+              <hr style={{ borderTop: "1px solid #D4E3EB" }} />
 
               {/* Asset row */}
               <div className="flex items-center justify-between">
@@ -1110,7 +1138,7 @@ export default function SupportTicketDetailPage() {
                 )}
               </div>
 
-              <hr className="border-gray-100" />
+              <hr style={{ borderTop: "1px solid #D4E3EB" }} />
 
               {/* Warranty row */}
               <div className="flex items-center justify-between">
@@ -1137,7 +1165,7 @@ export default function SupportTicketDetailPage() {
                 </div>
               </div>
 
-              <hr className="border-gray-100" />
+              <hr style={{ borderTop: "1px solid #D4E3EB" }} />
 
               {/* Parts row */}
               <div className="flex items-center justify-between">
@@ -1158,7 +1186,7 @@ export default function SupportTicketDetailPage() {
                 </div>
               </div>
 
-              <hr className="border-gray-100" />
+              <hr style={{ borderTop: "1px solid #D4E3EB" }} />
 
               {/* Production Impact row */}
               <div className="flex items-center justify-between">
@@ -1168,7 +1196,7 @@ export default function SupportTicketDetailPage() {
                 </p>
               </div>
 
-              <hr className="border-gray-100" />
+              <hr style={{ borderTop: "1px solid #D4E3EB" }} />
 
               {/* Time Issue Occurred row */}
               <div className="flex items-center justify-between">
@@ -1176,7 +1204,7 @@ export default function SupportTicketDetailPage() {
                 <p className="text-sm font-medium text-gray-900">{timeIssue}</p>
               </div>
 
-              <hr className="border-gray-100" />
+              <hr style={{ borderTop: "1px solid #D4E3EB" }} />
 
               {/* Title */}
               <div>
@@ -1292,7 +1320,14 @@ export default function SupportTicketDetailPage() {
                                     <ExternalLink className="h-5 w-5" />
                                   </a>
                                   {/* Edit/Rename */}
-                                  <button className="text-gray-500 hover:text-gray-700 cursor-pointer" title="Edit">
+                                  <button
+                                    onClick={() => {
+                                      setEditFilenameAttId(att._id);
+                                      setEditFilenameName(att.documentName || att.fileName || "");
+                                    }}
+                                    className="text-gray-500 hover:text-gray-700 cursor-pointer"
+                                    title="Edit filename"
+                                  >
                                     <Pencil className="h-5 w-5" />
                                   </button>
                                   {/* Delete */}
@@ -1968,6 +2003,40 @@ export default function SupportTicketDetailPage() {
             </Button>
             <button
               onClick={() => setAddTimeOpen(false)}
+              className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Edit Filename Dialog ─────────────────────────────────── */}
+      <Dialog open={!!editFilenameAttId} onOpenChange={(v) => { if (!v) { setEditFilenameAttId(null); setEditFilenameName(""); } }}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Edit Filename</DialogTitle>
+          </DialogHeader>
+          <hr style={{ borderTop: "1px solid #D4E3EB" }} />
+          <div className="flex items-center gap-6 px-2">
+            <Label className="min-w-[80px] text-sm text-gray-600">File name</Label>
+            <Input
+              value={editFilenameName}
+              onChange={(e) => setEditFilenameName(e.target.value)}
+              className="flex-1"
+            />
+          </div>
+          <div className="flex items-center gap-3 px-2 pt-2">
+            <Button
+              className="bg-cyan-500 hover:bg-cyan-600 text-white"
+              onClick={handleSaveFilename}
+              disabled={savingFilename || !editFilenameName.trim()}
+            >
+              {savingFilename && <Loader2 className="h-4 w-4 animate-spin" />}
+              Save
+            </Button>
+            <button
+              onClick={() => { setEditFilenameAttId(null); setEditFilenameName(""); }}
               className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
             >
               Cancel
