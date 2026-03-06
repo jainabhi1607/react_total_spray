@@ -56,6 +56,18 @@ export async function GET(req: NextRequest) {
       query.clientId = clientIdParam;
     }
 
+    // Filter by clientSiteId
+    const clientSiteIdParam = searchParams.get("clientSiteId");
+    if (clientSiteIdParam) {
+      query.clientSiteId = clientSiteIdParam;
+    }
+
+    // Filter by clientAssetId
+    const clientAssetIdParam = searchParams.get("clientAssetId");
+    if (clientAssetIdParam) {
+      query.clientAssetId = clientAssetIdParam;
+    }
+
     // Filter by ticketStatus (supports comma-separated values e.g. "1,2,3")
     const ticketStatus = searchParams.get("ticketStatus");
     if (ticketStatus) {

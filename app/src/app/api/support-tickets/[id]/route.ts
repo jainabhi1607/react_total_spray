@@ -40,7 +40,10 @@ export async function GET(
 
     const [detail, comments, attachments, technicians, owners, timeLogs] =
       await Promise.all([
-        SupportTicketDetail.findOne({ supportTicketId: id }).lean(),
+        SupportTicketDetail.findOne({ supportTicketId: id })
+          .populate("rootCauseUserId", "name lastName")
+          .populate("resolutionUserId", "name lastName")
+          .lean(),
         SupportTicketComment.find({ supportTicketId: id })
           .populate("userId", "name email")
           .sort({ createdAt: -1 })

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -193,10 +193,20 @@ const TABS = [
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 
-export default function ClientDetailPage() {
+export default function ClientDetailPageWrapper() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-400">Loading...</div>}>
+      <ClientDetailPage />
+    </Suspense>
+  );
+}
+
+function ClientDetailPage() {
   useEffect(() => { document.title = "TSC - Client Details"; }, []);
   const params = useParams();
+  const searchParams = useSearchParams();
   const clientId = params.id as string;
+  const urlSiteId = searchParams.get("siteId") || "";
 
   const [client, setClient] = useState<Client | null>(null);
   const [sites, setSites] = useState<Site[]>([]);
@@ -210,7 +220,7 @@ export default function ClientDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
-  const [selectedSiteId, setSelectedSiteId] = useState<string>("");
+  const [selectedSiteId, setSelectedSiteId] = useState<string>(urlSiteId);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   // About section edit state

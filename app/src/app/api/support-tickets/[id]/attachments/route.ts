@@ -29,6 +29,36 @@ export async function GET(
   }
 }
 
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await dbConnect();
+    await requireAuth();
+
+    const { id } = await params;
+    const body = await req.json();
+
+    if (body.visibility !== undefined) {
+      await SupportTicketAttachment.updateMany(
+        { supportTicketId: id },
+        { visibility: body.visibility }
+      );
+    }
+
+    const attachments = await SupportTicketAttachment.find({
+      supportTicketId: id,
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return successResponse(attachments);
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

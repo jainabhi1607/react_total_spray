@@ -1,11 +1,11 @@
 import { NextRequest } from "next/server";
 import path from "path";
 import { writeFile, mkdir } from "fs/promises";
-import { requireAdmin, successResponse, errorResponse, handleApiError } from "@/lib/api-helpers";
+import { requireAuth, successResponse, errorResponse, handleApiError } from "@/lib/api-helpers";
 
 export async function POST(req: NextRequest) {
   try {
-    await requireAdmin();
+    await requireAuth();
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
