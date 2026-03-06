@@ -4,7 +4,9 @@ import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/db";
 import User from "@/models/User";
 import UserDetail from "@/models/UserDetail";
+import UserLoginCode from "@/models/UserLoginCode";
 import UserLoginIpAddress from "@/models/UserLoginIpAddress";
+import { sendOtpEmail } from "@/lib/email";
 import { authConfig } from "./auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -15,6 +17,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        rememberMe: { label: "Remember Me", type: "text" },
       },
       async authorize(credentials, request) {
         if (!credentials?.email || !credentials?.password) {
@@ -60,6 +63,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           loginResponse: "Success",
         }).catch(() => {});
 
+        // Generate and send OTP
+        const otp = Math.floor(100000 + Math.random() * 900000);
+        const expiryTime = new Date(Date.now() + 10 * 60 * 1000);
+        await UserLoginCode.create({
+          userId: user._id,
+          otp,
+          expiryTime,
+          status: 1,
+        });
+
+        // Send OTP email (don't block login if email fails)
+        sendOtpEmail(user.email, otp, user.name).catch((err) =>
+          console.error("Failed to send OTP email:", err)
+        );
+
         const userDetail = await UserDetail.findOne({ userId: user._id });
 
         return {
@@ -70,6 +88,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           role: user.role,
           clientId: user.clientId?.toString() || "",
           image: userDetail?.profilePic || "",
+          rememberMe: credentials.rememberMe === "true" ? "true" : "false",
         };
       },
     }),

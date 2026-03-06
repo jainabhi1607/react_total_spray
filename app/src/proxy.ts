@@ -44,6 +44,15 @@ export const proxy = auth((req) => {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Check if OTP is verified — redirect to OTP page if not
+  const otpVerified = (req.auth.user as any)?.otpVerified;
+  if (!otpVerified && !pathname.startsWith("/otp")) {
+    const userId = (req.auth.user as any)?.id;
+    const otpUrl = new URL("/otp", req.url);
+    if (userId) otpUrl.searchParams.set("uid", userId);
+    return NextResponse.redirect(otpUrl);
+  }
+
   const role = (req.auth.user as any)?.role;
 
   // Admin routes - require role 1, 2, or 3

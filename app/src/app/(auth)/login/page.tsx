@@ -35,13 +35,23 @@ function LoginForm() {
       const result = await signIn("credentials", {
         email,
         password,
+        rememberMe: rememberMe ? "true" : "false",
         redirect: false,
       });
 
       if (result?.error) {
         setError("Invalid email or password");
       } else {
-        router.push(callbackUrl);
+        // Fetch session to get user ID for OTP page
+        const sessionRes = await fetch("/api/auth/session");
+        const session = await sessionRes.json();
+        const userId = session?.user?.id;
+
+        if (userId) {
+          router.push(`/otp?uid=${userId}&cb=${encodeURIComponent(callbackUrl)}`);
+        } else {
+          router.push(callbackUrl);
+        }
         router.refresh();
       }
     } catch (err) {

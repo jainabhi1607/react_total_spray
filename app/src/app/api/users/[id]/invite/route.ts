@@ -9,6 +9,7 @@ import {
 } from "@/lib/api-helpers";
 import User from "@/models/User";
 import UserDetail from "@/models/UserDetail";
+import { sendInviteEmail } from "@/lib/email";
 
 export async function POST(
   req: NextRequest,
@@ -16,7 +17,7 @@ export async function POST(
 ) {
   try {
     await dbConnect();
-    await requireAdmin();
+    const admin = await requireAdmin();
     const { id } = await params;
 
     const user = await User.findById(id);
@@ -47,9 +48,12 @@ export async function POST(
       await userDetail.save();
     }
 
+    // Send invitation email
+    const inviterName = admin.name || "An administrator";
+    await sendInviteEmail(user.email, authcode, inviterName);
+
     return successResponse({
       message: "Invitation sent successfully",
-      authcode,
       invitationExpiryDate,
     });
   } catch (error) {

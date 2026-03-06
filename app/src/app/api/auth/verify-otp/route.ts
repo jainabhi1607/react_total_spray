@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
       return errorResponse("Invalid or expired OTP", 400);
     }
 
+    // Mark OTP as used
     loginCode.status = 0;
     await loginCode.save();
 

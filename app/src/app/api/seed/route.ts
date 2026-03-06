@@ -8,7 +8,7 @@ export async function GET() {
   try {
     await dbConnect();
 
-    const email = "jainabhi1607@gmail.com";
+    const email = "abhidevphp2@gmail.com";
     const existing = await User.findOne({ email });
 
     if (existing) {

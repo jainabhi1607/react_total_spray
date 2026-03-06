@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,11 +11,14 @@ import { Loader2, ShieldCheck } from "lucide-react";
 function OtpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { update } = useSession();
   const userId = searchParams.get("uid") || "";
+  const callbackUrl = searchParams.get("cb") || "/dashboard";
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
@@ -37,6 +41,15 @@ function OtpForm() {
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (pastedData.length === 6) {
+      setOtp(pastedData.split(""));
+      inputRefs.current[5]?.focus();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = otp.join("");
@@ -51,9 +64,12 @@ function OtpForm() {
       });
       const data = await res.json();
       if (data.success) {
-        router.push("/dashboard");
+        // Update the session JWT to mark OTP as verified
+        await update({ otpVerified: true });
+        router.push(callbackUrl);
+        router.refresh();
       } else {
-        setError(data.message || "Invalid OTP");
+        setError(data.error || "Invalid OTP");
       }
     } catch {
       setError("An error occurred");
@@ -64,12 +80,18 @@ function OtpForm() {
 
   const handleResend = async () => {
     setResendLoading(true);
+    setResendSuccess(false);
     try {
-      await fetch("/api/auth/resend-otp", {
+      const res = await fetch("/api/auth/resend-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
       });
+      const data = await res.json();
+      if (data.success) {
+        setResendSuccess(true);
+        setTimeout(() => setResendSuccess(false), 3000);
+      }
     } finally {
       setResendLoading(false);
     }
@@ -90,7 +112,7 @@ function OtpForm() {
             {error && (
               <div className="rounded-[10px] bg-red-50 border border-red-200 p-3 text-sm text-red-700">{error}</div>
             )}
-            <div className="flex gap-2 justify-center">
+            <div className="flex gap-2 justify-center" onPaste={handlePaste}>
               {otp.map((digit, index) => (
                 <Input
                   key={index}
@@ -109,14 +131,18 @@ function OtpForm() {
               {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Verifying...</> : "Verify"}
             </Button>
             <div className="text-center">
-              <button
-                type="button"
-                onClick={handleResend}
-                disabled={resendLoading}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer disabled:opacity-50"
-              >
-                {resendLoading ? "Sending..." : "Resend code"}
-              </button>
+              {resendSuccess ? (
+                <span className="text-sm text-green-600 font-medium">Code sent!</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resendLoading}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer disabled:opacity-50"
+                >
+                  {resendLoading ? "Sending..." : "Resend code"}
+                </button>
+              )}
             </div>
           </form>
         </CardContent>

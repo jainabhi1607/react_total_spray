@@ -3,6 +3,7 @@ import dbConnect from "@/lib/db";
 import { successResponse, errorResponse, handleApiError } from "@/lib/api-helpers";
 import User from "@/models/User";
 import UserLoginCode from "@/models/UserLoginCode";
+import { sendOtpEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,8 +21,13 @@ export async function POST(req: NextRequest) {
       return errorResponse("User not found", 404);
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000);
+    // Invalidate any existing OTPs
+    await UserLoginCode.updateMany(
+      { userId: user._id, status: 1 },
+      { status: 0 }
+    );
 
+    const otp = Math.floor(100000 + Math.random() * 900000);
     const expiryTime = new Date(Date.now() + 10 * 60 * 1000);
 
     await UserLoginCode.create({
@@ -31,9 +37,11 @@ export async function POST(req: NextRequest) {
       status: 1,
     });
 
+    // Send OTP via email
+    await sendOtpEmail(user.email, otp, user.name);
+
     return successResponse({
-      message: "OTP generated successfully",
-      otp,
+      message: "OTP sent successfully",
     });
   } catch (error) {
     return handleApiError(error);

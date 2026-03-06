@@ -1254,6 +1254,8 @@ export default function SupportTicketDetailPage() {
                 </div>
               </div>
 
+              <hr style={{ borderTop: "1px solid #D4E3EB" }} />
+
               {/* Attachments */}
               <div>
                 <div className="flex items-center justify-between mb-4">
@@ -1660,19 +1662,16 @@ export default function SupportTicketDetailPage() {
                     return (
                       <div
                         key={c._id}
-                        className={`rounded-[10px] p-4 ${
-                          isPublic
-                            ? "bg-yellow-50"
-                            : "border-b border-gray-100"
-                        }`}
+                        className="rounded-[10px]"
+                        style={{ backgroundColor: isPublic ? "#FFF7DD" : "#F2FBFF", padding: "30px" }}
                       >
                         {/* Header row */}
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center gap-3 flex-wrap">
-                            <span className="text-sm font-semibold text-cyan-600">
+                            <span className="text-sm font-semibold" style={{ color: isPublic ? "#E49049" : "#00AEEF" }}>
                               {c.userId?.name || "Unknown"}
                             </span>
-                            <span className="text-xs text-cyan-500">{dateStr}</span>
+                            <span className="text-xs" style={{ color: isPublic ? "#E49049" : "#00AEEF" }}>{dateStr}</span>
                           </div>
                           {isPublic ? (
                             <div className="flex flex-col items-end gap-0.5 flex-shrink-0 ml-2">
@@ -1682,20 +1681,23 @@ export default function SupportTicketDetailPage() {
                                     setEditingCommentId(c._id);
                                     setEditCommentText(c.comments || "");
                                   }}
-                                  className="text-xs text-cyan-600 hover:underline cursor-pointer"
+                                  className="text-xs hover:underline cursor-pointer"
+                                  style={{ color: "#E49049" }}
                                 >
                                   Edit
                                 </button>
                                 <button
                                   onClick={() => handleDeleteComment(c._id)}
-                                  className="text-xs text-cyan-600 hover:underline cursor-pointer"
+                                  className="text-xs hover:underline cursor-pointer"
+                                  style={{ color: "#E49049" }}
                                 >
                                   Delete
                                 </button>
                               </div>
                               <button
                                 onClick={() => handleToggleCommentVisibility(c._id, c.visibility)}
-                                className="text-xs text-cyan-600 hover:underline cursor-pointer"
+                                className="text-xs hover:underline cursor-pointer"
+                                style={{ color: "#E49049" }}
                               >
                                 Make Private
                               </button>
@@ -1704,7 +1706,8 @@ export default function SupportTicketDetailPage() {
                             <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                               <button
                                 onClick={() => handleToggleCommentVisibility(c._id, c.visibility)}
-                                className="text-xs text-cyan-600 hover:underline cursor-pointer"
+                                className="text-xs hover:underline cursor-pointer"
+                                style={{ color: "#00AEEF" }}
                               >
                                 Make Public
                               </button>
@@ -1713,13 +1716,15 @@ export default function SupportTicketDetailPage() {
                                   setEditingCommentId(c._id);
                                   setEditCommentText(c.comments || "");
                                 }}
-                                className="text-xs text-cyan-600 hover:underline cursor-pointer"
+                                className="text-xs hover:underline cursor-pointer"
+                                style={{ color: "#00AEEF" }}
                               >
                                 Edit
                               </button>
                               <button
                                 onClick={() => handleDeleteComment(c._id)}
-                                className="text-xs text-cyan-600 hover:underline cursor-pointer"
+                                className="text-xs hover:underline cursor-pointer"
+                                style={{ color: "#00AEEF" }}
                               >
                                 Delete
                               </button>
@@ -1728,7 +1733,7 @@ export default function SupportTicketDetailPage() {
                         </div>
 
                         {/* Content */}
-                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{c.comments}</p>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap mt-3">{c.comments}</p>
                       </div>
                     );
                   })}

@@ -12,7 +12,7 @@ function InviteForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
-  const userId = searchParams.get("uid") || "";
+  const token = searchParams.get("token") || "";
   const [name, setName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
@@ -32,7 +32,7 @@ function InviteForm() {
       const res = await fetch("/api/auth/accept-invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, name, lastName, phone, password }),
+        body: JSON.stringify({ token, name, lastName, phone, password }),
       });
       const data = await res.json();
       if (data.success) {

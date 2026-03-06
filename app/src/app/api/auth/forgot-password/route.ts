@@ -4,6 +4,7 @@ import dbConnect from "@/lib/db";
 import { successResponse, errorResponse, handleApiError } from "@/lib/api-helpers";
 import User from "@/models/User";
 import UserDetail from "@/models/UserDetail";
+import { sendPasswordResetEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,9 +33,11 @@ export async function POST(req: NextRequest) {
       { upsert: true, new: true }
     );
 
+    // Send password reset email
+    await sendPasswordResetEmail(user.email, resetToken, user.name);
+
     return successResponse({
-      message: "Password reset token generated successfully",
-      resetToken,
+      message: "Password reset link sent to your email",
     });
   } catch (error) {
     return handleApiError(error);
