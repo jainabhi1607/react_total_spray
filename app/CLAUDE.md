@@ -46,6 +46,7 @@ src/
 - **Technicians**: listing, view page with tabs, tags, notes, sub-technicians, insurance, archive
 - **Resources**: category tabs, card grid, add/edit dialog
 - **Support Tickets**: listing with stat cards (circle color matches count color), tab filters, inline edit/arrow icons
+- **Support Ticket Detail** (`/support-tickets/[id]`): redesign in progress — 2-column scrollable layout with status progress bar, inline editing, timer, job cards, ticket history, comments with visibility toggle
 - **Assets**: listing with client/site filters (searchable client dropdown, sorted alphabetically), table with Machine Name/Serial Number/Client Name/Client Site/Last Ticket/View Asset
 - **Asset Detail** (`/assets/[id]`): Overview/Maintenance/Activity tabs, stat cards, notes editing, image placeholder, serial/date/make/model details, QR code section
 
