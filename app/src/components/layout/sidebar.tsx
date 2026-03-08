@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   ChevronLeft,
@@ -66,6 +66,7 @@ const navItems: NavItem[] = [
 
 export function Sidebar({ userRole, collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const filteredItems = navItems.filter((item) => item.roles.includes(userRole));
 
@@ -92,9 +93,31 @@ export function Sidebar({ userRole, collapsed, onToggle }: SidebarProps) {
       <ScrollArea className="h-[calc(100vh-3.5rem-3px-4rem)]">
         <nav className="flex flex-col gap-1 py-4 pl-[20px] pr-3">
           {filteredItems.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (item.href !== "/dashboard" && pathname.startsWith(item.href.split("?")[0]));
+            const itemBase = item.href.split("?")[0];
+            const itemQuery = item.href.includes("?") ? new URLSearchParams(item.href.split("?")[1]) : null;
+
+            let isActive: boolean;
+            if (itemQuery) {
+              // Items with query params (e.g. To Invoice): exact path match + query match
+              isActive = pathname === itemBase &&
+                Array.from(itemQuery.entries()).every(([k, v]) => searchParams.get(k) === v);
+            } else {
+              // Regular items: path match, but exclude if another nav item with query owns this path
+              const hasQuerySibling = filteredItems.some(
+                (other) => other.href !== item.href && other.href.split("?")[0] === itemBase && other.href.includes("?")
+              );
+              if (hasQuerySibling && pathname === itemBase) {
+                // Only active if no query sibling's params are present
+                const querySibling = filteredItems.find(
+                  (other) => other.href !== item.href && other.href.split("?")[0] === itemBase && other.href.includes("?")
+                );
+                const siblingQuery = new URLSearchParams(querySibling!.href.split("?")[1]);
+                isActive = !Array.from(siblingQuery.entries()).every(([k, v]) => searchParams.get(k) === v);
+              } else {
+                isActive = pathname === item.href ||
+                  (item.href !== "/dashboard" && pathname.startsWith(itemBase));
+              }
+            }
 
             return (
               <React.Fragment key={item.href}>

@@ -29,6 +29,7 @@ interface ContactItem {
   phone?: string;
   position?: string;
   clientId?: string | { _id: string; companyName: string };
+  clientSiteId?: string | { _id: string; siteName?: string };
   siteId?: string | { _id: string; name: string; siteName?: string };
 }
 
@@ -177,9 +178,11 @@ export default function ContactsPage() {
                       ? contact.clientId?.companyName || "-"
                       : "-";
                   const siteName =
-                    typeof contact.siteId === "object"
-                      ? contact.siteId?.siteName || contact.siteId?.name || "-"
-                      : "-";
+                    typeof contact.clientSiteId === "object"
+                      ? contact.clientSiteId?.siteName || "-"
+                      : typeof contact.siteId === "object"
+                        ? contact.siteId?.siteName || contact.siteId?.name || "-"
+                        : "-";
 
                   return (
                     <TableRow key={contact._id}>

@@ -87,6 +87,39 @@ export async function sendPasswordResetEmail(
   );
 }
 
+export async function sendTicketResolvedEmail(
+  to: string,
+  contactName: string,
+  ticketNo: number,
+  siteName: string,
+  assetName: string,
+  comment: string,
+) {
+  return sendWithFallback((resend) =>
+    resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject: `TSC #${ticketNo} - Your ticket has been resolved`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <p>Hi ${contactName},</p>
+          <p>Your Total Spraybooth Care Support Ticket <strong>#${ticketNo}</strong> has been marked as <strong>resolved</strong>.</p>
+          <p>Please find details of the ticket below.</p>
+          <p><strong>Site</strong>: ${siteName}</p>
+          <p><strong>Asset</strong>: ${assetName}</p>
+          <p><strong>Resolution Comment</strong>:</p>
+          <div style="background: #f4f4f4; padding: 15px; border-radius: 10px; margin: 10px 0;">
+            ${comment}
+          </div>
+          <p style="color: #666; font-size: 14px;">If you have any questions, please contact our support team.</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+          <p style="color: #999; font-size: 12px;">Total Spray Care</p>
+        </div>
+      `,
+    })
+  );
+}
+
 export async function sendInviteEmail(
   to: string,
   authcode: string,

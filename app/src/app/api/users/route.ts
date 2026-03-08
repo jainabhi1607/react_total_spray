@@ -32,7 +32,16 @@ export async function GET(req: NextRequest) {
     }
 
     if (role) {
-      query.role = parseInt(role);
+      if (role.includes(",")) {
+        query.role = { $in: role.split(",").map((r) => parseInt(r)) };
+      } else {
+        query.role = parseInt(role);
+      }
+    }
+
+    const status = searchParams.get("status");
+    if (status) {
+      query.status = parseInt(status);
     }
 
     if (clientId) {
@@ -76,7 +85,7 @@ export async function POST(req: NextRequest) {
     await requireAdmin();
 
     const body = await req.json();
-    const { name, lastName, email, password, phone, position, role, clientId } =
+    const { name, lastName, email, password, phone, position, role, clientId, status } =
       body;
 
     if (!name || !email || !password) {
@@ -100,7 +109,7 @@ export async function POST(req: NextRequest) {
       position,
       role,
       clientId,
-      status: 1,
+      status: status !== undefined ? status : 1,
     });
 
     // Create associated UserDetail record

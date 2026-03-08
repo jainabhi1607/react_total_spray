@@ -1,30 +1,24 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Plus,
   Search,
-  Eye,
   Pencil,
   Trash2,
   Mail,
   Users,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  Loader2,
+  X,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -33,8 +27,56 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { PageLoading, InlineLoading } from "@/components/ui/loading";
-import { ROLE_LABELS } from "@/lib/utils";
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const USER_ROLES = [
+  { value: "3", label: "Administrator" },
+  { value: "2", label: "Support Admin" },
+];
+
+const ROLE_DISPLAY: Record<number, string> = {
+  1: "Super Admin",
+  2: "Support Admin",
+  3: "Administrator",
+};
+
+const ROLE_FILTER_OPTIONS = [
+  { value: "all", label: "All Roles" },
+  { value: "3", label: "Administrator" },
+  { value: "2", label: "Support Admin" },
+];
+
+function getRoleBadgeColor(role: number): string {
+  switch (role) {
+    case 2:
+      return "bg-indigo-100 text-indigo-800";
+    case 3:
+      return "bg-blue-100 text-blue-800";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
+}
+
+function getStatusBadge(status: number) {
+  switch (status) {
+    case 1:
+      return { label: "Active", className: "bg-green-100 text-green-800" };
+    case 0:
+      return { label: "Deactive", className: "bg-gray-100 text-gray-800" };
+    default:
+      return { label: "Unknown", className: "bg-gray-100 text-gray-800" };
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -45,6 +87,8 @@ interface UserItem {
   name: string;
   lastName?: string;
   email: string;
+  phone?: string;
+  position?: string;
   role: number;
   status: number;
 }
@@ -57,63 +101,12 @@ interface PaginationMeta {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-const ROLE_FILTER_OPTIONS = [
-  { value: "all", label: "All Roles" },
-  { value: "1", label: "Super Admin" },
-  { value: "2", label: "Sub Admin" },
-  { value: "3", label: "Admin" },
-  { value: "4", label: "Client Admin" },
-  { value: "6", label: "Client User" },
-  { value: "7", label: "Tech Company" },
-  { value: "9", label: "Tech User" },
-];
-
-function getRoleBadgeColor(role: number): string {
-  switch (role) {
-    case 1:
-      return "bg-purple-100 text-purple-800";
-    case 2:
-      return "bg-indigo-100 text-indigo-800";
-    case 3:
-      return "bg-blue-100 text-blue-800";
-    case 4:
-      return "bg-teal-100 text-teal-800";
-    case 6:
-      return "bg-cyan-100 text-cyan-800";
-    case 7:
-      return "bg-orange-100 text-orange-800";
-    case 9:
-      return "bg-amber-100 text-amber-800";
-    default:
-      return "bg-gray-100 text-gray-800";
-  }
-}
-
-function getStatusBadge(status: number) {
-  switch (status) {
-    case 1:
-      return { label: "Active", className: "bg-green-100 text-green-800" };
-    case 0:
-      return { label: "Inactive", className: "bg-gray-100 text-gray-800" };
-    case 2:
-      return { label: "Deleted", className: "bg-red-100 text-red-800" };
-    case 25:
-      return { label: "Pending", className: "bg-yellow-100 text-yellow-800" };
-    default:
-      return { label: "Unknown", className: "bg-gray-100 text-gray-800" };
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
 export default function UsersPage() {
   useEffect(() => { document.title = "TSC - Users"; }, []);
-  const router = useRouter();
+
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -127,6 +120,10 @@ export default function UsersPage() {
     totalPages: 1,
   });
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserItem | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -194,6 +191,16 @@ export default function UsersPage() {
     }
   };
 
+  function openAddDialog() {
+    setEditingUser(null);
+    setDialogOpen(true);
+  }
+
+  function openEditDialog(user: UserItem) {
+    setEditingUser(user);
+    setDialogOpen(true);
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -201,11 +208,9 @@ export default function UsersPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Users</h1>
         </div>
-        <Button asChild>
-          <Link href="/users/add">
-            <Plus className="h-4 w-4" />
-            Add User
-          </Link>
+        <Button onClick={openAddDialog}>
+          <Plus className="h-4 w-4" />
+          Add User
         </Button>
       </div>
 
@@ -224,24 +229,23 @@ export default function UsersPage() {
               className="pl-9"
             />
           </div>
-          <Select
-            value={roleFilter}
-            onValueChange={(v) => {
-              setRoleFilter(v);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="w-full sm:w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
+          <div className="relative w-full sm:w-48">
+            <select
+              value={roleFilter}
+              onChange={(e) => {
+                setRoleFilter(e.target.value);
+                setPage(1);
+              }}
+              className="w-full appearance-none rounded-[10px] border border-gray-200 bg-white px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            >
               {ROLE_FILTER_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
+                <option key={opt.value} value={opt.value}>
                   {opt.label}
-                </SelectItem>
+                </option>
               ))}
-            </SelectContent>
-          </Select>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          </div>
         </CardContent>
       </Card>
 
@@ -292,7 +296,7 @@ export default function UsersPage() {
                       <TableCell className="text-gray-500">{user.email}</TableCell>
                       <TableCell>
                         <Badge className={getRoleBadgeColor(user.role)}>
-                          {ROLE_LABELS[user.role] || "Unknown"}
+                          {ROLE_DISPLAY[user.role] || "Unknown"}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -300,15 +304,12 @@ export default function UsersPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" asChild>
-                            <Link href={`/users/${user._id}`}>
-                              <Eye className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                          <Button variant="ghost" size="icon" asChild>
-                            <Link href={`/users/${user._id}/edit`}>
-                              <Pencil className="h-4 w-4" />
-                            </Link>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(user)}
+                          >
+                            <Pencil className="h-4 w-4" />
                           </Button>
                           {user.status === 25 && (
                             <Button
@@ -380,6 +381,306 @@ export default function UsersPage() {
           </div>
         </div>
       )}
+
+      {/* Add/Edit User Dialog */}
+      <AddEditUserDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        editingUser={editingUser}
+        onSuccess={() => {
+          setDialogOpen(false);
+          fetchUsers();
+        }}
+      />
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Add/Edit User Dialog
+// ---------------------------------------------------------------------------
+
+function AddEditUserDialog({
+  open,
+  onOpenChange,
+  editingUser,
+  onSuccess,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  editingUser: UserItem | null;
+  onSuccess: () => void;
+}) {
+  const isEdit = !!editingUser;
+
+  const [form, setForm] = useState({
+    name: "",
+    lastName: "",
+    email: "",
+    password: "",
+    phone: "",
+    position: "",
+    role: "",
+    status: "1",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [loadingUser, setLoadingUser] = useState(false);
+
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (!open) return;
+    setError("");
+    setSaving(false);
+
+    if (editingUser) {
+      // For edit, fetch full user data to get all fields
+      setLoadingUser(true);
+      (async () => {
+        try {
+          const res = await fetch(`/api/users/${editingUser._id}`);
+          const json = await res.json();
+          if (json.success) {
+            const u = json.data;
+            setForm({
+              name: u.name || "",
+              lastName: u.lastName || "",
+              email: u.email || "",
+              password: "",
+              phone: u.phone || "",
+              position: u.position || "",
+              role: String(u.role),
+              status: String(u.status),
+            });
+          }
+        } catch {
+          // fallback to basic data
+          setForm({
+            name: editingUser.name || "",
+            lastName: editingUser.lastName || "",
+            email: editingUser.email || "",
+            password: "",
+            phone: editingUser.phone || "",
+            position: editingUser.position || "",
+            role: String(editingUser.role),
+            status: String(editingUser.status),
+          });
+        } finally {
+          setLoadingUser(false);
+        }
+      })();
+    } else {
+      setForm({
+        name: "",
+        lastName: "",
+        email: "",
+        password: "",
+        phone: "",
+        position: "",
+        role: "",
+        status: "1",
+      });
+    }
+  }, [open, editingUser]);
+
+  const handleChange = (field: string, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  async function handleSubmit() {
+    setError("");
+
+    if (!form.name.trim()) { setError("First name is required"); return; }
+    if (!form.email.trim()) { setError("Email is required"); return; }
+    if (!isEdit && !form.password) { setError("Password is required"); return; }
+    if (!form.role) { setError("Role is required"); return; }
+
+    setSaving(true);
+    try {
+      const body: Record<string, any> = {
+        name: form.name.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        position: form.position.trim(),
+        role: Number(form.role),
+        status: Number(form.status),
+      };
+      if (form.password) body.password = form.password;
+
+      const url = isEdit ? `/api/users/${editingUser._id}` : "/api/users";
+      const method = isEdit ? "PUT" : "POST";
+
+      if (!isEdit) {
+        body.password = form.password;
+      }
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message || json.error || "Failed");
+
+      onSuccess();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? "Edit User" : "Add User"}</DialogTitle>
+        </DialogHeader>
+        <hr />
+
+        {loadingUser ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-cyan-500" />
+          </div>
+        ) : (
+          <>
+            <div className="space-y-4 px-2">
+              {error && (
+                <div className="rounded-[10px] bg-red-50 border border-red-200 p-3 text-sm text-red-700">{error}</div>
+              )}
+
+              {/* First Name */}
+              <div className="flex items-center gap-4">
+                <Label className="w-[120px] shrink-0 text-sm text-gray-600">
+                  First Name <span className="text-cyan-500">(required)</span>
+                </Label>
+                <Input
+                  value={form.name}
+                  onChange={(e) => handleChange("name", e.target.value)}
+                  placeholder="John"
+                  className="flex-1"
+                />
+              </div>
+
+              {/* Last Name */}
+              <div className="flex items-center gap-4">
+                <Label className="w-[120px] shrink-0 text-sm text-gray-600">Last Name</Label>
+                <Input
+                  value={form.lastName}
+                  onChange={(e) => handleChange("lastName", e.target.value)}
+                  placeholder="Doe"
+                  className="flex-1"
+                />
+              </div>
+
+              {/* Email */}
+              <div className="flex items-center gap-4">
+                <Label className="w-[120px] shrink-0 text-sm text-gray-600">
+                  Email <span className="text-cyan-500">(required)</span>
+                </Label>
+                <Input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => handleChange("email", e.target.value)}
+                  placeholder="john@example.com"
+                  className="flex-1"
+                />
+              </div>
+
+              {/* Password */}
+              <div className="flex items-center gap-4">
+                <Label className="w-[120px] shrink-0 text-sm text-gray-600">
+                  Password {!isEdit && <span className="text-cyan-500">(required)</span>}
+                </Label>
+                <Input
+                  type="password"
+                  value={form.password}
+                  onChange={(e) => handleChange("password", e.target.value)}
+                  placeholder={isEdit ? "Leave blank to keep current" : "Enter password"}
+                  className="flex-1"
+                />
+              </div>
+
+              {/* Phone */}
+              <div className="flex items-center gap-4">
+                <Label className="w-[120px] shrink-0 text-sm text-gray-600">Phone</Label>
+                <Input
+                  value={form.phone}
+                  onChange={(e) => handleChange("phone", e.target.value)}
+                  placeholder="+61 400 000 000"
+                  className="flex-1"
+                />
+              </div>
+
+              {/* Position */}
+              <div className="flex items-center gap-4">
+                <Label className="w-[120px] shrink-0 text-sm text-gray-600">Position</Label>
+                <Input
+                  value={form.position}
+                  onChange={(e) => handleChange("position", e.target.value)}
+                  placeholder="Manager"
+                  className="flex-1"
+                />
+              </div>
+
+              {/* Role */}
+              <div className="flex items-center gap-4">
+                <Label className="w-[120px] shrink-0 text-sm text-gray-600">
+                  Role <span className="text-cyan-500">(required)</span>
+                </Label>
+                <div className="relative flex-1">
+                  <select
+                    value={form.role}
+                    onChange={(e) => handleChange("role", e.target.value)}
+                    className="w-full appearance-none rounded-[10px] border border-gray-200 bg-white px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  >
+                    <option value="">Select Role</option>
+                    {USER_ROLES.map((r) => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                </div>
+              </div>
+
+              {/* Status */}
+              <div className="flex items-center gap-4">
+                <Label className="w-[120px] shrink-0 text-sm text-gray-600">Status</Label>
+                <div className="relative flex-1">
+                  <select
+                    value={form.status}
+                    onChange={(e) => handleChange("status", e.target.value)}
+                    className="w-full appearance-none rounded-[10px] border border-gray-200 bg-white px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  >
+                    <option value="1">Active</option>
+                    <option value="0">Deactive</option>
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center gap-3 px-2 pt-3">
+              <Button
+                className="bg-cyan-500 hover:bg-cyan-600 text-white"
+                onClick={handleSubmit}
+                disabled={saving}
+              >
+                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isEdit ? "Save Changes" : "Create User"}
+              </Button>
+              <button
+                onClick={() => onOpenChange(false)}
+                className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

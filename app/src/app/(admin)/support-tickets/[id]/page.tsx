@@ -234,6 +234,7 @@ export default function SupportTicketDetailPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
+  const [owners, setOwners] = useState<{ _id: string; userId: { _id: string; name: string; lastName?: string; email: string } }[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
 
   // Ticket history
@@ -308,6 +309,24 @@ export default function SupportTicketDetailPage() {
   // Status change
   const [changingStatus, setChangingStatus] = useState(false);
 
+  // Claim ticket dialog
+  const [claimDialogOpen, setClaimDialogOpen] = useState(false);
+  const [claimUsers, setClaimUsers] = useState<{ _id: string; name: string; lastName?: string }[]>([]);
+  const [claimSelectedIds, setClaimSelectedIds] = useState<Set<string>>(new Set());
+  const [claimCurrentUser, setClaimCurrentUser] = useState<{ id: string; name: string; lastName?: string } | null>(null);
+  const [claimLoading, setClaimLoading] = useState(false);
+  const [claimSubmitting, setClaimSubmitting] = useState(false);
+
+  // Resolve ticket dialog
+  const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
+  const [resolveComment, setResolveComment] = useState("");
+  const [resolveSendNotification, setResolveSendNotification] = useState(false);
+  const [submittingResolve, setSubmittingResolve] = useState(false);
+  const [resolveGeneralContacts, setResolveGeneralContacts] = useState<{ _id: string; name: string; lastName?: string }[]>([]);
+  const [resolveSiteContacts, setResolveSiteContacts] = useState<{ _id: string; name: string; lastName?: string }[]>([]);
+  const [resolveSelectedContactIds, setResolveSelectedContactIds] = useState<Set<string>>(new Set());
+  const [resolveContactsLoading, setResolveContactsLoading] = useState(false);
+
   // ─── Fetch ────────────────────────────────────────────────────────────
 
   const fetchTicket = useCallback(async () => {
@@ -345,6 +364,7 @@ export default function SupportTicketDetailPage() {
       setComments(d.comments || []);
       setAttachments(d.attachments || []);
       setTechnicians(d.technicians || []);
+      setOwners(d.owners || []);
       setTimeEntries(d.timeLogs || []);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
@@ -474,8 +494,28 @@ export default function SupportTicketDetailPage() {
 
   // ─── Status change ────────────────────────────────────────────────────
 
-  async function handleStatusClick(newStatus: number) {
+  // Non-clickable statuses (auto-set by conditions)
+  const NON_CLICKABLE_STATUSES: number[] = [TICKET_STATUS.IN_PROGRESS, TICKET_STATUS.ON_HOLD];
+
+  function handleStatusClick(newStatus: number) {
     if (!ticket || ticket.ticketStatus === newStatus) return;
+    if (NON_CLICKABLE_STATUSES.includes(newStatus)) return;
+
+    if (newStatus === TICKET_STATUS.RESOLVED) {
+      setResolveComment("");
+      setResolveSendNotification(false);
+      setResolveGeneralContacts([]);
+      setResolveSiteContacts([]);
+      setResolveSelectedContactIds(new Set());
+      setResolveDialogOpen(true);
+      return;
+    }
+
+    // For other statuses (e.g. Open), update directly
+    updateTicketStatus(newStatus);
+  }
+
+  async function updateTicketStatus(newStatus: number) {
     setChangingStatus(true);
     try {
       const res = await fetch(`/api/support-tickets/${ticketId}`, {
@@ -491,6 +531,155 @@ export default function SupportTicketDetailPage() {
     } finally {
       setChangingStatus(false);
     }
+  }
+
+  async function fetchResolveContacts() {
+    if (!ticket?.clientId?._id) return;
+    setResolveContactsLoading(true);
+    try {
+      const res = await fetch(`/api/clients/${ticket.clientId._id}/contacts`);
+      const json = await res.json();
+      if (res.ok && json.success) {
+        const contacts = json.data?.data || json.data || [];
+        const siteId = ticket.clientSiteId?._id;
+        // General: no clientSiteId
+        setResolveGeneralContacts(contacts.filter((c: any) => !c.clientSiteId));
+        // Site: matching ticket's site
+        setResolveSiteContacts(siteId ? contacts.filter((c: any) => c.clientSiteId === siteId) : []);
+      }
+    } catch {
+      // silent
+    } finally {
+      setResolveContactsLoading(false);
+    }
+  }
+
+  function handleResolveSendNotificationToggle(checked: boolean) {
+    setResolveSendNotification(checked);
+    if (checked && resolveGeneralContacts.length === 0 && resolveSiteContacts.length === 0) {
+      fetchResolveContacts();
+    }
+    if (!checked) {
+      setResolveSelectedContactIds(new Set());
+    }
+  }
+
+  function toggleResolveContact(contactId: string) {
+    setResolveSelectedContactIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(contactId)) next.delete(contactId);
+      else next.add(contactId);
+      return next;
+    });
+  }
+
+  async function handleResolveSubmit() {
+    if (!resolveComment.trim()) return;
+    setSubmittingResolve(true);
+    try {
+      const res = await fetch(`/api/support-tickets/${ticketId}/resolve`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          comment: resolveComment.trim(),
+          notifyContactIds: resolveSendNotification ? Array.from(resolveSelectedContactIds) : [],
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error("Failed to resolve");
+
+      setTicket((prev) => (prev ? { ...prev, ticketStatus: TICKET_STATUS.RESOLVED } : prev));
+      setResolveDialogOpen(false);
+      fetchTicket();
+    } catch {
+      alert("Failed to resolve ticket");
+    } finally {
+      setSubmittingResolve(false);
+    }
+  }
+
+  // ─── Claim ticket ──────────────────────────────────────────────────────
+
+  async function openClaimDialog() {
+    setClaimDialogOpen(true);
+    setClaimLoading(true);
+    try {
+      // Fetch current session, admin users, and existing owners in parallel
+      const [sessionRes, usersRes, ownersRes] = await Promise.all([
+        fetch("/api/auth/session"),
+        fetch("/api/users?role=1,2,3&limit=100&status=1"),
+        fetch(`/api/support-tickets/${ticketId}/owners`),
+      ]);
+      const sessionJson = await sessionRes.json();
+      const usersJson = await usersRes.json();
+      const ownersJson = await ownersRes.json();
+
+      const sessionUser = sessionJson?.user;
+      const currentUserId = sessionUser?.id || "";
+      const currentUserEmail = sessionUser?.email || "";
+
+      // Find the current user in the full users list to get their _id
+      const raw = usersJson.data?.data || usersJson.data || [];
+      const users = Array.isArray(raw) ? raw : [];
+      const meFromList = users.find((u: any) =>
+        String(u._id) === String(currentUserId) || u.email === currentUserEmail
+      );
+
+      const currentUser = meFromList
+        ? { id: meFromList._id, name: meFromList.name, lastName: meFromList.lastName }
+        : sessionUser
+          ? { id: currentUserId, name: sessionUser.name, lastName: sessionUser.lastName }
+          : null;
+      setClaimCurrentUser(currentUser);
+
+      // Exclude the current user from "Others" list
+      const meId = meFromList?._id;
+      setClaimUsers(meId
+        ? users.filter((u: any) => String(u._id) !== String(meId))
+        : currentUserEmail
+          ? users.filter((u: any) => u.email !== currentUserEmail)
+          : users);
+
+      // Pre-select existing owners
+      const existingOwnerIds = (ownersJson.data || []).map((o: any) =>
+        typeof o.userId === "object" ? o.userId._id : o.userId
+      );
+      setClaimSelectedIds(new Set(existingOwnerIds));
+    } catch {
+      // silent
+    } finally {
+      setClaimLoading(false);
+    }
+  }
+
+  async function handleClaimSubmit() {
+    const selectedIds = Array.from(claimSelectedIds);
+    if (selectedIds.length === 0) return;
+    setClaimSubmitting(true);
+    try {
+      const res = await fetch(`/api/support-tickets/${ticketId}/owners`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userIds: selectedIds }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error("Failed");
+      setClaimDialogOpen(false);
+      fetchTicket();
+    } catch {
+      alert("Failed to assign ticket");
+    } finally {
+      setClaimSubmitting(false);
+    }
+  }
+
+  function toggleClaimUser(userId: string) {
+    setClaimSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
   }
 
   // ─── Toggle fields (warranty, parts, productionImpact) ────────────────
@@ -967,12 +1156,23 @@ export default function SupportTicketDetailPage() {
             </h1>
             <p className="text-sm text-gray-500">
               Created: {formatDateTime(ticket.createdAt)}
-              {ticket.userId && (
-                <span className="ml-4">
-                  Claimed by{" "}
-                  <button className="text-cyan-500 hover:underline cursor-pointer">Edit</button>
-                </span>
-              )}
+              <span className="ml-4">
+                {owners.length > 0 ? (
+                  <>
+                    Claimed by:{" "}
+                    {owners.map((o, i) => (
+                      <span key={o._id}>
+                        {i > 0 && ", "}
+                        {o.userId?.name || "Unknown"}{o.userId?.lastName ? ` ${o.userId.lastName}` : ""}
+                      </span>
+                    ))}
+                    {"  "}
+                    <button onClick={openClaimDialog} className="text-cyan-500 underline cursor-pointer">Edit</button>
+                  </>
+                ) : (
+                  <button onClick={openClaimDialog} className="text-cyan-500 underline cursor-pointer">Claim Ticket</button>
+                )}
+              </span>
             </p>
           </div>
         </div>
@@ -1023,12 +1223,14 @@ export default function SupportTicketDetailPage() {
           const isFirst = idx === 0;
           const isLast = idx === STATUS_STEPS.length - 1;
 
+          const isClickable = !NON_CLICKABLE_STATUSES.includes(step.status) && step.status !== ticket.ticketStatus;
+
           return (
             <div
               key={step.status}
-              className="relative cursor-pointer"
+              className={`relative ${isClickable ? "cursor-pointer" : "cursor-default"}`}
               style={{ width: "25%", float: "left" }}
-              onClick={() => !changingStatus && handleStatusClick(step.status)}
+              onClick={() => isClickable && !changingStatus && handleStatusClick(step.status)}
             >
               <span
                 className="block text-center text-white text-sm font-medium"
@@ -1090,14 +1292,14 @@ export default function SupportTicketDetailPage() {
                   )}
                   <button
                     onClick={openEditContact}
-                    className="text-sm text-cyan-500 hover:underline cursor-pointer mt-1"
+                    className="text-sm text-cyan-500 underline cursor-pointer mt-1"
                   >
                     Edit Contact
                   </button>
                 </div>
                 <button
                   onClick={() => setEditDialogOpen(true)}
-                  className="text-sm text-cyan-500 hover:underline cursor-pointer shrink-0"
+                  className="text-sm text-cyan-500 underline cursor-pointer shrink-0"
                 >
                   Edit Ticket
                 </button>
@@ -1111,7 +1313,7 @@ export default function SupportTicketDetailPage() {
                 {ticket.clientSiteId ? (
                   <Link
                     href={`/clients/${ticket.clientId?._id}?siteId=${ticket.clientSiteId._id}`}
-                    className="text-sm font-medium text-gray-900 hover:text-cyan-600 hover:underline"
+                    className="text-sm font-medium text-black underline"
                   >
                     {ticket.clientSiteId.siteName}
                   </Link>
@@ -1128,7 +1330,7 @@ export default function SupportTicketDetailPage() {
                 {ticket.clientAssetId ? (
                   <Link
                     href={`/assets/${ticket.clientAssetId._id}`}
-                    className="text-sm font-medium text-cyan-600 hover:underline"
+                    className="text-sm font-medium text-black underline"
                   >
                     {ticket.clientAssetId.machineName}
                     {ticket.clientAssetId.serialNo && ` - ${ticket.clientAssetId.serialNo}`}
@@ -1511,7 +1713,7 @@ export default function SupportTicketDetailPage() {
                 {displayHours}hrs {displayMinutes}mins
               </p>
 
-              <button className="text-sm text-cyan-500 hover:underline cursor-pointer">
+              <button className="text-sm text-cyan-500 underline cursor-pointer">
                 View Time
               </button>
             </CardContent>
@@ -1755,6 +1957,200 @@ export default function SupportTicketDetailPage() {
           fetchTicket();
         }}
       />
+
+      {/* ─── Claim Ticket Dialog ──────────────────────────────────── */}
+      <Dialog open={claimDialogOpen} onOpenChange={setClaimDialogOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Claim Ticket {ticket.ticketNo}</DialogTitle>
+          </DialogHeader>
+          <hr />
+          {claimLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-cyan-500" />
+            </div>
+          ) : (
+            <div className="space-y-4 px-2">
+              <p className="text-sm text-gray-500">Assign this ticket to yourself, or other TSC members.</p>
+
+              {/* You */}
+              {claimCurrentUser && (
+                <>
+                  <p className="text-sm font-medium text-gray-700">You</p>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={claimSelectedIds.has(claimCurrentUser.id)}
+                      onChange={() => toggleClaimUser(claimCurrentUser.id)}
+                      className="h-5 w-5 rounded border-gray-300 text-cyan-500 accent-cyan-500"
+                    />
+                    <span className={claimSelectedIds.has(claimCurrentUser.id) ? "text-sm font-medium text-green-600" : "text-sm text-gray-700"}>
+                      {claimCurrentUser.name}{claimCurrentUser.lastName ? ` ${claimCurrentUser.lastName}` : ""}
+                    </span>
+                  </label>
+                </>
+              )}
+
+              {/* Others */}
+              {claimUsers.length > 0 && (
+                <>
+                  <p className="text-sm font-medium text-gray-700">Others</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {claimUsers.map((u) => (
+                      <label key={u._id} className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={claimSelectedIds.has(u._id)}
+                          onChange={() => toggleClaimUser(u._id)}
+                          className="h-5 w-5 rounded border-gray-300 text-cyan-500 accent-cyan-500"
+                        />
+                        <span className={claimSelectedIds.has(u._id) ? "text-sm font-medium text-green-600" : "text-sm text-gray-700"}>
+                          {u.name}{u.lastName ? ` ${u.lastName}` : ""}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          <hr />
+          <div className="flex items-center gap-3 px-2">
+            <Button
+              className="bg-cyan-500 hover:bg-cyan-600 text-white"
+              onClick={handleClaimSubmit}
+              disabled={claimSubmitting || claimSelectedIds.size === 0}
+            >
+              {claimSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              Claim / Assign Ticket
+            </Button>
+            <button
+              onClick={() => setClaimDialogOpen(false)}
+              className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Resolve Ticket Dialog ────────────────────────────────── */}
+      <Dialog open={resolveDialogOpen} onOpenChange={setResolveDialogOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Resolve Ticket</DialogTitle>
+          </DialogHeader>
+          <hr />
+          <div className="space-y-4 px-2">
+            <div>
+              <Label className="text-sm text-gray-700">
+                Comments <span className="text-cyan-500">*</span>
+              </Label>
+              <Textarea
+                value={resolveComment}
+                onChange={(e) => setResolveComment(e.target.value)}
+                rows={5}
+                placeholder=""
+                className="mt-2"
+              />
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-400 text-white text-xs font-bold">!</span>
+              Please note: The above comment will be public facing and seen by client
+            </div>
+            <hr />
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={resolveSendNotification}
+                onChange={(e) => handleResolveSendNotificationToggle(e.target.checked)}
+                className="h-5 w-5 rounded border-gray-300 accent-cyan-500"
+              />
+              <span className={resolveSendNotification ? "text-green-600 font-medium" : "text-gray-700"}>
+                Send notification to client
+              </span>
+            </label>
+
+            {resolveSendNotification && (
+              <div className="space-y-4 pt-2">
+                {resolveContactsLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-cyan-500" />
+                  </div>
+                ) : (
+                  <>
+                    {/* General Contacts */}
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">General Contacts</p>
+                      {resolveGeneralContacts.length === 0 ? (
+                        <p className="mt-1 text-sm text-gray-400">No general contacts</p>
+                      ) : (
+                        <div className="mt-2 grid grid-cols-2 gap-3">
+                          {resolveGeneralContacts.map((c) => (
+                            <label key={c._id} className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={resolveSelectedContactIds.has(c._id)}
+                                onChange={() => toggleResolveContact(c._id)}
+                                className="h-5 w-5 rounded border-gray-300 accent-cyan-500"
+                              />
+                              <span className="text-sm text-gray-700">
+                                {c.name}{c.lastName ? ` ${c.lastName}` : ""}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <hr />
+
+                    {/* Site Contacts */}
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">Site Contacts</p>
+                      {resolveSiteContacts.length === 0 ? (
+                        <p className="mt-1 text-sm text-gray-400">No site contacts</p>
+                      ) : (
+                        <div className="mt-2 grid grid-cols-2 gap-3">
+                          {resolveSiteContacts.map((c) => (
+                            <label key={c._id} className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={resolveSelectedContactIds.has(c._id)}
+                                onChange={() => toggleResolveContact(c._id)}
+                                className="h-5 w-5 rounded border-gray-300 accent-cyan-500"
+                              />
+                              <span className="text-sm text-gray-700">
+                                {c.name}{c.lastName ? ` ${c.lastName}` : ""}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-3 px-2 pt-3">
+            <Button
+              className="bg-cyan-500 hover:bg-cyan-600 text-white"
+              onClick={handleResolveSubmit}
+              disabled={submittingResolve || !resolveComment.trim()}
+            >
+              {submittingResolve && <Loader2 className="h-4 w-4 animate-spin" />}
+              Resolve Ticket
+            </Button>
+            <button
+              onClick={() => setResolveDialogOpen(false)}
+              className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ─── Edit Description (About/Symptoms) Dialog ─────────────── */}
       <Dialog open={editDescOpen} onOpenChange={setEditDescOpen}>
@@ -2412,7 +2808,7 @@ function EditTicketDialog({
 
           {/* Client (required) - searchable */}
           <div className="flex items-start gap-4">
-            <Label className="mt-2.5 min-w-[120px] text-sm text-gray-600">
+            <Label className="mt-2.5 w-[140px] shrink-0 text-sm text-gray-600">
               Client <span className="text-cyan-500">(required)</span>
             </Label>
             <div className="relative flex-1" ref={clientRef}>
@@ -2458,55 +2854,55 @@ function EditTicketDialog({
             </div>
           </div>
 
-          {/* Site + Asset side by side */}
+          {/* Site */}
           <div className="flex items-start gap-4">
-            <Label className="mt-2.5 min-w-[120px] text-sm text-gray-600">
+            <Label className="mt-2.5 w-[140px] shrink-0 text-sm text-gray-600">
               Site <span className="text-cyan-500">(required)</span>
             </Label>
-            <div className="flex-1 grid grid-cols-2 gap-3">
-              <div className="relative">
-                <select
-                  value={siteId}
-                  onChange={(e) => setSiteId(e.target.value)}
-                  disabled={!clientId || loadingClient}
-                  className="w-full appearance-none rounded-[10px] border border-gray-200 bg-white px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:bg-gray-50"
-                >
-                  <option value="">{loadingClient ? "Loading..." : "Select Site"}</option>
-                  {sites.map((s) => (
-                    <option key={s._id} value={s._id}>{s.siteName}</option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              </div>
-              <div>
-                <div className="relative">
-                  <select
-                    value={assetId}
-                    onChange={(e) => setAssetId(e.target.value)}
-                    disabled={!clientId || loadingClient}
-                    className="w-full appearance-none rounded-[10px] border border-gray-200 bg-white px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:bg-gray-50"
-                  >
-                    <option value="">{loadingClient ? "Loading..." : "Select Asset"}</option>
-                    {filteredAssets.map((a) => (
-                      <option key={a._id} value={a._id}>
-                        {a.machineName}{a.serialNo ? ` (${a.serialNo})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                </div>
-                <p className="mt-0.5 text-[10px] text-gray-400">
-                  Asset <span className="text-cyan-500">(required)</span>
-                </p>
-              </div>
+            <div className="relative flex-1">
+              <select
+                value={siteId}
+                onChange={(e) => setSiteId(e.target.value)}
+                disabled={!clientId || loadingClient}
+                className="w-full appearance-none rounded-[10px] border border-gray-200 bg-white px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:bg-gray-50"
+              >
+                <option value="">{loadingClient ? "Loading..." : "Select Site"}</option>
+                {sites.map((s) => (
+                  <option key={s._id} value={s._id}>{s.siteName}</option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            </div>
+          </div>
+
+          {/* Asset */}
+          <div className="flex items-start gap-4">
+            <Label className="mt-2.5 w-[140px] shrink-0 text-sm text-gray-600">
+              Asset <span className="text-cyan-500">(required)</span>
+            </Label>
+            <div className="relative flex-1">
+              <select
+                value={assetId}
+                onChange={(e) => setAssetId(e.target.value)}
+                disabled={!clientId || loadingClient}
+                className="w-full appearance-none rounded-[10px] border border-gray-200 bg-white px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:bg-gray-50"
+              >
+                <option value="">{loadingClient ? "Loading..." : "Select Asset"}</option>
+                {filteredAssets.map((a) => (
+                  <option key={a._id} value={a._id}>
+                    {a.machineName}{a.serialNo ? ` (${a.serialNo})` : ""}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             </div>
           </div>
 
           {/* Requester */}
           {!newRequesterMode ? (
             <div className="flex items-start gap-4">
-              <Label className="mt-2.5 min-w-[120px] text-sm text-gray-600">
-                Select Requester <span className="text-cyan-500">(required)</span>
+              <Label className="mt-2.5 w-[140px] shrink-0 text-sm text-gray-600">
+                Requester <span className="text-cyan-500">(required)</span>
               </Label>
               <div className="flex-1">
                 <div className="relative">
@@ -2527,7 +2923,7 @@ function EditTicketDialog({
                 </div>
                 <button
                   onClick={() => setNewRequesterMode(true)}
-                  className="mt-1 text-xs text-cyan-500 hover:underline cursor-pointer"
+                  className="mt-1 text-xs text-cyan-500 underline cursor-pointer"
                 >
                   New Requester?
                 </button>
@@ -2535,36 +2931,32 @@ function EditTicketDialog({
             </div>
           ) : (
             <div className="flex items-start gap-4">
-              <Label className="mt-2.5 min-w-[120px] text-sm text-gray-600">
+              <Label className="mt-2.5 w-[140px] shrink-0 text-sm text-gray-600">
                 New Requester
               </Label>
               <div className="flex-1 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    placeholder="First Name *"
-                    value={newFirstName}
-                    onChange={(e) => setNewFirstName(e.target.value)}
-                  />
-                  <Input
-                    placeholder="Last Name"
-                    value={newLastName}
-                    onChange={(e) => setNewLastName(e.target.value)}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    placeholder="Email"
-                    type="email"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                  />
-                  <Input
-                    placeholder="Phone"
-                    type="tel"
-                    value={newPhone}
-                    onChange={(e) => setNewPhone(e.target.value)}
-                  />
-                </div>
+                <Input
+                  placeholder="First Name *"
+                  value={newFirstName}
+                  onChange={(e) => setNewFirstName(e.target.value)}
+                />
+                <Input
+                  placeholder="Last Name"
+                  value={newLastName}
+                  onChange={(e) => setNewLastName(e.target.value)}
+                />
+                <Input
+                  placeholder="Email"
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                />
+                <Input
+                  placeholder="Phone"
+                  type="tel"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                />
                 <button
                   onClick={() => {
                     setNewRequesterMode(false);
@@ -2573,7 +2965,7 @@ function EditTicketDialog({
                     setNewEmail("");
                     setNewPhone("");
                   }}
-                  className="text-xs text-cyan-500 hover:underline cursor-pointer"
+                  className="text-xs text-cyan-500 underline cursor-pointer"
                 >
                   Select existing requester?
                 </button>

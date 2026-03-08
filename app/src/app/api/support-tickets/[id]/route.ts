@@ -14,6 +14,7 @@ import SupportTicketAttachment from "@/models/SupportTicketAttachment";
 import SupportTicketTechnician from "@/models/SupportTicketTechnician";
 import SupportTicketOwner from "@/models/SupportTicketOwner";
 import SupportTicketTime from "@/models/SupportTicketTime";
+import "@/models/ClientContact";
 
 export async function GET(
   req: NextRequest,
@@ -58,7 +59,7 @@ export async function GET(
           })
           .lean(),
         SupportTicketOwner.find({ supportTicketId: id })
-          .populate("userId", "name email")
+          .populate("userId", "name lastName email")
           .lean(),
         SupportTicketTime.find({ supportTicketId: id })
           .sort({ createdAt: -1 })
