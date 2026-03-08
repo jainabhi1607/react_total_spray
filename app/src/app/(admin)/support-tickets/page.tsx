@@ -383,7 +383,7 @@ export default function SupportTicketsPage() {
               onClick={() => handleTabChange(tab.value)}
               className={`whitespace-nowrap border-b-2 text-sm font-normal cursor-pointer transition-colors ${
                 activeTab === tab.value
-                  ? "border-cyan-500 text-gray-900"
+                  ? "border-[#00AEEF] text-[#00AEEF]"
                   : "border-transparent text-gray-900 hover:border-gray-300"
               }`}
               style={{ lineHeight: "30px", paddingLeft: 25, paddingRight: 25, fontSize: 14 }}

@@ -273,9 +273,7 @@ function AddSubTechnicianDialog({
 // --- Main Page ---
 
 export default function TechnicianDetailPage() {
-  useEffect(() => {
-    document.title = "TSC - Technicians";
-  }, []);
+  useEffect(() => { document.title = "TSC - Technicians"; }, []);
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
@@ -577,20 +575,23 @@ export default function TechnicianDetailPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-6 border-b border-gray-200">
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex gap-6">
         {["overview", "work-history", "insurance"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`whitespace-nowrap pb-2.5 text-sm font-medium transition-colors ${
+            className={`whitespace-nowrap border-b-2 text-sm font-normal cursor-pointer transition-colors ${
               activeTab === tab
-                ? "border-b-2 border-cyan-500 text-cyan-600"
-                : "text-gray-500 hover:text-gray-700"
+                ? "border-[#00AEEF] text-[#00AEEF]"
+                : "border-transparent text-gray-900 hover:border-gray-300"
             }`}
+            style={{ lineHeight: "30px", paddingLeft: 25, paddingRight: 25, fontSize: 14 }}
           >
             {tab === "overview" ? "Overview" : tab === "work-history" ? "Work History" : "Insurance"}
           </button>
         ))}
+        </nav>
       </div>
 
       {/* Overview Tab */}

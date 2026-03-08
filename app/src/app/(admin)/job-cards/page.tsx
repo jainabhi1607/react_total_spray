@@ -10,9 +10,11 @@ import {
   ChevronRight,
   ArrowUpDown,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageLoading } from "@/components/ui/loading";
 import { QuickAddButtons, cyanBtnStyle } from "@/components/quick-add-buttons";
+import { AddJobCardDialog } from "@/components/dialogs/add-job-card-dialog";
 import {
   Table,
   TableBody,
@@ -135,6 +137,7 @@ export default function JobCardsListPage() {
   const [activeTab, setActiveTab] = useState(
     searchParams.get("tab") || "active"
   );
+  const [addJobCardOpen, setAddJobCardOpen] = useState(false);
   const [stats, setStats] = useState<Stats>({
     open: 0,
     inProgress: 0,
@@ -285,15 +288,14 @@ export default function JobCardsListPage() {
               Add Recurring
             </button>
           </Link>
-          <Link href="/job-cards/add">
-            <button
-              style={cyanBtnStyle}
-              className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add Job Card
-            </button>
-          </Link>
+          <button
+            style={cyanBtnStyle}
+            className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80"
+            onClick={() => setAddJobCardOpen(true)}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Job Card
+          </button>
         </div>
       </div>
 
@@ -345,7 +347,7 @@ export default function JobCardsListPage() {
               onClick={() => handleTabChange(tab.value)}
               className={`whitespace-nowrap border-b-2 text-sm font-normal cursor-pointer transition-colors ${
                 activeTab === tab.value
-                  ? "border-cyan-500 text-gray-900"
+                  ? "border-[#00AEEF] text-[#00AEEF]"
                   : "border-transparent text-gray-900 hover:border-gray-300"
               }`}
               style={{
@@ -511,6 +513,14 @@ export default function JobCardsListPage() {
         </div>
       )}
 
+      <AddJobCardDialog
+        open={addJobCardOpen}
+        onOpenChange={setAddJobCardOpen}
+        onSuccess={() => {
+          fetchJobCards();
+          fetchStats();
+        }}
+      />
     </div>
   );
 }

@@ -220,18 +220,18 @@ function getStepColor(stepIdx: number, activeIdx: number): string {
 // ─── Page Component ─────────────────────────────────────────────────────
 
 export default function SupportTicketDetailPage() {
-  useEffect(() => {
-    document.title = ticket
-      ? `TSC - ST - ${ticket.ticketNo}`
-      : "TSC - Support Tickets";
-  }, [ticket]);
-
   const params = useParams();
   const router = useRouter();
   const ticketId = params.id as string;
 
   // Main data
   const [ticket, setTicket] = useState<TicketData | null>(null);
+
+  useEffect(() => {
+    document.title = ticket
+      ? `ST - ${ticket.ticketNo}`
+      : "TSC - Support Tickets";
+  }, [ticket]);
   const [detail, setDetail] = useState<TicketDetail | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -1616,19 +1616,23 @@ export default function SupportTicketDetailPage() {
             </CardHeader>
             <CardContent>
               {/* Tabs */}
-              <div className="flex gap-4 mb-4 border-b border-gray-100">
-                <button
-                  onClick={() => setHistoryTab("asset")}
-                  className={`pb-2 text-sm font-medium cursor-pointer ${historyTab === "asset" ? "text-cyan-600 border-b-2 border-cyan-500" : "text-gray-400 hover:text-gray-600"}`}
-                >
-                  Asset
-                </button>
-                <button
-                  onClick={() => setHistoryTab("site")}
-                  className={`pb-2 text-sm font-medium cursor-pointer ${historyTab === "site" ? "text-cyan-600 border-b-2 border-cyan-500" : "text-gray-400 hover:text-gray-600"}`}
-                >
-                  Site
-                </button>
+              <div className="border-b border-gray-200 mb-4">
+                <nav className="-mb-px flex gap-6">
+                  <button
+                    onClick={() => setHistoryTab("asset")}
+                    className={`whitespace-nowrap border-b-2 text-sm font-normal cursor-pointer transition-colors ${historyTab === "asset" ? "border-[#00AEEF] text-[#00AEEF]" : "border-transparent text-gray-900 hover:border-gray-300"}`}
+                    style={{ lineHeight: "30px", paddingLeft: 25, paddingRight: 25, fontSize: 14 }}
+                  >
+                    Asset
+                  </button>
+                  <button
+                    onClick={() => setHistoryTab("site")}
+                    className={`whitespace-nowrap border-b-2 text-sm font-normal cursor-pointer transition-colors ${historyTab === "site" ? "border-[#00AEEF] text-[#00AEEF]" : "border-transparent text-gray-900 hover:border-gray-300"}`}
+                    style={{ lineHeight: "30px", paddingLeft: 25, paddingRight: 25, fontSize: 14 }}
+                  >
+                    Site
+                  </button>
+                </nav>
               </div>
 
               {historyLoading ? (

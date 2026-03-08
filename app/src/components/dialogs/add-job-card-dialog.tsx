@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -19,25 +18,41 @@ import {
   validateClientSiteAsset,
 } from "@/components/dialogs/client-site-asset-fields";
 
-interface AddSupportTicketDialogProps {
+interface JobCardType {
+  _id: string;
+  title: string;
+}
+
+interface AddJobCardDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
 }
 
-export function AddSupportTicketDialog({
+export function AddJobCardDialog({
   open,
   onOpenChange,
   onSuccess,
-}: AddSupportTicketDialogProps) {
+}: AddJobCardDialogProps) {
   const [fields, setFields] = useState<ClientSiteAssetState>(initialClientSiteAssetState);
-  const [description, setDescription] = useState("");
+  const [jobCardTypes, setJobCardTypes] = useState<JobCardType[]>([]);
+  const [jobCardTypeId, setJobCardTypeId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    if (!open) return;
+    fetch("/api/settings/job-card-types")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success) setJobCardTypes(json.data || []);
+      })
+      .catch(() => {});
+  }, [open]);
+
   function resetForm() {
     setFields(initialClientSiteAssetState);
-    setDescription("");
+    setJobCardTypeId("");
     setError("");
   }
 
@@ -55,10 +70,6 @@ export function AddSupportTicketDialog({
       setError(validationError);
       return;
     }
-    if (!description.trim()) {
-      setError("Description is required");
-      return;
-    }
 
     setSubmitting(true);
     try {
@@ -67,15 +78,14 @@ export function AddSupportTicketDialog({
         finalContactId = await createNewContact(fields.clientId, fields.siteId, fields);
       }
 
-      const payload: Record<string, string> = {
+      const payload: Record<string, any> = {
         clientId: fields.clientId,
         clientSiteId: fields.siteId,
-        clientAssetId: fields.assetId,
-        description: description.trim(),
       };
       if (finalContactId) payload.clientContactId = finalContactId;
+      if (jobCardTypeId) payload.jobCardType = jobCardTypeId;
 
-      const res = await fetch("/api/support-tickets", {
+      const res = await fetch("/api/job-cards", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -83,7 +93,7 @@ export function AddSupportTicketDialog({
       const json = await res.json();
 
       if (!res.ok || !json.success) {
-        throw new Error(json.error || json.message || "Failed to create ticket");
+        throw new Error(json.error || json.message || "Failed to create job card");
       }
 
       resetForm();
@@ -100,7 +110,7 @@ export function AddSupportTicketDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>Add Support Ticket</DialogTitle>
+          <DialogTitle>Add Job Card</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5 pt-2">
           {error && (
@@ -111,18 +121,22 @@ export function AddSupportTicketDialog({
 
           <ClientSiteAssetFields state={fields} onChange={setFields} />
 
-          {/* Description */}
+          {/* Job Card Type */}
           <div className="space-y-1.5">
-            <Label htmlFor="st-description">
-              Description of issue{" "}
-              <span className="text-cyan-500">(required)</span>
-            </Label>
-            <Textarea
-              id="st-description"
-              rows={3}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
+            <Label htmlFor="jc-type">Job Card Type</Label>
+            <select
+              id="jc-type"
+              className="flex h-10 w-full rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 cursor-pointer"
+              value={jobCardTypeId}
+              onChange={(e) => setJobCardTypeId(e.target.value)}
+            >
+              <option value="">Select</option>
+              {jobCardTypes.map((t) => (
+                <option key={t._id} value={t._id}>
+                  {t.title}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Actions */}
@@ -133,7 +147,7 @@ export function AddSupportTicketDialog({
               className="bg-cyan-500 hover:bg-cyan-600 text-white"
             >
               {submitting && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-              Add Ticket
+              Add Job Card
             </Button>
             <button
               type="button"
