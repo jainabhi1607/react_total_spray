@@ -202,7 +202,7 @@ export default function ClientDetailPageWrapper() {
 }
 
 function ClientDetailPage() {
-  useEffect(() => { document.title = "TSC - Client Details"; }, []);
+  useEffect(() => { document.title = "TSC - Clients"; }, []);
   const params = useParams();
   const searchParams = useSearchParams();
   const clientId = params.id as string;

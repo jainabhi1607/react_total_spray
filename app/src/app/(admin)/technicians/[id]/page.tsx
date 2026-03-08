@@ -274,7 +274,7 @@ function AddSubTechnicianDialog({
 
 export default function TechnicianDetailPage() {
   useEffect(() => {
-    document.title = "TSC - Technician Details";
+    document.title = "TSC - Technicians";
   }, []);
   const params = useParams();
   const router = useRouter();

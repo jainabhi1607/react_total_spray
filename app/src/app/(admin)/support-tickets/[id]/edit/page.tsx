@@ -70,7 +70,7 @@ interface ExistingTicket {
 // --- Page component ---
 
 export default function EditSupportTicketPage() {
-  useEffect(() => { document.title = "TSC - Edit Support Ticket"; }, []);
+  useEffect(() => { document.title = "TSC - Support Tickets"; }, []);
   const params = useParams();
   const router = useRouter();
   const ticketId = params.id as string;

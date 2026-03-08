@@ -18,7 +18,7 @@ interface ClientData {
 }
 
 export default function EditClientPage() {
-  useEffect(() => { document.title = "TSC - Edit Client"; }, []);
+  useEffect(() => { document.title = "TSC - Clients"; }, []);
   const params = useParams();
   const router = useRouter();
   const clientId = params.id as string;

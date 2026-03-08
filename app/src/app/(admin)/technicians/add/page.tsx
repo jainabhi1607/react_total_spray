@@ -32,7 +32,7 @@ const initialForm: TechnicianForm = {
 };
 
 export default function AddTechnicianPage() {
-  useEffect(() => { document.title = "TSC - Add Technician"; }, []);
+  useEffect(() => { document.title = "TSC - Technicians"; }, []);
   const router = useRouter();
   const [form, setForm] = useState<TechnicianForm>(initialForm);
   const [saving, setSaving] = useState(false);

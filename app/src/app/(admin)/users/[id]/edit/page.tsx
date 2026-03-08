@@ -44,7 +44,7 @@ interface ClientOption {
 // ---------------------------------------------------------------------------
 
 export default function EditUserPage() {
-  useEffect(() => { document.title = "TSC - Edit User"; }, []);
+  useEffect(() => { document.title = "TSC - Users"; }, []);
   const params = useParams();
   const router = useRouter();
   const userId = params.id as string;

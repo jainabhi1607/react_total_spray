@@ -221,8 +221,10 @@ function getStepColor(stepIdx: number, activeIdx: number): string {
 
 export default function SupportTicketDetailPage() {
   useEffect(() => {
-    document.title = "TSC - Support Ticket Details";
-  }, []);
+    document.title = ticket
+      ? `TSC - ST - ${ticket.ticketNo}`
+      : "TSC - Support Tickets";
+  }, [ticket]);
 
   const params = useParams();
   const router = useRouter();

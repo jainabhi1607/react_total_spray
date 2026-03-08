@@ -22,7 +22,7 @@ interface LogEntry {
 
 export default function TicketLogPage() {
   useEffect(() => {
-    document.title = "TSC - Ticket Log";
+    document.title = "TSC - Support Tickets";
   }, []);
 
   const params = useParams();

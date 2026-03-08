@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { AddClientDialog } from "@/components/dialogs/add-client-dialog";
 
 export default function AddClientPage() {
-  useEffect(() => { document.title = "TSC - Add Client"; }, []);
+  useEffect(() => { document.title = "TSC - Clients"; }, []);
   const router = useRouter();
   const [open, setOpen] = useState(true);
 

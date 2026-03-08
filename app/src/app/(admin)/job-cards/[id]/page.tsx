@@ -218,7 +218,11 @@ const STATUS_OPTIONS = [
 // --- Page component ---
 
 export default function JobCardDetailPage() {
-  useEffect(() => { document.title = "TSC - Job Card Details"; }, []);
+  useEffect(() => {
+    document.title = jobCard
+      ? `TSC - JC - ${jobCard.ticketNo}`
+      : "TSC - Job Cards";
+  }, [jobCard]);
   const params = useParams();
   const id = params.id as string;
 

@@ -89,7 +89,7 @@ function toDateInputValue(dateStr?: string): string {
 // --- Page component ---
 
 export default function EditJobCardPage() {
-  useEffect(() => { document.title = "TSC - Edit Job Card"; }, []);
+  useEffect(() => { document.title = "TSC - Job Cards"; }, []);
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;

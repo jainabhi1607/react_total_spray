@@ -86,7 +86,7 @@ function getStatusInfo(status: number) {
 // ---------------------------------------------------------------------------
 
 export default function UserDetailPage() {
-  useEffect(() => { document.title = "TSC - User Details"; }, []);
+  useEffect(() => { document.title = "TSC - Users"; }, []);
   const params = useParams();
   const userId = params.id as string;
 

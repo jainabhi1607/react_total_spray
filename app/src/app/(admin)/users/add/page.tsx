@@ -32,7 +32,7 @@ interface ClientOption {
 // ---------------------------------------------------------------------------
 
 export default function AddUserPage() {
-  useEffect(() => { document.title = "TSC - Add User"; }, []);
+  useEffect(() => { document.title = "TSC - Users"; }, []);
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

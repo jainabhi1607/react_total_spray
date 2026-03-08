@@ -328,7 +328,7 @@ export default function AssetDetailPage() {
       const json = await res.json();
       if (json.success) {
         setAsset(json.data);
-        document.title = `TSC - ${json.data.machineName}`;
+        document.title = "TSC - Assets";
       }
     } catch {
       // silently fail

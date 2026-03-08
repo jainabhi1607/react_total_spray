@@ -51,7 +51,7 @@ interface JobCardType {
 // --- Page component ---
 
 export default function AddJobCardPage() {
-  useEffect(() => { document.title = "TSC - Add Job Card"; }, []);
+  useEffect(() => { document.title = "TSC - Job Cards"; }, []);
   const router = useRouter();
 
   // Lookup data

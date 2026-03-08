@@ -51,7 +51,7 @@ interface Title {
 // --- Page component ---
 
 export default function AddSupportTicketPage() {
-  useEffect(() => { document.title = "TSC - Add Support Ticket"; }, []);
+  useEffect(() => { document.title = "TSC - Support Tickets"; }, []);
   const router = useRouter();
 
   // Data lists

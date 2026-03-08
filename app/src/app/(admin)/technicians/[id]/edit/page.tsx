@@ -34,7 +34,7 @@ const initialForm: TechnicianForm = {
 };
 
 export default function EditTechnicianPage() {
-  useEffect(() => { document.title = "TSC - Edit Technician"; }, []);
+  useEffect(() => { document.title = "TSC - Technicians"; }, []);
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
