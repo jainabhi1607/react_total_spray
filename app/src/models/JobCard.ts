@@ -20,7 +20,7 @@ export interface IJobCardDocument extends Document {
   multiDayJob?: number;
   jobDate?: Date;
   jobEndDate?: Date;
-  jobCardType?: number;
+  jobCardType?: mongoose.Types.ObjectId;
   supportTicketId?: mongoose.Types.ObjectId;
   recurringJob?: number;
   recurringPeriod?: number;
@@ -54,7 +54,7 @@ const JobCardSchema = new Schema<IJobCardDocument>(
     multiDayJob: { type: Number },
     jobDate: { type: Date },
     jobEndDate: { type: Date },
-    jobCardType: { type: Number },
+    jobCardType: { type: Schema.Types.ObjectId, ref: "JobCardType" },
     supportTicketId: { type: Schema.Types.ObjectId, ref: "SupportTicket" },
     recurringJob: { type: Number },
     recurringPeriod: { type: Number },

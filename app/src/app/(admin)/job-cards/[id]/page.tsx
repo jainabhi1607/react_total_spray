@@ -6,27 +6,23 @@ import Link from "next/link";
 import {
   ArrowLeft,
   Pencil,
-  Send,
   Plus,
   Trash2,
-  MessageSquare,
-  Paperclip,
-  Users,
-  ClipboardList,
-  Wrench,
-  ChevronDown,
-  FileText,
-  Upload,
-  CheckCircle2,
-  XCircle,
   Loader2,
+  Copy,
+  Eye,
+  EyeOff,
+  Download,
+  ExternalLink,
+  ChevronRight,
+  Image as ImageIcon,
+  FileText,
+  Archive,
+  RefreshCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -52,19 +48,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PageLoading } from "@/components/ui/loading";
+import { Switch } from "@/components/ui/switch";
 import {
   formatDate,
   formatDateTime,
-  JOB_CARD_STATUS,
-  JOB_CARD_STATUS_LABELS,
 } from "@/lib/utils";
 
 // --- Types ---
@@ -72,23 +61,26 @@ import {
 interface ClientInfo {
   _id: string;
   companyName: string;
+  address?: string;
 }
 
 interface SiteInfo {
   _id: string;
   siteName: string;
+  address?: string;
 }
 
 interface ContactInfo {
   _id: string;
-  firstName: string;
-  lastName: string;
+  name: string;
+  lastName?: string;
   email?: string;
+  phone?: string;
 }
 
 interface TitleInfo {
   _id: string;
-  name: string;
+  title: string;
 }
 
 interface JobCardTypeInfo {
@@ -96,57 +88,64 @@ interface JobCardTypeInfo {
   name: string;
 }
 
-interface ChecklistItem {
+interface JobCardDetail {
   _id: string;
-  details: string;
-  checklistItemType: string;
-  response?: any;
-  notes?: string;
-  passed?: boolean;
-}
-
-interface AssetItem {
-  _id: string;
-  assetId?: {
-    _id: string;
-    machineName: string;
-    serialNumber?: string;
-  };
-  machineName?: string;
-  serialNumber?: string;
-  checklist?: ChecklistItem[];
+  description?: string;
+  technicianBriefing?: string;
 }
 
 interface Comment {
   _id: string;
-  comment: string;
+  comments: string;
+  commentType?: number;
+  visibility?: number;
   userId?: {
     _id: string;
     name: string;
-    lastName?: string;
+    email?: string;
   };
   createdAt: string;
+  dateTime?: string;
 }
 
 interface Attachment {
   _id: string;
+  documentName?: string;
   fileName: string;
-  fileUrl: string;
-  fileType?: string;
+  fileSize?: number;
+  visibility?: number;
+  userId?: { _id: string; name: string };
   createdAt: string;
 }
 
-interface Technician {
+interface TechnicianData {
   _id: string;
   technicianId?: {
     _id: string;
+    companyName: string;
+    email?: string;
+    phone?: string;
+  };
+}
+
+interface ClientAssetData {
+  _id: string;
+  clientAssetId?: {
+    _id: string;
+    machineName: string;
+    serialNumber?: string;
+  };
+  checklistItems?: any[];
+  completeChecklist?: number;
+}
+
+interface OwnerData {
+  _id: string;
+  userId?: {
+    _id: string;
     name: string;
-    lastName?: string;
     email?: string;
   };
-  name?: string;
-  lastName?: string;
-  email?: string;
 }
 
 interface AvailableAsset {
@@ -157,62 +156,51 @@ interface AvailableAsset {
 
 interface AvailableTechnician {
   _id: string;
-  name: string;
-  lastName?: string;
+  companyName: string;
   email?: string;
+  phone?: string;
 }
 
 interface JobCardData {
   _id: string;
-  ticketNo: string;
+  ticketNo: number;
   uniqueId?: string;
   jobCardStatus: number;
   clientId: ClientInfo;
-  siteId?: SiteInfo;
-  contactId?: ContactInfo;
+  clientSiteId?: SiteInfo;
+  clientContactId?: ContactInfo;
   titleId?: TitleInfo;
-  jobCardTypeId?: JobCardTypeInfo;
-  description?: string;
-  technicianBriefing?: string;
+  jobCardType?: JobCardTypeInfo;
+  supportTicketId?: { _id: string; ticketNo: number } | string;
   jobDate?: string;
   jobEndDate?: string;
-  multiDayJob?: boolean;
-  warranty?: boolean;
-  recurringJob?: boolean;
+  multiDayJob?: number;
+  warranty?: number;
+  recurringJob?: number;
   recurringPeriod?: number;
-  recurringRange?: string;
+  recurringRange?: number;
+  invoiceNumber?: string;
   createdAt: string;
+  userId?: { _id: string; name: string; email?: string };
+  detail?: JobCardDetail;
   comments?: Comment[];
   attachments?: Attachment[];
-  technicians?: Technician[];
-  assets?: AssetItem[];
+  technicians?: TechnicianData[];
+  clientAssets?: ClientAssetData[];
+  owners?: OwnerData[];
 }
 
-// --- Status helpers ---
+// --- Progress steps ---
 
-function getJobCardStatusColor(status: number): string {
-  switch (status) {
-    case 0:
-      return "bg-gray-100 text-gray-800";
-    case 1:
-      return "bg-blue-100 text-blue-800";
-    case 2:
-      return "bg-yellow-100 text-yellow-800";
-    case 3:
-      return "bg-green-100 text-green-800";
-    case 4:
-      return "bg-red-100 text-red-800";
-    default:
-      return "bg-gray-100 text-gray-800";
-  }
-}
-
-const STATUS_OPTIONS = [
-  { value: JOB_CARD_STATUS.DRAFT, label: "Draft" },
-  { value: JOB_CARD_STATUS.OPEN, label: "Open" },
-  { value: JOB_CARD_STATUS.IN_PROGRESS, label: "In Progress" },
-  { value: JOB_CARD_STATUS.COMPLETED, label: "Completed" },
-  { value: JOB_CARD_STATUS.CANCELLED, label: "Cancelled" },
+const JOB_PROGRESS_STEPS = [
+  "Date Confirmed",
+  "Assigned Technicians",
+  "Technician Avail. Conf.",
+  "Client Date Confirmed",
+  "Job Card Sent",
+  "Checklist Complete",
+  "Internal Review",
+  "Job Invoiced",
 ];
 
 // --- Page component ---
@@ -222,17 +210,13 @@ export default function JobCardDetailPage() {
   const id = params.id as string;
 
   const [jobCard, setJobCard] = useState<JobCardData | null>(null);
-
-  useEffect(() => {
-    document.title = jobCard
-      ? `JC - ${jobCard.ticketNo}`
-      : "TSC - Job Cards";
-  }, [jobCard]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Comments
   const [newComment, setNewComment] = useState("");
+  const [commentPublic, setCommentPublic] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
 
   // Assets dialog
@@ -244,15 +228,19 @@ export default function JobCardDetailPage() {
 
   // Technician dialog
   const [techDialogOpen, setTechDialogOpen] = useState(false);
-  const [availableTechnicians, setAvailableTechnicians] = useState<
-    AvailableTechnician[]
-  >([]);
+  const [availableTechnicians, setAvailableTechnicians] = useState<AvailableTechnician[]>([]);
   const [selectedTechId, setSelectedTechId] = useState("");
   const [loadingTechs, setLoadingTechs] = useState(false);
   const [addingTech, setAddingTech] = useState(false);
 
-  // Status change
-  const [changingStatus, setChangingStatus] = useState(false);
+  // Ticket history tab
+  const [ticketHistoryTab, setTicketHistoryTab] = useState("asset");
+
+  useEffect(() => {
+    document.title = jobCard
+      ? `JC - ${jobCard.ticketNo}`
+      : "TSC - Job Cards";
+  }, [jobCard]);
 
   const fetchJobCard = useCallback(async () => {
     setLoading(true);
@@ -277,31 +265,6 @@ export default function JobCardDetailPage() {
     fetchJobCard();
   }, [fetchJobCard]);
 
-  // --- Status change ---
-
-  async function handleStatusChange(newStatus: number) {
-    if (!jobCard || changingStatus) return;
-    setChangingStatus(true);
-    try {
-      const res = await fetch(`/api/job-cards/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobCardStatus: newStatus }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.message || "Failed to update status");
-      }
-      setJobCard((prev) =>
-        prev ? { ...prev, jobCardStatus: newStatus } : prev
-      );
-    } catch (err: any) {
-      alert(err.message || "Failed to update status");
-    } finally {
-      setChangingStatus(false);
-    }
-  }
-
   // --- Comments ---
 
   async function handleAddComment(e: React.FormEvent) {
@@ -312,13 +275,17 @@ export default function JobCardDetailPage() {
       const res = await fetch(`/api/job-cards/${id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comment: newComment.trim() }),
+        body: JSON.stringify({
+          comment: newComment.trim(),
+          visibility: commentPublic ? 1 : 0,
+        }),
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
         throw new Error(json.message || "Failed to add comment");
       }
       setNewComment("");
+      setCommentPublic(false);
       fetchJobCard();
     } catch (err: any) {
       alert(err.message || "Failed to add comment");
@@ -334,9 +301,7 @@ export default function JobCardDetailPage() {
     if (!jobCard?.clientId?._id) return;
     setLoadingAssets(true);
     try {
-      const res = await fetch(
-        `/api/clients/${jobCard.clientId._id}/assets`
-      );
+      const res = await fetch(`/api/clients/${jobCard.clientId._id}/assets`);
       const json = await res.json();
       if (json.success) setAvailableAssets(json.data || []);
     } catch {
@@ -427,6 +392,12 @@ export default function JobCardDetailPage() {
     }
   }
 
+  // --- Copy to clipboard ---
+
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text).catch(() => {});
+  }
+
   // --- Render ---
 
   if (loading) {
@@ -457,654 +428,774 @@ export default function JobCardDetailPage() {
   const comments = jobCard.comments || [];
   const attachments = jobCard.attachments || [];
   const technicians = jobCard.technicians || [];
-  const assets = jobCard.assets || [];
+  const clientAssets = jobCard.clientAssets || [];
+  const owners = jobCard.owners || [];
+  const detail = jobCard.detail;
+
+  // Compute progress step based on jobCardStatus
+  function getProgressStep(): number {
+    // Map status to approximate step completion
+    if (jobCard!.invoiceNumber) return 8;
+    if (jobCard!.jobCardStatus === 3) return 7; // Completed
+    if (jobCard!.jobCardStatus === 2) return 3; // In progress
+    if (jobCard!.jobCardStatus === 1) return 1; // Open
+    return 0;
+  }
+
+  const progressStep = getProgressStep();
+
+  // Determine image attachments vs file attachments
+  const imageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg"];
+  const imageAttachments = attachments.filter((a) => {
+    const ext = (a.fileName || "").toLowerCase();
+    return imageExtensions.some((e) => ext.endsWith(e));
+  });
+  const fileAttachments = attachments.filter((a) => {
+    const ext = (a.fileName || "").toLowerCase();
+    return !imageExtensions.some((e) => ext.endsWith(e));
+  });
 
   return (
-    <div className="space-y-6">
+    <div>
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
+      <div className="mb-4 flex items-start justify-between">
+        <div className="flex items-center gap-3">
           <Link href="/job-cards">
-            <Button variant="ghost" size="icon">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-gray-800 text-gray-800 hover:bg-gray-100">
               <ArrowLeft className="h-5 w-5" />
-            </Button>
+            </div>
           </Link>
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">
-                {jobCard.ticketNo || jobCard.uniqueId || "Job Card"}
-              </h1>
-              <Badge
-                className={getJobCardStatusColor(jobCard.jobCardStatus)}
-              >
-                {JOB_CARD_STATUS_LABELS[jobCard.jobCardStatus] || "Unknown"}
-              </Badge>
-            </div>
-            <p className="mt-1 text-sm text-gray-500">
-              Created {formatDate(jobCard.createdAt)}
+            <h1 className="text-[26px] font-bold text-gray-900">
+              Job Card #{jobCard.ticketNo}
+            </h1>
+            <p className="mt-0.5 text-[13px] text-gray-500">
+              <span className="font-bold text-gray-900">Created:</span>{" "}
+              {formatDateTime(jobCard.createdAt)}
+              <span className="mx-4" />
+              <span className="font-bold text-gray-900">Generated by:</span>{" "}
+              {jobCard.userId?.name || "System"}
+              <span className="mx-4" />
+              <span className="font-bold text-gray-900">Claimed by:</span>{" "}
+              <Link href={`/job-cards/${id}/edit`} className="text-[#00AEEF] hover:underline">
+                Edit
+              </Link>
             </p>
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          {/* Status dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" disabled={changingStatus}>
-                {changingStatus ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-                Change Status
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {STATUS_OPTIONS.map((opt) => (
-                <DropdownMenuItem
-                  key={opt.value}
-                  onClick={() => handleStatusChange(opt.value)}
-                  disabled={opt.value === jobCard.jobCardStatus}
-                >
-                  {opt.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <Link href={`/job-cards/${id}/edit`}>
-            <Button variant="outline">
-              <Pencil className="h-4 w-4" />
-              Edit
-            </Button>
-          </Link>
-
-          <Button>
-            <Send className="h-4 w-4" />
-            Send
+        <div className="flex items-center gap-3">
+          <Button variant="outline" className="gap-2 rounded-full border-gray-300 text-[13px] text-gray-700 hover:bg-gray-50">
+            <RefreshCcw className="h-4 w-4" />
+            Set as recurring job
+          </Button>
+          <Button variant="outline" className="gap-2 rounded-full border-gray-300 text-[13px] text-gray-700 hover:bg-gray-50">
+            <Archive className="h-4 w-4" />
+            Archive
           </Button>
         </div>
       </div>
 
-      {/* Info Card */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div>
-              <p className="text-sm font-medium text-gray-500">Client</p>
-              <p className="mt-1 text-sm text-gray-900">
-                {jobCard.clientId?.companyName || "-"}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Site</p>
-              <p className="mt-1 text-sm text-gray-900">
-                {jobCard.siteId?.siteName || "-"}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Contact</p>
-              <p className="mt-1 text-sm text-gray-900">
-                {jobCard.contactId
-                  ? `${jobCard.contactId.firstName} ${jobCard.contactId.lastName}`
-                  : "-"}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">
-                Title / Category
-              </p>
-              <p className="mt-1 text-sm text-gray-900">
-                {jobCard.titleId?.name || "-"}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Job Date</p>
-              <p className="mt-1 text-sm text-gray-900">
-                {jobCard.jobDate ? formatDate(jobCard.jobDate) : "-"}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">End Date</p>
-              <p className="mt-1 text-sm text-gray-900">
-                {jobCard.jobEndDate ? formatDate(jobCard.jobEndDate) : "-"}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Warranty</p>
-              <p className="mt-1 text-sm text-gray-900">
-                {jobCard.warranty ? (
-                  <Badge variant="success">Yes</Badge>
-                ) : (
-                  "No"
-                )}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Type</p>
-              <p className="mt-1 text-sm text-gray-900">
-                {jobCard.jobCardTypeId?.name || "-"}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Created</p>
-              <p className="mt-1 text-sm text-gray-900">
-                {formatDateTime(jobCard.createdAt)}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Tabs */}
-      <Tabs defaultValue="details">
-        <TabsList>
-          <TabsTrigger value="details">
-            <FileText className="mr-1.5 h-4 w-4" />
-            Details
-          </TabsTrigger>
-          <TabsTrigger value="assets">
-            <Wrench className="mr-1.5 h-4 w-4" />
-            Assets & Checklists
-          </TabsTrigger>
-          <TabsTrigger value="comments">
-            <MessageSquare className="mr-1.5 h-4 w-4" />
-            Comments ({comments.length})
-          </TabsTrigger>
-          <TabsTrigger value="attachments">
-            <Paperclip className="mr-1.5 h-4 w-4" />
-            Attachments ({attachments.length})
-          </TabsTrigger>
-          <TabsTrigger value="technicians">
-            <Users className="mr-1.5 h-4 w-4" />
-            Technicians ({technicians.length})
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Details Tab */}
-        <TabsContent value="details">
-          <Card>
-            <CardContent className="space-y-6 p-6">
-              {/* Description */}
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">
-                  Description
-                </h3>
-                <p className="mt-2 whitespace-pre-wrap text-sm text-gray-900">
-                  {jobCard.description || "No description provided."}
-                </p>
-              </div>
-
-              {/* Technician Briefing */}
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">
-                  Technician Briefing
-                </h3>
-                <p className="mt-2 whitespace-pre-wrap text-sm text-gray-900">
-                  {jobCard.technicianBriefing || "No briefing provided."}
-                </p>
-              </div>
-
-              {/* Recurring info */}
-              {jobCard.recurringJob && (
-                <div className="rounded-[10px] border border-blue-200 bg-blue-50 p-4">
-                  <h3 className="text-sm font-medium text-blue-800">
-                    Recurring Job
-                  </h3>
-                  <p className="mt-1 text-sm text-blue-700">
-                    Every {jobCard.recurringPeriod || 1}{" "}
-                    {jobCard.recurringRange || "days"}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Assets & Checklists Tab */}
-        <TabsContent value="assets">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Assets & Checklists</CardTitle>
-              <Dialog
-                open={assetDialogOpen}
-                onOpenChange={setAssetDialogOpen}
+      <div className="mb-6 border-b border-gray-200">
+        <div className="flex gap-6">
+          {["Overview", "Checklists", "Job Card Log"].map((tab) => {
+            const tabKey = tab.toLowerCase().replace(/ /g, "-");
+            const isActive = activeTab === (tabKey === "overview" ? "overview" : tabKey);
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tabKey === "overview" ? "overview" : tabKey)}
+                className={`relative pb-3 text-[14px] font-medium transition-colors ${
+                  isActive
+                    ? "text-[#00AEEF]"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
               >
-                <DialogTrigger asChild>
-                  <Button size="sm" onClick={openAssetDialog}>
-                    <Plus className="h-4 w-4" />
-                    Add Asset
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Asset</DialogTitle>
-                    <DialogDescription>
-                      Select an asset from the client to assign to this job
-                      card.
-                    </DialogDescription>
-                  </DialogHeader>
-                  {loadingAssets ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <Select
-                        value={selectedAssetId}
-                        onValueChange={setSelectedAssetId}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select an asset" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableAssets.map((asset) => (
-                            <SelectItem key={asset._id} value={asset._id}>
-                              {asset.machineName}
-                              {asset.serialNumber
-                                ? ` (${asset.serialNumber})`
-                                : ""}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                {tab}
+                {isActive && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#00AEEF]" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Overview Tab */}
+      {activeTab === "overview" && (
+        <div className="flex gap-6">
+          {/* LEFT COLUMN */}
+          <div className="min-w-0 flex-1 space-y-7">
+            {/* Client Info */}
+            <div>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-[20px] font-bold text-gray-900">
+                    {jobCard.clientId?.companyName || "Unknown Client"}
+                  </h2>
+                  {(jobCard.clientSiteId?.siteName || jobCard.clientSiteId?.address) && (
+                    <p className="mt-0.5 text-[13px] text-gray-500">
+                      {jobCard.clientId?.companyName?.toLowerCase()} - {jobCard.clientSiteId?.siteName || jobCard.clientSiteId?.address}
+                    </p>
                   )}
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setAssetDialogOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleAddAsset}
-                      disabled={!selectedAssetId || addingAsset}
-                    >
-                      {addingAsset && (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      )}
-                      Add Asset
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </CardHeader>
-            <CardContent>
-              {assets.length === 0 ? (
-                <div className="py-8 text-center">
-                  <Wrench className="mx-auto h-10 w-10 text-gray-300" />
-                  <p className="mt-3 text-sm text-gray-500">
-                    No assets assigned to this job card.
+                </div>
+                <Link
+                  href={`/job-cards/${id}/edit`}
+                  className="text-[13px] text-[#00AEEF] hover:underline"
+                >
+                  Edit Job Card
+                </Link>
+              </div>
+
+              <Link href="#" className="mt-1 inline-block text-[13px] text-[#00AEEF] hover:underline">
+                Edit Contact
+              </Link>
+
+              {/* Sites row */}
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[12px] font-medium text-gray-400 uppercase">Sites</p>
+                  <p className="mt-1 text-[13px] text-gray-700">
+                    {jobCard.clientSiteId?.siteName || "-"}
                   </p>
                 </div>
-              ) : (
-                <div className="space-y-6">
-                  {assets.map((asset) => {
-                    const name =
-                      asset.assetId?.machineName ||
-                      asset.machineName ||
-                      "Unknown Asset";
-                    const serial =
-                      asset.assetId?.serialNumber ||
-                      asset.serialNumber ||
-                      "";
-                    const checklist = asset.checklist || [];
+                <div>
+                  <p className="text-[12px] font-medium text-gray-400 uppercase">Payments</p>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {jobCard.warranty ? (
+                      <Badge className="bg-[#E0F7FA] text-[#00838F] text-[11px] font-normal">
+                        Warranty
+                      </Badge>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
 
-                    return (
-                      <div
-                        key={asset._id}
-                        className="rounded-[10px] border border-gray-200 p-4"
+              <hr className="my-4 border-gray-200" />
+
+              {/* Job Type */}
+              <div>
+                <p className="mb-1.5 text-[13px] font-semibold text-gray-800">Job Type</p>
+                <div className="w-full rounded-[10px] border border-gray-200 px-3 py-2 text-[13px] text-gray-500">
+                  {jobCard.jobCardType?.name || "Select"}
+                </div>
+              </div>
+
+              <hr className="my-4 border-gray-200" />
+
+              {/* Assets */}
+              <div>
+                <div className="flex items-center justify-between">
+                  <p className="text-[13px] font-semibold text-gray-800">Asset(s)</p>
+                  <Dialog open={assetDialogOpen} onOpenChange={setAssetDialogOpen}>
+                    <DialogTrigger asChild>
+                      <button
+                        onClick={openAssetDialog}
+                        className="flex items-center gap-1 text-[13px] text-gray-500 hover:text-gray-700"
                       >
-                        <div className="flex items-center justify-between">
+                        <Plus className="h-3.5 w-3.5" />
+                        Add Asset
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add Asset</DialogTitle>
+                        <DialogDescription>
+                          Select an asset from the client to assign to this job card.
+                        </DialogDescription>
+                      </DialogHeader>
+                      {loadingAssets ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin text-[#00AEEF]" />
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <Select value={selectedAssetId} onValueChange={setSelectedAssetId}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select an asset" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableAssets.map((asset) => (
+                                <SelectItem key={asset._id} value={asset._id}>
+                                  {asset.machineName}
+                                  {asset.serialNumber ? ` (${asset.serialNumber})` : ""}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setAssetDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={handleAddAsset}
+                          disabled={!selectedAssetId || addingAsset}
+                          className="bg-[#00AEEF] hover:bg-[#009CD8]"
+                        >
+                          {addingAsset && <Loader2 className="h-4 w-4 animate-spin" />}
+                          Add Asset
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                <div className="mt-3 space-y-2">
+                  {clientAssets.length === 0 ? (
+                    <p className="text-[13px] text-gray-400">No assets assigned.</p>
+                  ) : (
+                    clientAssets.map((asset) => {
+                      const name = asset.clientAssetId?.machineName || "Unknown Asset";
+                      return (
+                        <div
+                          key={asset._id}
+                          className="flex items-center justify-between rounded-[10px] border border-gray-200 px-3 py-2"
+                        >
                           <div>
-                            <p className="font-medium text-gray-900">
+                            <p className="text-[13px] font-medium text-[#00AEEF]">
                               {name}
                             </p>
-                            {serial && (
-                              <p className="text-sm text-gray-500">
-                                Serial: {serial}
+                            {asset.clientAssetId?.serialNumber && (
+                              <p className="text-[12px] text-[#00AEEF]">
+                                Checklist 0/3
                               </p>
                             )}
                           </div>
-                          <Badge variant="outline">
-                            {checklist.length} checklist item
-                            {checklist.length !== 1 ? "s" : ""}
-                          </Badge>
-                        </div>
-
-                        {checklist.length > 0 && (
-                          <div className="mt-4">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Details</TableHead>
-                                  <TableHead>Type</TableHead>
-                                  <TableHead>Response</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {checklist.map((item) => (
-                                  <TableRow key={item._id}>
-                                    <TableCell className="text-sm">
-                                      {item.details}
-                                    </TableCell>
-                                    <TableCell>
-                                      <Badge variant="secondary">
-                                        {item.checklistItemType}
-                                      </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                      {renderChecklistResponse(item)}
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
+                          <div className="flex gap-1.5">
+                            <button className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                              <Eye className="h-3.5 w-3.5" />
+                            </button>
+                            <button className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-red-500">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
                           </div>
-                        )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <hr className="border-gray-200" />
+
+            {/* Technicians */}
+            <div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-[15px] font-semibold text-gray-900">Technicians</h3>
+                  <button className="text-gray-400 hover:text-gray-600">
+                    <Copy className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <Dialog open={techDialogOpen} onOpenChange={setTechDialogOpen}>
+                  <DialogTrigger asChild>
+                    <button
+                      onClick={openTechDialog}
+                      className="flex items-center gap-1 text-[13px] text-gray-500 hover:text-gray-700"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add Technician
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Technician</DialogTitle>
+                      <DialogDescription>
+                        Select a technician to assign to this job card.
+                      </DialogDescription>
+                    </DialogHeader>
+                    {loadingTechs ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin text-[#00AEEF]" />
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <Select value={selectedTechId} onValueChange={setSelectedTechId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a technician" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableTechnicians.map((tech) => (
+                              <SelectItem key={tech._id} value={tech._id}>
+                                {tech.companyName}
+                                {tech.email ? ` (${tech.email})` : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setTechDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handleAddTechnician}
+                        disabled={!selectedTechId || addingTech}
+                        className="bg-[#00AEEF] hover:bg-[#009CD8]"
+                      >
+                        {addingTech && <Loader2 className="h-4 w-4 animate-spin" />}
+                        Add Technician
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <div className="mt-3 space-y-2.5">
+                {technicians.length === 0 ? (
+                  <p className="text-[13px] text-gray-400">No technicians assigned.</p>
+                ) : (
+                  technicians.map((tech) => {
+                    const name = tech.technicianId?.companyName || "Unknown";
+                    const phone = tech.technicianId?.phone || "";
+                    const email = tech.technicianId?.email || "";
+                    return (
+                      <div key={tech._id} className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-[12px] font-medium text-gray-600">
+                          {name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex flex-1 items-center gap-6 text-[13px]">
+                          <span className="min-w-[120px] font-medium text-gray-900">{name}</span>
+                          {phone && <span className="text-gray-500">{phone}</span>}
+                          {email && <span className="text-gray-500">{email}</span>}
+                        </div>
+                        <button
+                          onClick={() => copyToClipboard(`${name} ${phone} ${email}`)}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                     );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                  })
+                )}
+              </div>
+            </div>
 
-        {/* Comments Tab */}
-        <TabsContent value="comments">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Comments</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Add comment form */}
-              <form onSubmit={handleAddComment} className="space-y-3">
-                <Textarea
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Write a comment..."
-                  rows={3}
-                />
-                <div className="flex justify-end">
-                  <Button
-                    type="submit"
-                    size="sm"
-                    disabled={!newComment.trim() || submittingComment}
-                  >
-                    {submittingComment && (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    )}
-                    Add Comment
-                  </Button>
-                </div>
-              </form>
+            <hr className="border-gray-200" />
 
-              {/* Comments list */}
-              {comments.length === 0 ? (
-                <div className="py-8 text-center">
-                  <MessageSquare className="mx-auto h-10 w-10 text-gray-300" />
-                  <p className="mt-3 text-sm text-gray-500">
-                    No comments yet. Be the first to add one.
+            {/* Technician Notes */}
+            <div>
+              <h3 className="text-[15px] font-semibold text-gray-900">Technician Notes</h3>
+              <p className="mt-1 text-[13px] text-gray-500">
+                Technician notes are shown in the Job Card email and Job Card URL, where a user by Technicians.
+              </p>
+              <button className="mt-2 text-[13px] text-[#00AEEF] hover:underline">
+                Click here to add a Technician Notes.
+              </button>
+            </div>
+
+            <hr className="border-gray-200" />
+
+            {/* Job Description */}
+            <div>
+              <h3 className="text-[15px] font-semibold text-gray-900">Job Description</h3>
+              {detail?.description ? (
+                <div className="mt-2">
+                  <p className="text-[13px] font-medium text-gray-700">Title:</p>
+                  <p className="mt-1 whitespace-pre-wrap text-[13px] text-gray-600">
+                    {detail.description}
                   </p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {comments.map((comment) => (
+                <p className="mt-2 text-[13px] text-gray-400">No description provided.</p>
+              )}
+            </div>
+
+            <hr className="border-gray-200" />
+
+            {/* Attachments */}
+            <div>
+              <div className="flex items-center justify-between">
+                <h3 className="text-[15px] font-semibold text-gray-900">Attachments</h3>
+                <label className="flex items-center gap-2 text-[12px] text-gray-500 cursor-pointer">
+                  <Eye className="h-3.5 w-3.5" />
+                  Make All Images Public
+                </label>
+              </div>
+
+              {/* File attachments */}
+              {fileAttachments.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {fileAttachments.map((att) => (
                     <div
-                      key={comment._id}
-                      className="rounded-[10px] border border-gray-200 p-4"
+                      key={att._id}
+                      className="flex items-center justify-between rounded-[10px] border border-gray-100 px-3 py-2"
                     >
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-gray-900">
-                          {comment.userId
-                            ? `${comment.userId.name}${comment.userId.lastName ? ` ${comment.userId.lastName}` : ""}`
-                            : "System"}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {formatDateTime(comment.createdAt)}
-                        </p>
+                      <span className="text-[13px] text-gray-700">
+                        {att.documentName || att.fileName}
+                        {att.fileSize ? `, ${(att.fileSize / 1024).toFixed(0)}KB` : ""}
+                      </span>
+                      <div className="flex gap-1">
+                        <button className="rounded p-1 text-gray-400 hover:text-gray-600">
+                          <EyeOff className="h-3.5 w-3.5" />
+                        </button>
+                        <button className="rounded p-1 text-gray-400 hover:text-gray-600">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </button>
+                        <button className="rounded p-1 text-gray-400 hover:text-gray-600">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => copyToClipboard(att.fileName)}
+                          className="rounded p-1 text-gray-400 hover:text-gray-600"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
                       </div>
-                      <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">
-                        {comment.comment}
-                      </p>
                     </div>
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        {/* Attachments Tab */}
-        <TabsContent value="attachments">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Attachments</CardTitle>
-              <Button size="sm" variant="outline" disabled>
-                <Upload className="h-4 w-4" />
-                Upload
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {attachments.length === 0 ? (
-                <div className="py-8 text-center">
-                  <Paperclip className="mx-auto h-10 w-10 text-gray-300" />
-                  <p className="mt-3 text-sm text-gray-500">
-                    No attachments yet.
-                  </p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>File Name</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {attachments.map((att) => (
-                      <TableRow key={att._id}>
-                        <TableCell>
-                          <a
-                            href={att.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-medium text-blue-600 hover:underline"
-                          >
-                            {att.fileName}
-                          </a>
-                        </TableCell>
-                        <TableCell className="text-sm text-gray-500">
-                          {att.fileType || "-"}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap text-sm text-gray-500">
-                          {formatDate(att.createdAt)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              handleDeleteAttachment(att._id)
-                            }
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Technicians Tab */}
-        <TabsContent value="technicians">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Assigned Technicians</CardTitle>
-              <Dialog
-                open={techDialogOpen}
-                onOpenChange={setTechDialogOpen}
-              >
-                <DialogTrigger asChild>
-                  <Button size="sm" onClick={openTechDialog}>
-                    <Plus className="h-4 w-4" />
-                    Add Technician
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Technician</DialogTitle>
-                    <DialogDescription>
-                      Select a technician to assign to this job card.
-                    </DialogDescription>
-                  </DialogHeader>
-                  {loadingTechs ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <Select
-                        value={selectedTechId}
-                        onValueChange={setSelectedTechId}
+              {/* Image thumbnails */}
+              {imageAttachments.length > 0 && (
+                <div className="mt-3">
+                  <p className="mb-2 text-[12px] text-gray-400">Click to enlarge</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {imageAttachments.map((att) => (
+                      <div
+                        key={att._id}
+                        className="group relative flex aspect-square items-center justify-center rounded-[10px] border border-gray-200 bg-gray-50"
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a technician" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableTechnicians.map((tech) => (
-                            <SelectItem key={tech._id} value={tech._id}>
-                              {tech.name}
-                              {tech.lastName ? ` ${tech.lastName}` : ""}
-                              {tech.email ? ` (${tech.email})` : ""}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setTechDialogOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleAddTechnician}
-                      disabled={!selectedTechId || addingTech}
-                    >
-                      {addingTech && (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      )}
-                      Add Technician
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </CardHeader>
-            <CardContent>
-              {technicians.length === 0 ? (
-                <div className="py-8 text-center">
-                  <Users className="mx-auto h-10 w-10 text-gray-300" />
-                  <p className="mt-3 text-sm text-gray-500">
-                    No technicians assigned yet.
-                  </p>
+                        <ImageIcon className="h-8 w-8 text-gray-300" />
+                        <div className="absolute bottom-1.5 right-1.5 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                          <button className="rounded bg-white p-1 text-gray-500 shadow-sm hover:text-gray-700">
+                            <EyeOff className="h-3 w-3" />
+                          </button>
+                          <button className="rounded bg-white p-1 text-gray-500 shadow-sm hover:text-gray-700">
+                            <Download className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAttachment(att._id)}
+                            className="rounded bg-white p-1 text-gray-500 shadow-sm hover:text-red-500"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+              )}
+
+              {attachments.length === 0 && (
+                <p className="mt-3 text-[13px] text-gray-400">No attachments.</p>
+              )}
+            </div>
+
+            <hr className="border-gray-200" />
+
+            {/* Checklist Uploads */}
+            <div>
+              <h3 className="text-[15px] font-semibold text-gray-900">Checklist Uploads</h3>
+              <p className="mt-2 text-[13px] text-gray-400">No checklist uploads.</p>
+            </div>
+
+            <hr className="border-gray-200" />
+
+            {/* Comments / Updates */}
+            <div>
+              <h3 className="text-[15px] font-semibold text-gray-900">Comments / Updates</h3>
+
+              <form onSubmit={handleAddComment} className="mt-3">
+                <Textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Start typing..."
+                  rows={3}
+                  className="rounded-[10px] border-gray-200 text-[13px]"
+                />
+                <div className="mt-3 flex items-center gap-4">
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={!newComment.trim() || submittingComment}
+                    className="bg-[#00AEEF] hover:bg-[#009CD8] rounded-[10px] px-5"
+                  >
+                    {submittingComment && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                    Save
+                  </Button>
+                  <label className="flex items-center gap-2 text-[13px] text-gray-600 cursor-pointer">
+                    <Switch
+                      checked={commentPublic}
+                      onCheckedChange={setCommentPublic}
+                    />
+                    Make Public
+                  </label>
+                </div>
+              </form>
+
+              {/* Comments list */}
+              <div className="mt-5 space-y-3">
+                {comments.map((comment, idx) => {
+                  const authorName = comment.userId?.name || "System";
+                  const dateStr = formatDateTime(comment.dateTime || comment.createdAt);
+                  const isPublic = comment.visibility === 1;
+
+                  return (
+                    <div
+                      key={comment._id}
+                      className={`rounded-[10px] border px-4 py-3 ${
+                        idx % 3 === 0
+                          ? "border-red-200 bg-red-50"
+                          : idx % 3 === 1
+                          ? "border-amber-200 bg-amber-50"
+                          : "border-gray-200 bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-[12px]">
+                          <span className="font-medium text-[#00AEEF]">{authorName}</span>
+                          <span className="text-gray-400">{dateStr}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[12px]">
+                          <button className="text-[#00AEEF] hover:underline">
+                            {isPublic ? "Make Private" : "Make Public"}
+                          </button>
+                          <button className="text-[#00AEEF] hover:underline">Edit</button>
+                          <button className="text-[#00AEEF] hover:underline">Delete</button>
+                        </div>
+                      </div>
+                      <p className="mt-1.5 whitespace-pre-wrap text-[13px] text-gray-700">
+                        {comment.comments}
+                      </p>
+                    </div>
+                  );
+                })}
+                {comments.length === 0 && (
+                  <p className="text-[13px] text-gray-400">No comments yet.</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div className="w-[320px] shrink-0 space-y-5">
+            {/* Support Tickets */}
+            <div className="rounded-[10px] border border-gray-200 p-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-[14px] font-semibold text-gray-900">Support Tickets</h4>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] text-gray-500">0/3</span>
+                  <button className="text-gray-400 hover:text-gray-600">
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {jobCard.supportTicketId && typeof jobCard.supportTicketId === "object" && (
+                <div className="mt-3">
+                  <Link
+                    href={`/support-tickets/${(jobCard.supportTicketId as any)._id}`}
+                    className="text-[13px] text-[#00AEEF] hover:underline"
+                  >
+                    #{(jobCard.supportTicketId as any).ticketNo}
+                  </Link>
+                  <div className="mt-2">
+                    <Button
+                      size="sm"
+                      className="w-full rounded-[10px] bg-orange-500 text-white hover:bg-orange-600 text-[12px]"
+                    >
+                      Go to Technician
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <button className="mt-2 flex items-center gap-1 text-[13px] text-[#00AEEF] hover:underline">
+                <Plus className="h-3.5 w-3.5" />
+                Add Case
+              </button>
+            </div>
+
+            {/* Job Date */}
+            <div className="rounded-[10px] border border-gray-200 p-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-[14px] font-semibold text-gray-900">Job Date</h4>
+                <button className="text-gray-400 hover:text-gray-600">
+                  <Pencil className="h-4 w-4" />
+                </button>
+              </div>
+              {jobCard.jobDate ? (
+                <p className="mt-2 text-[13px] text-gray-700">{formatDate(jobCard.jobDate)}</p>
               ) : (
+                <p className="mt-2 rounded-[6px] bg-orange-50 px-3 py-2 text-[12px] text-orange-600">
+                  The date for this job has not been set
+                </p>
+              )}
+            </div>
+
+            {/* Job Progress */}
+            <div className="rounded-[10px] border border-gray-200 p-4">
+              <h4 className="text-[14px] font-semibold text-gray-900">Job Progress</h4>
+
+              <Link href={`/job-cards/${id}/edit`}>
+                <Button className="mt-3 w-full rounded-[10px] bg-amber-400 text-gray-900 hover:bg-amber-500 text-[13px] font-semibold">
+                  Edit Job Card
+                </Button>
+              </Link>
+
+              <div className="mt-4 space-y-0">
+                {JOB_PROGRESS_STEPS.map((step, idx) => {
+                  const isCompleted = idx < progressStep;
+                  const isCurrent = idx === progressStep;
+                  return (
+                    <div key={step} className="flex items-start gap-3">
+                      {/* Vertical line + dot */}
+                      <div className="flex flex-col items-center">
+                        <div
+                          className={`h-3 w-3 rounded-full border-2 ${
+                            isCompleted
+                              ? "border-[#00AEEF] bg-[#00AEEF]"
+                              : isCurrent
+                              ? "border-[#00AEEF] bg-white"
+                              : "border-gray-300 bg-white"
+                          }`}
+                        />
+                        {idx < JOB_PROGRESS_STEPS.length - 1 && (
+                          <div
+                            className={`w-[2px] ${
+                              isCompleted ? "bg-[#00AEEF]" : "bg-gray-200"
+                            }`}
+                            style={{ height: "28px" }}
+                          />
+                        )}
+                      </div>
+                      <p
+                        className={`-mt-0.5 text-[13px] ${
+                          isCompleted
+                            ? "font-medium text-gray-900"
+                            : isCurrent
+                            ? "font-medium text-[#00AEEF]"
+                            : "text-gray-400"
+                        }`}
+                      >
+                        {step}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Ticket History */}
+            <div className="rounded-[10px] border border-gray-200 p-4">
+              <h4 className="mb-3 text-[14px] font-semibold text-gray-900">Ticket History</h4>
+
+              <div className="flex gap-4 border-b border-gray-200">
+                {["Asset", "Site"].map((tab) => {
+                  const key = tab.toLowerCase();
+                  return (
+                    <button
+                      key={tab}
+                      onClick={() => setTicketHistoryTab(key)}
+                      className={`relative pb-2 text-[13px] font-medium ${
+                        ticketHistoryTab === key
+                          ? "text-[#00AEEF]"
+                          : "text-gray-400 hover:text-gray-600"
+                      }`}
+                    >
+                      {tab}
+                      {ticketHistoryTab === key && (
+                        <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#00AEEF]" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-3">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
+                      <TableHead className="text-[11px] px-2">Ticket Title</TableHead>
+                      <TableHead className="text-[11px] px-2">Date</TableHead>
+                      <TableHead className="text-[11px] px-2">Ticket Owner</TableHead>
+                      <TableHead className="text-[11px] px-2">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {technicians.map((tech) => {
-                      const techName = tech.technicianId
-                        ? `${tech.technicianId.name}${tech.technicianId.lastName ? ` ${tech.technicianId.lastName}` : ""}`
-                        : `${tech.name || ""}${tech.lastName ? ` ${tech.lastName}` : ""}`;
-                      const techEmail =
-                        tech.technicianId?.email || tech.email || "-";
-
-                      return (
-                        <TableRow key={tech._id}>
-                          <TableCell className="font-medium">
-                            {techName || "-"}
-                          </TableCell>
-                          <TableCell className="text-gray-500">
-                            {techEmail}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                    {/* Placeholder row - this would be populated with real ticket history data */}
+                    <TableRow>
+                      <TableCell colSpan={4} className="py-4 text-center text-[12px] text-gray-400">
+                        No ticket history
+                      </TableCell>
+                    </TableRow>
                   </TableBody>
                 </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
-
-// --- Checklist response renderer ---
-
-function renderChecklistResponse(item: ChecklistItem) {
-  const type = item.checklistItemType?.toLowerCase();
-
-  if (type === "boolean" || type === "yes/no" || type === "pass/fail") {
-    if (item.passed === true || item.response === true || item.response === "yes" || item.response === "pass") {
-      return (
-        <span className="inline-flex items-center gap-1 text-sm text-green-700">
-          <CheckCircle2 className="h-4 w-4" />
-          {item.response?.toString() || "Pass"}
-        </span>
-      );
-    }
-    if (item.passed === false || item.response === false || item.response === "no" || item.response === "fail") {
-      return (
-        <span className="inline-flex items-center gap-1 text-sm text-red-700">
-          <XCircle className="h-4 w-4" />
-          {item.response?.toString() || "Fail"}
-        </span>
-      );
-    }
-    return <span className="text-sm text-gray-400">No response</span>;
-  }
-
-  if (type === "text" || type === "textarea" || type === "number") {
-    return (
-      <span className="text-sm text-gray-900">
-        {item.response?.toString() || (
-          <span className="text-gray-400">No response</span>
-        )}
-      </span>
-    );
-  }
-
-  if (type === "checkbox") {
-    return (
-      <Checkbox checked={!!item.response} disabled />
-    );
-  }
-
-  // Default
-  return (
-    <span className="text-sm text-gray-900">
-      {item.response?.toString() || (
-        <span className="text-gray-400">No response</span>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
-    </span>
+
+      {/* Checklists Tab */}
+      {activeTab === "checklists" && (
+        <div className="space-y-4">
+          {clientAssets.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-[14px] text-gray-500">No assets with checklists.</p>
+            </div>
+          ) : (
+            clientAssets.map((asset) => {
+              const name = asset.clientAssetId?.machineName || "Unknown Asset";
+              const items = asset.checklistItems || [];
+
+              return (
+                <div key={asset._id} className="rounded-[10px] border border-gray-200 p-5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[15px] font-semibold text-gray-900">{name}</h3>
+                    <Badge variant="outline" className="text-[12px]">
+                      {items.length} item{items.length !== 1 ? "s" : ""}
+                    </Badge>
+                  </div>
+
+                  {items.length > 0 ? (
+                    <Table className="mt-4">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Details</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Response</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {items.map((item: any) => (
+                          <TableRow key={item._id}>
+                            <TableCell className="text-[13px]">{item.details}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className="text-[11px]">
+                                {item.checklistItemType}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-[13px] text-gray-600">
+                              {item.responseType1 || item.responseType2 || "-"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <p className="mt-3 text-[13px] text-gray-400">No checklist items.</p>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {/* Job Card Log Tab */}
+      {activeTab === "job-card-log" && (
+        <div className="rounded-[10px] border border-gray-200 p-5">
+          <p className="text-[13px] text-gray-400">Job card log will be displayed here.</p>
+        </div>
+      )}
+    </div>
   );
 }

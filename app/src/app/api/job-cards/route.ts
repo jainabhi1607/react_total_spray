@@ -13,6 +13,7 @@ import JobCardDetail from "@/models/JobCardDetail";
 import JobCardLog from "@/models/JobCardLog";
 import "@/models/ClientAsset";
 import "@/models/Title";
+import "@/models/JobCardType";
 import { generateUniqueId } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
@@ -122,7 +123,7 @@ export async function POST(req: NextRequest) {
     const lastJobCard = await JobCard.findOne().sort({ ticketNo: -1 }).lean();
     const ticketNo = lastJobCard && (lastJobCard as any).ticketNo
       ? (lastJobCard as any).ticketNo + 1
-      : 1;
+      : 10000;
 
     const uniqueId = generateUniqueId();
 
