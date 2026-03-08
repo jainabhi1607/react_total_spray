@@ -14,10 +14,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageLoading } from "@/components/ui/loading";
-import { AddClientDialog } from "@/components/dialogs/add-client-dialog";
 import { AddSupportTicketDialog } from "@/components/dialogs/add-support-ticket-dialog";
-import { AddSiteDialog } from "@/components/dialogs/add-site-dialog";
-import { AddAssetDialog } from "@/components/dialogs/add-asset-dialog";
+import { QuickAddButtons, cyanBtnStyle } from "@/components/quick-add-buttons";
 import {
   Table,
   TableBody,
@@ -179,12 +177,6 @@ export default function SupportTicketsPage() {
     total: 0,
   });
 
-  // Add Client dialog state
-  const [addClientOpen, setAddClientOpen] = useState(false);
-  // Add Site dialog state
-  const [addSiteOpen, setAddSiteOpen] = useState(false);
-  // Add Asset dialog state
-  const [addAssetOpen, setAddAssetOpen] = useState(false);
   // Add Ticket dialog state
   const [addTicketOpen, setAddTicketOpen] = useState(false);
 
@@ -334,38 +326,15 @@ export default function SupportTicketsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Support Tickets</h1>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setAddClientOpen(true)}
-          >
-            <Plus className="mr-1 h-4 w-4" />
-            Add Client
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setAddSiteOpen(true)}
-          >
-            <Plus className="mr-1 h-4 w-4" />
-            Add Site
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setAddAssetOpen(true)}
-          >
-            <Plus className="mr-1 h-4 w-4" />
-            Add Asset
-          </Button>
-          <Button
-            size="sm"
-            className="bg-cyan-500 hover:bg-cyan-600 text-white"
+          <QuickAddButtons />
+          <button
+            style={cyanBtnStyle}
+            className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80"
             onClick={() => setAddTicketOpen(true)}
           >
-            <Plus className="mr-1 h-4 w-4" />
+            <Plus className="h-3.5 w-3.5" />
             Add Ticket
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -593,24 +562,6 @@ export default function SupportTicketsPage() {
           </div>
         </div>
       )}
-
-      {/* Add Client Dialog */}
-      <AddClientDialog
-        open={addClientOpen}
-        onOpenChange={setAddClientOpen}
-      />
-
-      {/* Add Site Dialog */}
-      <AddSiteDialog
-        open={addSiteOpen}
-        onOpenChange={setAddSiteOpen}
-      />
-
-      {/* Add Asset Dialog */}
-      <AddAssetDialog
-        open={addAssetOpen}
-        onOpenChange={setAddAssetOpen}
-      />
 
       {/* Add Ticket Dialog */}
       <AddSupportTicketDialog

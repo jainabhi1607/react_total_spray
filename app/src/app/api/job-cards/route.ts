@@ -11,6 +11,8 @@ import {
 import JobCard from "@/models/JobCard";
 import JobCardDetail from "@/models/JobCardDetail";
 import JobCardLog from "@/models/JobCardLog";
+import "@/models/ClientAsset";
+import "@/models/Title";
 import { generateUniqueId } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
@@ -57,10 +59,23 @@ export async function GET(req: NextRequest) {
       query.jobCardStatus = parseInt(jobCardStatus);
     }
 
+    // Tab filtering: active, complete, recurring
+    const tab = searchParams.get("tab");
+    if (tab === "active") {
+      query.jobCardStatus = { $in: [1, 2] };
+      query.recurringJob = { $ne: 1 };
+    } else if (tab === "complete") {
+      query.jobCardStatus = 3;
+    } else if (tab === "recurring") {
+      query.recurringJob = 1;
+    }
+
     const [jobCards, total] = await Promise.all([
       JobCard.find(query)
         .populate("clientId", "companyName")
         .populate("clientSiteId", "siteName")
+        .populate("clientAssetId", "machineName")
+        .populate("titleId", "title")
         .populate("userId", "name email")
         .sort({ createdAt: -1 })
         .skip(skip)

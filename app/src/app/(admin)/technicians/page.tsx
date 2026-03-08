@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Plus, Search, ChevronLeft, ChevronRight, Eye, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cyanBtnStyle } from "@/components/quick-add-buttons";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageLoading } from "@/components/ui/loading";
@@ -146,13 +147,14 @@ export default function TechniciansPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Technicians</h1>
-        <Button
-          className="bg-cyan-500 hover:bg-cyan-600 text-white"
+        <button
+          style={cyanBtnStyle}
+          className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80"
           onClick={handleAdd}
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-3.5 w-3.5" />
           Add Technician
-        </Button>
+        </button>
       </div>
 
       {/* Search */}

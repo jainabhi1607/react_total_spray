@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cyanBtnStyle } from "@/components/quick-add-buttons";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -559,13 +560,14 @@ export default function TechnicianDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           {activeTab === "insurance" && (
-            <Button
-              className="bg-cyan-500 hover:bg-cyan-600 text-white"
+            <button
+              style={cyanBtnStyle}
+              className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80"
               onClick={handleAddInsurance}
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-3.5 w-3.5" />
               Add Insurance
-            </Button>
+            </button>
           )}
           <Button variant="outline" onClick={handleArchive}>
             <Archive className="h-4 w-4" />
@@ -888,13 +890,14 @@ export default function TechnicianDetailPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-900">Technicians</h2>
-              <Button
-                className="bg-cyan-500 hover:bg-cyan-600 text-white"
+              <button
+                style={cyanBtnStyle}
+                className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80"
                 onClick={handleAddSub}
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-3.5 w-3.5" />
                 Add Technician
-              </Button>
+              </button>
             </div>
 
             {(!technician.subTechnicians || technician.subTechnicians.length === 0) ? (

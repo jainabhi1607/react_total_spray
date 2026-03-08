@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Plus, Pencil, Trash2, FolderOpen, FileText } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { cyanBtnStyle } from "@/components/quick-add-buttons";
 import { PageLoading } from "@/components/ui/loading";
 import { ResourceDialog } from "@/components/dialogs/resource-dialog";
 
@@ -122,13 +122,14 @@ export default function ResourcesPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Resources</h1>
-        <Button
-          className="bg-cyan-500 hover:bg-cyan-600 text-white"
+        <button
+          style={cyanBtnStyle}
+          className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80"
           onClick={handleAdd}
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-3.5 w-3.5" />
           Add Resource
-        </Button>
+        </button>
       </div>
 
       <hr className="border-gray-200" />
