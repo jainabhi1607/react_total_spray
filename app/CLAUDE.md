@@ -36,6 +36,7 @@ src/
 
 ### Layout & Theming
 - Dark header, cyan sidebar, global `rounded-[10px]`, active tab `#00AEEF`
+- Sidebar active state: items with query params (e.g. To Invoice `?tab=to-invoice`) only highlight on exact match; base path items exclude query siblings
 
 ### Settings
 - Tags, Titles, Job Card Types, Resource Categories, Email Notifications, Asset Settings, Checklist Templates
@@ -46,9 +47,11 @@ src/
 - **Technicians**: listing, view page with tabs, tags, notes, sub-technicians, insurance, archive
 - **Resources**: category tabs, card grid, add/edit dialog
 - **Support Tickets**: listing with stat cards (circle color matches count color), tab filters, inline edit/arrow icons
-- **Support Ticket Detail** (`/support-tickets/[id]`): redesign in progress — 2-column scrollable layout with status progress bar, inline editing, timer, job cards, ticket history, comments with visibility toggle
+- **Support Ticket Detail** (`/support-tickets/[id]`): 2-column scrollable layout with status progress bar, inline editing, timer, job cards, ticket history, comments with visibility toggle. Status workflow: Working/On-site Technician auto-set (non-clickable), Resolved opens dialog with comment + contact notification emails. Claim ticket dialog with owner multi-select from active admin users. Sites/Asset links black underline, cyan links always underlined.
 - **Assets**: listing with client/site filters (searchable client dropdown, sorted alphabetically), table with Machine Name/Serial Number/Client Name/Client Site/Last Ticket/View Asset
 - **Asset Detail** (`/assets/[id]`): Overview/Maintenance/Activity tabs, stat cards, notes editing, image placeholder, serial/date/make/model details, QR code section
+- **Contacts** (`/contacts`): listing all contacts with search, populated client/site names, link to client detail
+- **Users** (`/users`): listing with add/edit in popup dialog (not separate pages), roles: Administrator (3) / Support Admin (2), status Active/Deactive column. Deactive users cannot log in.
 
 ### Reusable Dialogs (`components/dialogs/`)
 - **AddClientDialog**: add/edit client
@@ -61,7 +64,12 @@ src/
 - `/api/assets/[id]` — GET single asset with populated fields + support request count, PUT for notes
 - `/api/clients/[id]/sites` — CRUD for client sites
 - `/api/clients/[id]/assets` — CRUD for client assets
+- `/api/contacts` — GET all contacts with populated clientId/clientSiteId
 - `/api/support-tickets` — ticket listing + creation (ticketNo starts at 10000)
+- `/api/support-tickets/[id]/owners` — GET/POST/PUT (bulk replace) ticket owners; PUT auto-sets Working status if Open
+- `/api/support-tickets/[id]/resolve` — PUT resolves ticket: saves comment, updates status, sends notification emails to selected contacts
+- `/api/users` — GET supports `?role=1,2,3` (comma-separated) and `?status=1` filters; POST accepts `status` field
+- **Email**: `sendTicketResolvedEmail()` in `lib/email.ts` — sends resolve notification via Resend
 
 ## Running
 ```bash
