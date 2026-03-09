@@ -14,16 +14,17 @@ import {
   EyeOff,
   Download,
   ExternalLink,
-  ChevronRight,
   Image as ImageIcon,
   FileText,
   Archive,
   RefreshCcw,
+  Link2,
+  Check,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -50,7 +51,6 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PageLoading } from "@/components/ui/loading";
-import { Switch } from "@/components/ui/switch";
 import {
   formatDate,
   formatDateTime,
@@ -180,6 +180,7 @@ interface JobCardData {
   recurringPeriod?: number;
   recurringRange?: number;
   invoiceNumber?: string;
+  jobCardSentDate?: string;
   createdAt: string;
   userId?: { _id: string; name: string; email?: string };
   detail?: JobCardDetail;
@@ -193,15 +194,61 @@ interface JobCardData {
 // --- Progress steps ---
 
 const JOB_PROGRESS_STEPS = [
-  "Date Confirmed",
-  "Assigned Technicians",
-  "Technician Avail. Conf.",
-  "Client Date Confirmed",
-  "Job Card Sent",
-  "Checklist Complete",
-  "Internal Review",
-  "Job Invoiced",
+  { label: "Date Allocated", color: "#4ADE80" },
+  { label: "Date Confirmed", color: "#22C55E" },
+  { label: "Assigned Technicians", color: "#F59E0B" },
+  { label: "Technician Avail. Conf.", color: "#EC4899" },
+  { label: "Client Date Confirmed", color: "#A855F7" },
+  { label: "Job Card Sent", color: "#0EA5E9" },
+  { label: "Checklist Complete", color: "#EAB308" },
+  { label: "Internal Review", color: "#9CA3AF" },
+  { label: "Job Invoiced", color: "#6B7280" },
 ];
+
+// --- Circular Progress Ring ---
+
+function CircularProgress({
+  percentage,
+  size = 40,
+}: {
+  percentage: number;
+  size?: number;
+}) {
+  const strokeWidth = 3;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="transform -rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="#e5e7eb"
+          strokeWidth={strokeWidth}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="#00AEEF"
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          className="transition-all duration-500"
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-gray-500">
+        {percentage}%
+      </span>
+    </div>
+  );
+}
 
 // --- Page component ---
 
@@ -233,8 +280,25 @@ export default function JobCardDetailPage() {
   const [loadingTechs, setLoadingTechs] = useState(false);
   const [addingTech, setAddingTech] = useState(false);
 
+  // Job card types
+  const [jobCardTypes, setJobCardTypes] = useState<{ _id: string; title: string }[]>([]);
+
   // Ticket history tab
   const [ticketHistoryTab, setTicketHistoryTab] = useState("asset");
+
+  // Fetch job card types from settings
+  useEffect(() => {
+    async function fetchTypes() {
+      try {
+        const res = await fetch("/api/settings/job-card-types");
+        const json = await res.json();
+        if (json.success) setJobCardTypes(json.data || []);
+      } catch {
+        // silent
+      }
+    }
+    fetchTypes();
+  }, []);
 
   useEffect(() => {
     document.title = jobCard
@@ -392,10 +456,22 @@ export default function JobCardDetailPage() {
     }
   }
 
-  // --- Copy to clipboard ---
+  // --- Toggle fields (warranty etc.) ---
 
-  function copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text).catch(() => {});
+  async function handleToggle(field: string, newVal: number) {
+    try {
+      const res = await fetch(`/api/job-cards/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: newVal }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setJobCard((prev) => (prev ? { ...prev, [field]: newVal } : prev));
+      }
+    } catch {
+      // silent
+    }
   }
 
   // --- Render ---
@@ -429,22 +505,22 @@ export default function JobCardDetailPage() {
   const attachments = jobCard.attachments || [];
   const technicians = jobCard.technicians || [];
   const clientAssets = jobCard.clientAssets || [];
-  const owners = jobCard.owners || [];
   const detail = jobCard.detail;
 
   // Compute progress step based on jobCardStatus
   function getProgressStep(): number {
-    // Map status to approximate step completion
-    if (jobCard!.invoiceNumber) return 8;
-    if (jobCard!.jobCardStatus === 3) return 7; // Completed
-    if (jobCard!.jobCardStatus === 2) return 3; // In progress
-    if (jobCard!.jobCardStatus === 1) return 1; // Open
+    if (jobCard!.invoiceNumber) return 9;
+    if (jobCard!.jobCardStatus >= 5) return 8; // Internal Review
+    if (jobCard!.jobCardStatus >= 4) return 7; // Checklist Complete
+    if (jobCard!.jobCardStatus >= 3) return 6; // Job Card Sent
+    if (jobCard!.jobCardStatus >= 2) return 3; // In progress
+    if (jobCard!.jobDate) return 1; // Date allocated
     return 0;
   }
 
   const progressStep = getProgressStep();
 
-  // Determine image attachments vs file attachments
+  // Image vs file attachments
   const imageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg"];
   const imageAttachments = attachments.filter((a) => {
     const ext = (a.fileName || "").toLowerCase();
@@ -454,6 +530,23 @@ export default function JobCardDetailPage() {
     const ext = (a.fileName || "").toLowerCase();
     return !imageExtensions.some((e) => ext.endsWith(e));
   });
+
+  // Format job date for display
+  function formatJobDate(dateStr: string) {
+    const d = new Date(dateStr);
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return `${days[d.getDay()]} ${months[d.getMonth()]} ${String(d.getDate()).padStart(2, "0")}, ${d.getFullYear()}`;
+  }
+
+  function formatJobTime(dateStr: string) {
+    const d = new Date(dateStr);
+    let hours = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+    return `${String(hours).padStart(2, "0")}:${minutes} ${ampm}`;
+  }
 
   return (
     <div>
@@ -477,27 +570,33 @@ export default function JobCardDetailPage() {
               {jobCard.userId?.name || "System"}
               <span className="mx-4" />
               <span className="font-bold text-gray-900">Claimed by:</span>{" "}
-              <Link href={`/job-cards/${id}/edit`} className="text-[#00AEEF] hover:underline">
+              <Link href={`/job-cards/${id}/edit`} className="text-[#00AEEF] underline">
                 Edit
               </Link>
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="gap-2 rounded-full border-gray-300 text-[13px] text-gray-700 hover:bg-gray-50">
-            <RefreshCcw className="h-4 w-4" />
+          <button
+            className="inline-flex items-center gap-2 bg-white"
+            style={{ border: "1px solid #D6E1E9", padding: "8px 15px", borderRadius: 5, color: "#272D34", fontSize: 12, fontWeight: "normal", lineHeight: "13px" }}
+          >
+            <RefreshCcw className="h-3.5 w-3.5" />
             Set as recurring job
-          </Button>
-          <Button variant="outline" className="gap-2 rounded-full border-gray-300 text-[13px] text-gray-700 hover:bg-gray-50">
-            <Archive className="h-4 w-4" />
+          </button>
+          <button
+            className="inline-flex items-center gap-2 bg-white"
+            style={{ border: "1px solid #D6E1E9", padding: "8px 15px", borderRadius: 5, color: "#272D34", fontSize: 12, fontWeight: "normal", lineHeight: "13px" }}
+          >
+            <Archive className="h-3.5 w-3.5" />
             Archive
-          </Button>
+          </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="mb-6 border-b border-gray-200">
-        <div className="flex gap-6">
+      <div className="border-b border-gray-200" style={{ marginTop: 40, marginBottom: 30 }}>
+        <div className="flex">
           {["Overview", "Checklists", "Job Card Log"].map((tab) => {
             const tabKey = tab.toLowerCase().replace(/ /g, "-");
             const isActive = activeTab === (tabKey === "overview" ? "overview" : tabKey);
@@ -505,11 +604,17 @@ export default function JobCardDetailPage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tabKey === "overview" ? "overview" : tabKey)}
-                className={`relative pb-3 text-[14px] font-medium transition-colors ${
-                  isActive
-                    ? "text-[#00AEEF]"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
+                className="relative transition-colors"
+                style={{
+                  color: isActive ? "#00AEEF" : "#272D34",
+                  lineHeight: "30px",
+                  display: "inline-block",
+                  fontSize: 14,
+                  paddingLeft: 25,
+                  paddingRight: 25,
+                  fontWeight: "normal",
+                  paddingBottom: 10,
+                }}
               >
                 {tab}
                 {isActive && (
@@ -525,73 +630,128 @@ export default function JobCardDetailPage() {
       {activeTab === "overview" && (
         <div className="flex gap-6">
           {/* LEFT COLUMN */}
-          <div className="min-w-0 flex-1 space-y-7">
-            {/* Client Info */}
-            <div>
+          <div className="min-w-0 flex-[2] space-y-6">
+            {/* Main Content Card */}
+            <div className="rounded-[10px] border border-gray-200 bg-white p-7">
+              {/* Client Info */}
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-[20px] font-bold text-gray-900">
                     {jobCard.clientId?.companyName || "Unknown Client"}
                   </h2>
-                  {(jobCard.clientSiteId?.siteName || jobCard.clientSiteId?.address) && (
-                    <p className="mt-0.5 text-[13px] text-gray-500">
-                      {jobCard.clientId?.companyName?.toLowerCase()} - {jobCard.clientSiteId?.siteName || jobCard.clientSiteId?.address}
+                  {jobCard.clientId?.address && (
+                    <p className="mt-1 text-[13px] text-gray-600">
+                      {jobCard.clientId.address}
                     </p>
                   )}
+                  {jobCard.clientContactId && (
+                    <div className="mt-2">
+                      <p className="text-[13px] text-gray-900">
+                        {jobCard.clientContactId.name}{" "}
+                        {jobCard.clientContactId.lastName || ""}
+                      </p>
+                      {jobCard.clientContactId.phone && (
+                        <p className="text-[13px] text-gray-600">
+                          {jobCard.clientContactId.phone}
+                        </p>
+                      )}
+                      {jobCard.clientContactId.email && (
+                        <p className="text-[13px] text-gray-600">
+                          {jobCard.clientContactId.email}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  <Link
+                    href="#"
+                    className="mt-1 inline-block text-[13px] text-[#00AEEF] underline"
+                  >
+                    Edit Contact
+                  </Link>
                 </div>
                 <Link
                   href={`/job-cards/${id}/edit`}
-                  className="text-[13px] text-[#00AEEF] hover:underline"
+                  className="text-[13px] text-[#00AEEF] underline"
                 >
                   Edit Job Card
                 </Link>
               </div>
 
-              <Link href="#" className="mt-1 inline-block text-[13px] text-[#00AEEF] hover:underline">
-                Edit Contact
-              </Link>
+              {/* Sites Row */}
+              <div className="mt-5 flex items-center justify-between border-t border-gray-200 pt-4">
+                <span className="text-[13px] text-gray-500">Sites</span>
+                <span className="text-[13px] text-gray-900">
+                  {jobCard.clientSiteId?.siteName || "-"}
+                </span>
+              </div>
 
-              {/* Sites row */}
-              <div className="mt-4 grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-[12px] font-medium text-gray-400 uppercase">Sites</p>
-                  <p className="mt-1 text-[13px] text-gray-700">
-                    {jobCard.clientSiteId?.siteName || "-"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[12px] font-medium text-gray-400 uppercase">Payments</p>
-                  <div className="mt-1 flex flex-wrap gap-1.5">
-                    {jobCard.warranty ? (
-                      <Badge className="bg-[#E0F7FA] text-[#00838F] text-[11px] font-normal">
-                        Warranty
-                      </Badge>
-                    ) : null}
-                  </div>
+              {/* Warranty Row */}
+              <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
+                <span className="text-[13px] text-gray-500">Warranty</span>
+                <div className="flex">
+                  <button
+                    onClick={() => handleToggle("warranty", jobCard.warranty === 1 ? 0 : 1)}
+                    className="cursor-pointer transition-colors uppercase"
+                    style={{ background: jobCard.warranty === 1 ? "#22C55E" : "#D6E1E9", padding: 10, color: "#FFF", borderRadius: 5, marginLeft: 7, fontWeight: "normal", fontSize: 11 }}
+                  >
+                    Warranty
+                  </button>
+                  <button
+                    onClick={() => handleToggle("warranty", jobCard.warranty === 2 ? 0 : 2)}
+                    className="cursor-pointer transition-colors uppercase"
+                    style={{ background: jobCard.warranty === 2 ? "#EAB308" : "#D6E1E9", padding: 10, color: "#FFF", borderRadius: 5, marginLeft: 7, fontWeight: "normal", fontSize: 11 }}
+                  >
+                    Out of Warranty
+                  </button>
+                  <button
+                    onClick={() => handleToggle("warranty", jobCard.warranty === 3 ? 0 : 3)}
+                    className="cursor-pointer transition-colors uppercase"
+                    style={{ background: jobCard.warranty === 3 ? "#06B6D4" : "#D6E1E9", padding: 10, color: "#FFF", borderRadius: 5, marginLeft: 7, fontWeight: "normal", fontSize: 11 }}
+                  >
+                    FOC
+                  </button>
                 </div>
               </div>
 
-              <hr className="my-4 border-gray-200" />
+              <hr className="my-5 border-gray-200" />
 
               {/* Job Type */}
               <div>
-                <p className="mb-1.5 text-[13px] font-semibold text-gray-800">Job Type</p>
-                <div className="w-full rounded-[10px] border border-gray-200 px-3 py-2 text-[13px] text-gray-500">
-                  {jobCard.jobCardType?.name || "Select"}
-                </div>
+                <h3 className="text-[15px] font-bold text-gray-900">Job Type</h3>
+                <select
+                  value={jobCard.jobCardType?._id || ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    handleToggle("jobCardType", val as any);
+                    const selected = jobCardTypes.find((t) => t._id === val);
+                    setJobCard((prev) =>
+                      prev
+                        ? { ...prev, jobCardType: selected ? { _id: selected._id, name: selected.title } : undefined }
+                        : prev
+                    );
+                  }}
+                  className="mt-2 w-full rounded-[10px] border border-gray-200 bg-white px-3 py-2.5 text-[13px] text-gray-700 outline-none"
+                >
+                  <option value="">Select</option>
+                  {jobCardTypes.map((type) => (
+                    <option key={type._id} value={type._id}>
+                      {type.title}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <hr className="my-4 border-gray-200" />
+              <hr className="my-5 border-gray-200" />
 
               {/* Assets */}
               <div>
                 <div className="flex items-center justify-between">
-                  <p className="text-[13px] font-semibold text-gray-800">Asset(s)</p>
+                  <h3 className="text-[15px] font-bold text-gray-900">Asset(s)</h3>
                   <Dialog open={assetDialogOpen} onOpenChange={setAssetDialogOpen}>
                     <DialogTrigger asChild>
                       <button
                         onClick={openAssetDialog}
-                        className="flex items-center gap-1 text-[13px] text-gray-500 hover:text-gray-700"
+                        className="flex items-center gap-1 rounded-[10px] border border-gray-200 px-3 py-1.5 text-[13px] text-gray-600 hover:bg-gray-50"
                       >
                         <Plus className="h-3.5 w-3.5" />
                         Add Asset
@@ -642,34 +802,33 @@ export default function JobCardDetailPage() {
                   </Dialog>
                 </div>
 
-                <div className="mt-3 space-y-2">
+                <div className="mt-3 flex flex-wrap gap-3">
                   {clientAssets.length === 0 ? (
                     <p className="text-[13px] text-gray-400">No assets assigned.</p>
                   ) : (
                     clientAssets.map((asset) => {
                       const name = asset.clientAssetId?.machineName || "Unknown Asset";
+                      const totalItems = asset.checklistItems?.length || 0;
+                      const completedItems = asset.completeChecklist || 0;
+                      const percentage = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+
                       return (
                         <div
                           key={asset._id}
-                          className="flex items-center justify-between rounded-[10px] border border-gray-200 px-3 py-2"
+                          className="relative w-[160px] rounded-[10px] border border-gray-200 p-3"
                         >
-                          <div>
-                            <p className="text-[13px] font-medium text-[#00AEEF]">
-                              {name}
-                            </p>
-                            {asset.clientAssetId?.serialNumber && (
-                              <p className="text-[12px] text-[#00AEEF]">
-                                Checklist 0/3
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex gap-1.5">
-                            <button className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
-                              <Eye className="h-3.5 w-3.5" />
-                            </button>
-                            <button className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-red-500">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                          <button className="absolute right-2 top-2 text-gray-300 hover:text-red-500">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                          <p className="text-[13px] font-bold text-gray-900">{name}</p>
+                          <Link
+                            href="#"
+                            className="text-[12px] text-[#00AEEF] underline"
+                          >
+                            Checklist {completedItems}/{totalItems || "0"}
+                          </Link>
+                          <div className="mt-2">
+                            <CircularProgress percentage={percentage} />
                           </div>
                         </div>
                       );
@@ -677,237 +836,229 @@ export default function JobCardDetailPage() {
                   )}
                 </div>
               </div>
-            </div>
 
-            <hr className="border-gray-200" />
+              <hr className="my-5 border-gray-200" />
 
-            {/* Technicians */}
-            <div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-[15px] font-semibold text-gray-900">Technicians</h3>
-                  <button className="text-gray-400 hover:text-gray-600">
-                    <Copy className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                <Dialog open={techDialogOpen} onOpenChange={setTechDialogOpen}>
-                  <DialogTrigger asChild>
-                    <button
-                      onClick={openTechDialog}
-                      className="flex items-center gap-1 text-[13px] text-gray-500 hover:text-gray-700"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      Add Technician
+              {/* Technicians */}
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-[15px] font-bold text-gray-900">Technicians</h3>
+                    <button className="text-gray-400 hover:text-gray-600">
+                      <ExternalLink className="h-4 w-4" />
                     </button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add Technician</DialogTitle>
-                      <DialogDescription>
-                        Select a technician to assign to this job card.
-                      </DialogDescription>
-                    </DialogHeader>
-                    {loadingTechs ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-[#00AEEF]" />
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <Select value={selectedTechId} onValueChange={setSelectedTechId}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a technician" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableTechnicians.map((tech) => (
-                              <SelectItem key={tech._id} value={tech._id}>
-                                {tech.companyName}
-                                {tech.email ? ` (${tech.email})` : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setTechDialogOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleAddTechnician}
-                        disabled={!selectedTechId || addingTech}
-                        className="bg-[#00AEEF] hover:bg-[#009CD8]"
-                      >
-                        {addingTech && <Loader2 className="h-4 w-4 animate-spin" />}
-                        Add Technician
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
-
-              <div className="mt-3 space-y-2.5">
-                {technicians.length === 0 ? (
-                  <p className="text-[13px] text-gray-400">No technicians assigned.</p>
-                ) : (
-                  technicians.map((tech) => {
-                    const name = tech.technicianId?.companyName || "Unknown";
-                    const phone = tech.technicianId?.phone || "";
-                    const email = tech.technicianId?.email || "";
-                    return (
-                      <div key={tech._id} className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-[12px] font-medium text-gray-600">
-                          {name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex flex-1 items-center gap-6 text-[13px]">
-                          <span className="min-w-[120px] font-medium text-gray-900">{name}</span>
-                          {phone && <span className="text-gray-500">{phone}</span>}
-                          {email && <span className="text-gray-500">{email}</span>}
-                        </div>
-                        <button
-                          onClick={() => copyToClipboard(`${name} ${phone} ${email}`)}
-                          className="text-gray-400 hover:text-gray-600"
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-            <hr className="border-gray-200" />
-
-            {/* Technician Notes */}
-            <div>
-              <h3 className="text-[15px] font-semibold text-gray-900">Technician Notes</h3>
-              <p className="mt-1 text-[13px] text-gray-500">
-                Technician notes are shown in the Job Card email and Job Card URL, where a user by Technicians.
-              </p>
-              <button className="mt-2 text-[13px] text-[#00AEEF] hover:underline">
-                Click here to add a Technician Notes.
-              </button>
-            </div>
-
-            <hr className="border-gray-200" />
-
-            {/* Job Description */}
-            <div>
-              <h3 className="text-[15px] font-semibold text-gray-900">Job Description</h3>
-              {detail?.description ? (
-                <div className="mt-2">
-                  <p className="text-[13px] font-medium text-gray-700">Title:</p>
-                  <p className="mt-1 whitespace-pre-wrap text-[13px] text-gray-600">
-                    {detail.description}
-                  </p>
-                </div>
-              ) : (
-                <p className="mt-2 text-[13px] text-gray-400">No description provided.</p>
-              )}
-            </div>
-
-            <hr className="border-gray-200" />
-
-            {/* Attachments */}
-            <div>
-              <div className="flex items-center justify-between">
-                <h3 className="text-[15px] font-semibold text-gray-900">Attachments</h3>
-                <label className="flex items-center gap-2 text-[12px] text-gray-500 cursor-pointer">
-                  <Eye className="h-3.5 w-3.5" />
-                  Make All Images Public
-                </label>
-              </div>
-
-              {/* File attachments */}
-              {fileAttachments.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  {fileAttachments.map((att) => (
-                    <div
-                      key={att._id}
-                      className="flex items-center justify-between rounded-[10px] border border-gray-100 px-3 py-2"
-                    >
-                      <span className="text-[13px] text-gray-700">
-                        {att.documentName || att.fileName}
-                        {att.fileSize ? `, ${(att.fileSize / 1024).toFixed(0)}KB` : ""}
+                    {jobCard.jobCardSentDate && (
+                      <span className="flex items-center gap-1 text-[13px] text-green-600">
+                        <Check className="h-4 w-4" />
+                        Job Card Sent: {formatDate(jobCard.jobCardSentDate)}
                       </span>
-                      <div className="flex gap-1">
-                        <button className="rounded p-1 text-gray-400 hover:text-gray-600">
-                          <EyeOff className="h-3.5 w-3.5" />
-                        </button>
-                        <button className="rounded p-1 text-gray-400 hover:text-gray-600">
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </button>
-                        <button className="rounded p-1 text-gray-400 hover:text-gray-600">
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button className="flex items-center gap-1.5 rounded-[10px] border border-gray-200 px-3 py-1.5 text-[13px] text-gray-600 hover:bg-gray-50">
+                      <Send className="h-3.5 w-3.5" />
+                      Send Job Card
+                    </button>
+                    <Dialog open={techDialogOpen} onOpenChange={setTechDialogOpen}>
+                      <DialogTrigger asChild>
                         <button
-                          onClick={() => copyToClipboard(att.fileName)}
-                          className="rounded p-1 text-gray-400 hover:text-gray-600"
+                          onClick={openTechDialog}
+                          className="flex items-center gap-1 rounded-[10px] border border-gray-200 px-3 py-1.5 text-[13px] text-gray-600 hover:bg-gray-50"
                         >
-                          <Copy className="h-3.5 w-3.5" />
+                          <Plus className="h-3.5 w-3.5" />
+                          Add Technician
                         </button>
-                      </div>
-                    </div>
-                  ))}
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add Technician</DialogTitle>
+                          <DialogDescription>
+                            Select a technician to assign to this job card.
+                          </DialogDescription>
+                        </DialogHeader>
+                        {loadingTechs ? (
+                          <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin text-[#00AEEF]" />
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            <Select value={selectedTechId} onValueChange={setSelectedTechId}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a technician" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableTechnicians.map((tech) => (
+                                  <SelectItem key={tech._id} value={tech._id}>
+                                    {tech.companyName}
+                                    {tech.email ? ` (${tech.email})` : ""}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => setTechDialogOpen(false)}>
+                            Cancel
+                          </Button>
+                          <Button
+                            onClick={handleAddTechnician}
+                            disabled={!selectedTechId || addingTech}
+                            className="bg-[#00AEEF] hover:bg-[#009CD8]"
+                          >
+                            {addingTech && <Loader2 className="h-4 w-4 animate-spin" />}
+                            Add Technician
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
-              )}
 
-              {/* Image thumbnails */}
-              {imageAttachments.length > 0 && (
-                <div className="mt-3">
-                  <p className="mb-2 text-[12px] text-gray-400">Click to enlarge</p>
-                  <div className="grid grid-cols-3 gap-3">
-                    {imageAttachments.map((att) => (
+                <div className="mt-3 space-y-2.5">
+                  {technicians.length === 0 ? (
+                    <p className="text-[13px] text-gray-400">No technicians assigned.</p>
+                  ) : (
+                    technicians.map((tech) => {
+                      const name = tech.technicianId?.companyName || "Unknown";
+                      const phone = tech.technicianId?.phone || "";
+                      const email = tech.technicianId?.email || "";
+                      return (
+                        <div key={tech._id} className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-[12px] font-medium text-gray-600">
+                            {name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex flex-1 items-center gap-8 text-[13px]">
+                            <span className="min-w-[120px] font-medium text-gray-900">{name}</span>
+                            {phone && <span className="text-gray-500">{phone}</span>}
+                            {email && <span className="text-gray-500">{email}</span>}
+                          </div>
+                          <button className="text-gray-300 hover:text-red-500">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              <hr className="my-5 border-gray-200" />
+
+              {/* Technician Notes */}
+              <div>
+                <h3 className="text-[15px] font-bold text-gray-900">Technician Notes</h3>
+                <p className="mt-1 text-[13px] text-gray-500">
+                  Technician notes are shown in the Job Card email and Job Card URL, which is seen by Technicians.
+                </p>
+                <button className="mt-2 text-[13px] text-[#00AEEF] underline">
+                  Click here to add a Technician Notes.
+                </button>
+              </div>
+
+              <hr className="my-5 border-gray-200" />
+
+              {/* Attachments */}
+              <div>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[15px] font-bold text-gray-900">Attachments</h3>
+                  <div className="flex items-center gap-3">
+                    <button className="flex items-center gap-1.5 rounded-[10px] border border-gray-200 px-3 py-1.5 text-[13px] text-gray-600 hover:bg-gray-50">
+                      <Eye className="h-3.5 w-3.5" />
+                      Make All Images Public
+                    </button>
+                    <button className="text-gray-400 hover:text-gray-600">
+                      <Download className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* File attachments */}
+                {fileAttachments.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {fileAttachments.map((att) => (
                       <div
                         key={att._id}
-                        className="group relative flex aspect-square items-center justify-center rounded-[10px] border border-gray-200 bg-gray-50"
+                        className="flex items-center justify-between rounded-[10px] border border-gray-200 px-3 py-2"
                       >
-                        <ImageIcon className="h-8 w-8 text-gray-300" />
-                        <div className="absolute bottom-1.5 right-1.5 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                          <button className="rounded bg-white p-1 text-gray-500 shadow-sm hover:text-gray-700">
-                            <EyeOff className="h-3 w-3" />
-                          </button>
-                          <button className="rounded bg-white p-1 text-gray-500 shadow-sm hover:text-gray-700">
-                            <Download className="h-3 w-3" />
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-gray-400" />
+                          <span className="text-[13px] text-gray-700">
+                            {att.documentName || att.fileName}
+                            {att.fileSize ? `, ${(att.fileSize / 1024).toFixed(0)}KB` : ""}
+                          </span>
+                        </div>
+                        <div className="flex gap-1">
+                          <button className="rounded p-1 text-gray-400 hover:text-gray-600">
+                            <Download className="h-3.5 w-3.5" />
                           </button>
                           <button
                             onClick={() => handleDeleteAttachment(att._id)}
-                            className="rounded bg-white p-1 text-gray-500 shadow-sm hover:text-red-500"
+                            className="rounded p-1 text-gray-400 hover:text-red-500"
                           >
-                            <Trash2 className="h-3 w-3" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
 
-              {attachments.length === 0 && (
-                <p className="mt-3 text-[13px] text-gray-400">No attachments.</p>
-              )}
+                {/* Image thumbnails */}
+                {imageAttachments.length > 0 && (
+                  <div className="mt-3">
+                    <p className="mb-2 text-[12px] text-gray-400">Click to enlarge</p>
+                    <div className="flex flex-wrap gap-3">
+                      {imageAttachments.map((att) => (
+                        <div
+                          key={att._id}
+                          className="group relative flex h-[160px] w-[140px] items-center justify-center rounded-[10px] border border-gray-200 bg-gray-50"
+                        >
+                          <ImageIcon className="h-8 w-8 text-gray-300" />
+                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                            <button className="rounded bg-white p-1 text-green-500 shadow-sm hover:text-green-700">
+                              <Eye className="h-3.5 w-3.5" />
+                            </button>
+                            <button className="rounded bg-white p-1 text-gray-500 shadow-sm hover:text-gray-700">
+                              <Download className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAttachment(att._id)}
+                              className="rounded bg-white p-1 text-gray-500 shadow-sm hover:text-red-500"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {attachments.length === 0 && (
+                  <p className="mt-3 text-[13px] text-gray-400">No attachments.</p>
+                )}
+              </div>
+
+              <hr className="my-5 border-gray-200" />
+
+              {/* Checklist Uploads */}
+              <div>
+                <h3 className="text-[15px] font-bold text-gray-900">Checklist Uploads</h3>
+                <p className="mt-2 text-[13px] text-gray-400">No checklist uploads.</p>
+              </div>
             </div>
 
-            <hr className="border-gray-200" />
+            {/* Comments / Updates Card */}
+            <div className="rounded-[10px] border border-gray-200 bg-white p-7">
+              <h3 className="text-[15px] font-bold text-gray-900">Comments / Updates</h3>
 
-            {/* Checklist Uploads */}
-            <div>
-              <h3 className="text-[15px] font-semibold text-gray-900">Checklist Uploads</h3>
-              <p className="mt-2 text-[13px] text-gray-400">No checklist uploads.</p>
-            </div>
-
-            <hr className="border-gray-200" />
-
-            {/* Comments / Updates */}
-            <div>
-              <h3 className="text-[15px] font-semibold text-gray-900">Comments / Updates</h3>
-
-              <form onSubmit={handleAddComment} className="mt-3">
+              <form onSubmit={handleAddComment} className="mt-4">
                 <Textarea
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="Start typing..."
-                  rows={3}
+                  rows={4}
                   className="rounded-[10px] border-gray-200 text-[13px]"
                 />
                 <div className="mt-3 flex items-center gap-4">
@@ -915,15 +1066,15 @@ export default function JobCardDetailPage() {
                     type="submit"
                     size="sm"
                     disabled={!newComment.trim() || submittingComment}
-                    className="bg-[#00AEEF] hover:bg-[#009CD8] rounded-[10px] px-5"
+                    className="bg-[#00AEEF] hover:bg-[#009CD8] rounded-[10px] px-6"
                   >
                     {submittingComment && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
                     Save
                   </Button>
                   <label className="flex items-center gap-2 text-[13px] text-gray-600 cursor-pointer">
-                    <Switch
+                    <Checkbox
                       checked={commentPublic}
-                      onCheckedChange={setCommentPublic}
+                      onCheckedChange={(checked) => setCommentPublic(checked === true)}
                     />
                     Make Public
                   </label>
@@ -967,125 +1118,12 @@ export default function JobCardDetailPage() {
                     </div>
                   );
                 })}
-                {comments.length === 0 && (
-                  <p className="text-[13px] text-gray-400">No comments yet.</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT COLUMN */}
-          <div className="w-[320px] shrink-0 space-y-5">
-            {/* Support Tickets */}
-            <div className="rounded-[10px] border border-gray-200 p-4">
-              <div className="flex items-center justify-between">
-                <h4 className="text-[14px] font-semibold text-gray-900">Support Tickets</h4>
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] text-gray-500">0/3</span>
-                  <button className="text-gray-400 hover:text-gray-600">
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-
-              {jobCard.supportTicketId && typeof jobCard.supportTicketId === "object" && (
-                <div className="mt-3">
-                  <Link
-                    href={`/support-tickets/${(jobCard.supportTicketId as any)._id}`}
-                    className="text-[13px] text-[#00AEEF] hover:underline"
-                  >
-                    #{(jobCard.supportTicketId as any).ticketNo}
-                  </Link>
-                  <div className="mt-2">
-                    <Button
-                      size="sm"
-                      className="w-full rounded-[10px] bg-orange-500 text-white hover:bg-orange-600 text-[12px]"
-                    >
-                      Go to Technician
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              <button className="mt-2 flex items-center gap-1 text-[13px] text-[#00AEEF] hover:underline">
-                <Plus className="h-3.5 w-3.5" />
-                Add Case
-              </button>
-            </div>
-
-            {/* Job Date */}
-            <div className="rounded-[10px] border border-gray-200 p-4">
-              <div className="flex items-center justify-between">
-                <h4 className="text-[14px] font-semibold text-gray-900">Job Date</h4>
-                <button className="text-gray-400 hover:text-gray-600">
-                  <Pencil className="h-4 w-4" />
-                </button>
-              </div>
-              {jobCard.jobDate ? (
-                <p className="mt-2 text-[13px] text-gray-700">{formatDate(jobCard.jobDate)}</p>
-              ) : (
-                <p className="mt-2 rounded-[6px] bg-orange-50 px-3 py-2 text-[12px] text-orange-600">
-                  The date for this job has not been set
-                </p>
-              )}
-            </div>
-
-            {/* Job Progress */}
-            <div className="rounded-[10px] border border-gray-200 p-4">
-              <h4 className="text-[14px] font-semibold text-gray-900">Job Progress</h4>
-
-              <Link href={`/job-cards/${id}/edit`}>
-                <Button className="mt-3 w-full rounded-[10px] bg-amber-400 text-gray-900 hover:bg-amber-500 text-[13px] font-semibold">
-                  Edit Job Card
-                </Button>
-              </Link>
-
-              <div className="mt-4 space-y-0">
-                {JOB_PROGRESS_STEPS.map((step, idx) => {
-                  const isCompleted = idx < progressStep;
-                  const isCurrent = idx === progressStep;
-                  return (
-                    <div key={step} className="flex items-start gap-3">
-                      {/* Vertical line + dot */}
-                      <div className="flex flex-col items-center">
-                        <div
-                          className={`h-3 w-3 rounded-full border-2 ${
-                            isCompleted
-                              ? "border-[#00AEEF] bg-[#00AEEF]"
-                              : isCurrent
-                              ? "border-[#00AEEF] bg-white"
-                              : "border-gray-300 bg-white"
-                          }`}
-                        />
-                        {idx < JOB_PROGRESS_STEPS.length - 1 && (
-                          <div
-                            className={`w-[2px] ${
-                              isCompleted ? "bg-[#00AEEF]" : "bg-gray-200"
-                            }`}
-                            style={{ height: "28px" }}
-                          />
-                        )}
-                      </div>
-                      <p
-                        className={`-mt-0.5 text-[13px] ${
-                          isCompleted
-                            ? "font-medium text-gray-900"
-                            : isCurrent
-                            ? "font-medium text-[#00AEEF]"
-                            : "text-gray-400"
-                        }`}
-                      >
-                        {step}
-                      </p>
-                    </div>
-                  );
-                })}
               </div>
             </div>
 
-            {/* Ticket History */}
-            <div className="rounded-[10px] border border-gray-200 p-4">
-              <h4 className="mb-3 text-[14px] font-semibold text-gray-900">Ticket History</h4>
+            {/* Ticket History Card */}
+            <div className="rounded-[10px] border border-gray-200 bg-white p-7">
+              <h3 className="mb-4 text-[15px] font-bold text-gray-900">Ticket History</h3>
 
               <div className="flex gap-4 border-b border-gray-200">
                 {["Asset", "Site"].map((tab) => {
@@ -1120,7 +1158,6 @@ export default function JobCardDetailPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {/* Placeholder row - this would be populated with real ticket history data */}
                     <TableRow>
                       <TableCell colSpan={4} className="py-4 text-center text-[12px] text-gray-400">
                         No ticket history
@@ -1128,6 +1165,80 @@ export default function JobCardDetailPage() {
                     </TableRow>
                   </TableBody>
                 </Table>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div className="flex-1 space-y-5">
+            {/* Support Tickets */}
+            <div className="rounded-[10px] border border-gray-200 bg-white p-5">
+              <div className="flex items-center justify-between">
+                <h4 className="text-[14px] font-semibold text-gray-900">Support Tickets</h4>
+                <button className="text-gray-400 hover:text-gray-600">
+                  <Link2 className="h-4 w-4" />
+                </button>
+              </div>
+
+              {jobCard.supportTicketId && typeof jobCard.supportTicketId === "object" ? (
+                <div className="mt-3">
+                  <Link
+                    href={`/support-tickets/${(jobCard.supportTicketId as any)._id}`}
+                    className="text-[13px] text-[#00AEEF] underline"
+                  >
+                    #{(jobCard.supportTicketId as any).ticketNo}
+                  </Link>
+                </div>
+              ) : (
+                <p className="mt-3 text-[13px] text-gray-400">
+                  There is no linked Support Ticket for this Job Card.
+                </p>
+              )}
+            </div>
+
+            {/* Job Date */}
+            <div className="rounded-[10px] bg-amber-100 p-5">
+              <div className="flex items-center justify-between">
+                <h4 className="text-[14px] font-semibold text-gray-900">Job Date</h4>
+                <button className="text-gray-600 hover:text-gray-800">
+                  <Pencil className="h-4 w-4" />
+                </button>
+              </div>
+              {jobCard.jobDate ? (
+                <div className="mt-2">
+                  <p className="text-[20px] font-bold text-gray-900">
+                    {formatJobDate(jobCard.jobDate)}
+                  </p>
+                  <p className="mt-0.5 text-[13px] font-medium text-[#00AEEF]">
+                    {formatJobTime(jobCard.jobDate)}
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-3 text-[13px] text-amber-700">
+                  The date for this job has not been set
+                </p>
+              )}
+            </div>
+
+            {/* Job Progress */}
+            <div className="rounded-[10px] border border-gray-200 bg-white p-5">
+              <h4 className="mb-4 text-[14px] font-semibold text-gray-900">Job Progress</h4>
+
+              <div className="space-y-2">
+                {JOB_PROGRESS_STEPS.map((step, idx) => {
+                  const isCompleted = idx < progressStep;
+                  return (
+                    <div
+                      key={step.label}
+                      className="rounded-[8px] px-3 py-2 text-[13px] font-medium text-white"
+                      style={{
+                        backgroundColor: isCompleted ? step.color : "#D1D5DB",
+                      }}
+                    >
+                      {step.label}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -1147,7 +1258,7 @@ export default function JobCardDetailPage() {
               const items = asset.checklistItems || [];
 
               return (
-                <div key={asset._id} className="rounded-[10px] border border-gray-200 p-5">
+                <div key={asset._id} className="rounded-[10px] border border-gray-200 bg-white p-5">
                   <div className="flex items-center justify-between">
                     <h3 className="text-[15px] font-semibold text-gray-900">{name}</h3>
                     <Badge variant="outline" className="text-[12px]">
@@ -1192,7 +1303,7 @@ export default function JobCardDetailPage() {
 
       {/* Job Card Log Tab */}
       {activeTab === "job-card-log" && (
-        <div className="rounded-[10px] border border-gray-200 p-5">
+        <div className="rounded-[10px] border border-gray-200 bg-white p-5">
           <p className="text-[13px] text-gray-400">Job card log will be displayed here.</p>
         </div>
       )}

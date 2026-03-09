@@ -9,7 +9,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "TSC",
+  title: {
+    default: "TSC",
+    template: "TSC - %s",
+  },
   description: "Spray booth maintenance and service management system",
   icons: {
     icon: "/favicon.ico",
