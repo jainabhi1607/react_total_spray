@@ -69,7 +69,7 @@ src/
 - `/api/support-tickets/[id]/owners` — GET/POST/PUT (bulk replace) ticket owners; PUT auto-sets Working status if Open
 - `/api/support-tickets/[id]/resolve` — PUT resolves ticket: saves comment, updates status, sends notification emails to selected contacts
 - `/api/users` — GET supports `?role=1,2,3` (comma-separated) and `?status=1` filters; POST accepts `status` field
-- **Email**: `sendTicketResolvedEmail()` in `lib/email.ts` — sends resolve notification via Resend
+- **Email**: `lib/email.ts` — sends emails via EmailJS REST API (OTP, password reset, ticket resolved, invite)
 
 ## Running
 ```bash
