@@ -6,12 +6,12 @@ import Link from "next/link";
 import {
   ArrowLeft,
   Plus,
-  Trash2,
   X,
   GripVertical,
   Save,
   Tag,
 } from "lucide-react";
+import { TrashIcon } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -388,7 +388,7 @@ export default function ChecklistDetailPage() {
                     className="flex-shrink-0 text-red-600 hover:text-red-700"
                     onClick={() => handleDeleteItem(item._id)}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <TrashIcon />
                   </Button>
                 </div>
               ))}

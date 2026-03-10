@@ -15,6 +15,13 @@ import JobCardTechnician from "@/models/JobCardTechnician";
 import JobCardOwner from "@/models/JobCardOwner";
 import JobCardClientAsset from "@/models/JobCardClientAsset";
 import JobCardAssetChecklistItem from "@/models/JobCardAssetChecklistItem";
+import "@/models/Client";
+import "@/models/ClientSite";
+import "@/models/ClientContact";
+import "@/models/ClientAsset";
+import "@/models/Title";
+import "@/models/User";
+import "@/models/JobCardType";
 
 export async function GET(
   req: NextRequest,
@@ -28,8 +35,10 @@ export async function GET(
     const jobCard = await JobCard.findById(id)
       .populate("clientId", "companyName")
       .populate("clientSiteId", "siteName")
+      .populate("clientAssetId", "machineName")
       .populate("clientContactId", "name email phone")
       .populate("titleId", "title")
+      .populate("jobCardType", "title")
       .lean();
 
     if (!jobCard) {
@@ -104,6 +113,7 @@ export async function PUT(
     const allowedFields = [
       "clientId",
       "clientSiteId",
+      "clientAssetId",
       "clientContactId",
       "titleId",
       "jobDate",

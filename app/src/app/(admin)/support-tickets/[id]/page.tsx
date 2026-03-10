@@ -17,9 +17,9 @@ import {
   FileText,
   Image as ImageIcon,
   Download,
-  Trash2,
   ExternalLink,
 } from "lucide-react";
+import { TrashIcon } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1270,7 +1270,7 @@ export default function SupportTicketDetailPage() {
         <div className="space-y-6">
           {/* Client Info Card */}
           <Card>
-            <CardContent className="p-6 space-y-5">
+            <CardContent className="p-10 space-y-5">
               {/* Client name + Edit Ticket */}
               <div className="flex items-start justify-between">
                 <div>
@@ -1538,7 +1538,7 @@ export default function SupportTicketDetailPage() {
                                   </button>
                                   {/* Delete */}
                                   <button onClick={() => handleDeleteAttachment(att._id)} className="text-gray-500 hover:text-red-500 cursor-pointer" title="Delete">
-                                    <Trash2 className="h-5 w-5" />
+                                    <TrashIcon />
                                   </button>
                                 </div>
                               </div>
@@ -1590,7 +1590,7 @@ export default function SupportTicketDetailPage() {
                                     <Download className="h-4 w-4" />
                                   </a>
                                   <button onClick={() => handleDeleteAttachment(att._id)} className="text-gray-500 hover:text-red-500 cursor-pointer" title="Delete">
-                                    <Trash2 className="h-4 w-4" />
+                                    <TrashIcon />
                                   </button>
                                 </div>
                                 {/* Image */}
@@ -1673,7 +1673,7 @@ export default function SupportTicketDetailPage() {
         <div className="space-y-6">
           {/* Total Time Card */}
           <Card>
-            <CardContent className="p-5">
+            <CardContent className="p-10">
               <div className="flex items-start justify-between mb-3">
                 <p className="text-base font-semibold text-gray-900">Total Time</p>
                 {/* Timer controls */}
@@ -1727,7 +1727,7 @@ export default function SupportTicketDetailPage() {
 
           {/* Job Cards */}
           <Card>
-            <CardContent className="p-5">
+            <CardContent className="p-10">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-base font-semibold text-gray-900">Job Cards</p>
                 <button className="flex items-center gap-1.5 rounded-[10px] border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 cursor-pointer hover:bg-gray-50">
@@ -1741,7 +1741,7 @@ export default function SupportTicketDetailPage() {
 
           {/* Root Cause / Resolution Card */}
           <Card>
-            <CardContent className="p-5">
+            <CardContent className="p-10">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-base font-semibold text-gray-900">Root cause / resolution</p>
                 <button
@@ -1814,7 +1814,7 @@ export default function SupportTicketDetailPage() {
 
           {/* Comments / Updates Card */}
           <Card>
-            <CardContent className="p-5">
+            <CardContent className="p-10">
               <p className="text-base font-semibold text-gray-900 mb-4">Comments / Updates</p>
 
               {/* Add comment - textarea first */}

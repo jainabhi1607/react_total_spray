@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   Pencil,
   Plus,
-  Trash2,
   FileText,
   Wrench,
   Upload,
@@ -21,6 +20,7 @@ import {
   User,
   X,
 } from "lucide-react";
+import { TrashIcon } from "@/components/ui/icons";
 import { AddClientDialog } from "@/components/dialogs/add-client-dialog";
 import { AddSiteDialog } from "@/components/dialogs/add-site-dialog";
 import { AddAssetDialog } from "@/components/dialogs/add-asset-dialog";
@@ -1342,7 +1342,7 @@ function SitesTab({
                         onClick={() => handleDelete(site._id)}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <TrashIcon />
                       </Button>
                     </div>
                   </TableCell>
@@ -1484,7 +1484,7 @@ function AssetsTab({
                         onClick={() => handleDelete(asset._id)}
                         className="h-9 w-9 inline-flex items-center justify-center rounded-[10px] border border-gray-200 text-gray-500 hover:bg-gray-50"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <TrashIcon />
                       </button>
                     </div>
                   </TableCell>
@@ -1772,7 +1772,7 @@ function ContactsTab({
                         className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-red-50 hover:text-red-500"
                         title="Delete"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <TrashIcon />
                       </button>
                     </div>
                   </TableCell>
@@ -3023,7 +3023,7 @@ function ServiceAgreementsTab({
                         onClick={() => handleDelete(ag._id)}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <TrashIcon />
                       </Button>
                     </div>
                   </TableCell>

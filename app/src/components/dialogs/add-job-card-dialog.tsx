@@ -23,17 +23,30 @@ interface JobCardType {
   title: string;
 }
 
+export interface JobCardEditData {
+  _id: string;
+  ticketNo?: number;
+  clientId?: { _id: string } | string;
+  clientSiteId?: { _id: string } | string;
+  clientAssetId?: { _id: string } | string;
+  clientContactId?: { _id: string } | string;
+  jobCardType?: { _id: string } | string;
+}
+
 interface AddJobCardDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  editData?: JobCardEditData | null;
 }
 
 export function AddJobCardDialog({
   open,
   onOpenChange,
   onSuccess,
+  editData,
 }: AddJobCardDialogProps) {
+  const isEdit = !!editData;
   const [fields, setFields] = useState<ClientSiteAssetState>(initialClientSiteAssetState);
   const [jobCardTypes, setJobCardTypes] = useState<JobCardType[]>([]);
   const [jobCardTypeId, setJobCardTypeId] = useState("");
@@ -49,6 +62,26 @@ export function AddJobCardDialog({
       })
       .catch(() => {});
   }, [open]);
+
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (!open || !editData) return;
+
+    const clientId = typeof editData.clientId === "object" ? editData.clientId?._id : editData.clientId || "";
+    const siteId = typeof editData.clientSiteId === "object" ? editData.clientSiteId?._id : editData.clientSiteId || "";
+    const assetId = typeof editData.clientAssetId === "object" ? editData.clientAssetId?._id : editData.clientAssetId || "";
+    const contactId = typeof editData.clientContactId === "object" ? editData.clientContactId?._id : editData.clientContactId || "";
+    const typeId = typeof editData.jobCardType === "object" ? editData.jobCardType?._id : editData.jobCardType || "";
+
+    setFields({
+      ...initialClientSiteAssetState,
+      clientId,
+      siteId,
+      assetId,
+      contactId,
+    });
+    setJobCardTypeId(typeId);
+  }, [open, editData]);
 
   function resetForm() {
     setFields(initialClientSiteAssetState);
@@ -81,19 +114,23 @@ export function AddJobCardDialog({
       const payload: Record<string, any> = {
         clientId: fields.clientId,
         clientSiteId: fields.siteId,
+        clientAssetId: fields.assetId,
       };
       if (finalContactId) payload.clientContactId = finalContactId;
       if (jobCardTypeId) payload.jobCardType = jobCardTypeId;
 
-      const res = await fetch("/api/job-cards", {
-        method: "POST",
+      const url = isEdit ? `/api/job-cards/${editData!._id}` : "/api/job-cards";
+      const method = isEdit ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const json = await res.json();
 
       if (!res.ok || !json.success) {
-        throw new Error(json.error || json.message || "Failed to create job card");
+        throw new Error(json.error || json.message || `Failed to ${isEdit ? "update" : "create"} job card`);
       }
 
       resetForm();
@@ -110,7 +147,7 @@ export function AddJobCardDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>Add Job Card</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit Job Card" : "Add Job Card"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5 pt-2">
           {error && (
@@ -147,7 +184,7 @@ export function AddJobCardDialog({
               className="bg-cyan-500 hover:bg-cyan-600 text-white"
             >
               {submitting && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-              Add Job Card
+              {isEdit ? "Update" : "Add Job Card"}
             </Button>
             <button
               type="button"

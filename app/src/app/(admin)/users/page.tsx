@@ -5,7 +5,6 @@ import {
   Plus,
   Search,
   Pencil,
-  Trash2,
   Mail,
   Users,
   ChevronLeft,
@@ -14,6 +13,7 @@ import {
   Loader2,
   X,
 } from "lucide-react";
+import { TrashIcon } from "@/components/ui/icons";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -336,7 +336,7 @@ export default function UsersPage() {
                               )
                             }
                           >
-                            <Trash2 className="h-4 w-4 text-red-500" />
+                            <TrashIcon />
                           </Button>
                         </div>
                       </TableCell>

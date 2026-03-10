@@ -7,6 +7,8 @@ import {
   handleApiError,
 } from "@/lib/api-helpers";
 import JobCardOwner from "@/models/JobCardOwner";
+import JobCard from "@/models/JobCard";
+import "@/models/User";
 
 export async function GET(
   req: NextRequest,
@@ -61,6 +63,51 @@ export async function POST(
     });
 
     return successResponse(owner, 201);
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await dbConnect();
+    const session = await requireAuth();
+    const { id } = await params;
+
+    const body = await req.json();
+    const { userIds } = body;
+
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return errorResponse("userIds array is required");
+    }
+
+    // Remove all existing owners and replace with new ones
+    await JobCardOwner.deleteMany({ jobCardId: id });
+
+    const docs = userIds.map((userId: string) => ({
+      jobCardId: id,
+      userId,
+      addedBy: session.id,
+      dateTime: new Date(),
+    }));
+
+    await JobCardOwner.insertMany(docs);
+
+    // Auto-set status to 2 (Date Allocated) if currently Open (1)
+    const jobCard = await JobCard.findById(id);
+    if (jobCard && jobCard.jobCardStatus === 1) {
+      jobCard.jobCardStatus = 2;
+      await jobCard.save();
+    }
+
+    const owners = await JobCardOwner.find({ jobCardId: id })
+      .populate("userId", "name email")
+      .lean();
+
+    return successResponse(owners);
   } catch (error) {
     return handleApiError(error);
   }

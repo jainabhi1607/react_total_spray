@@ -5,12 +5,11 @@ import {
   Plus,
   Search,
   Pencil,
-  Trash2,
-
   Save,
   X,
   Upload,
 } from "lucide-react";
+import { TrashIcon } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -574,7 +573,7 @@ export function ChecklistTemplatesSection() {
                         className="rounded p-1.5 text-gray-400 cursor-pointer transition-colors hover:bg-red-50 hover:text-red-600"
                         title="Delete"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <TrashIcon />
                       </button>
                     </div>
                   </div>
@@ -811,7 +810,7 @@ export function ChecklistTemplatesSection() {
                                   : "text-gray-400 hover:text-red-600"
                               }`}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <TrashIcon />
                             </button>
                           </div>
                         </div>

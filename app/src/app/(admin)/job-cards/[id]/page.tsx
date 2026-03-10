@@ -7,9 +7,7 @@ import {
   ArrowLeft,
   Pencil,
   Plus,
-  Trash2,
   Loader2,
-  Copy,
   Eye,
   EyeOff,
   Download,
@@ -22,6 +20,7 @@ import {
   Check,
   Send,
 } from "lucide-react";
+import { PlusSquareIcon, TrashIcon } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +54,7 @@ import {
   formatDate,
   formatDateTime,
 } from "@/lib/utils";
+import { AddJobCardDialog } from "@/components/dialogs/add-job-card-dialog";
 
 // --- Types ---
 
@@ -85,7 +85,7 @@ interface TitleInfo {
 
 interface JobCardTypeInfo {
   _id: string;
-  name: string;
+  title: string;
 }
 
 interface JobCardDetail {
@@ -154,11 +154,15 @@ interface AvailableAsset {
   serialNumber?: string;
 }
 
-interface AvailableTechnician {
+interface TechCompany {
   _id: string;
   companyName: string;
-  email?: string;
-  phone?: string;
+}
+
+interface SubTechnician {
+  _id: string;
+  companyName: string;
+  parentId?: string;
 }
 
 interface JobCardData {
@@ -168,6 +172,7 @@ interface JobCardData {
   jobCardStatus: number;
   clientId: ClientInfo;
   clientSiteId?: SiteInfo;
+  clientAssetId?: { _id: string };
   clientContactId?: ContactInfo;
   titleId?: TitleInfo;
   jobCardType?: JobCardTypeInfo;
@@ -194,15 +199,15 @@ interface JobCardData {
 // --- Progress steps ---
 
 const JOB_PROGRESS_STEPS = [
-  { label: "Date Allocated", color: "#4ADE80" },
-  { label: "Date Confirmed", color: "#22C55E" },
-  { label: "Assigned Technicians", color: "#F59E0B" },
-  { label: "Technician Avail. Conf.", color: "#EC4899" },
-  { label: "Client Date Confirmed", color: "#A855F7" },
-  { label: "Job Card Sent", color: "#0EA5E9" },
-  { label: "Checklist Complete", color: "#EAB308" },
-  { label: "Internal Review", color: "#9CA3AF" },
-  { label: "Job Invoiced", color: "#6B7280" },
+  { label: "Date Allocated", color: "#F7CE4A" },
+  { label: "Date Confirmed", color: "#83CE67" },
+  { label: "Assigned Technicians", color: "#83CE67" },
+  { label: "Technician Avail. Conf.", color: "#E18230" },
+  { label: "Client Date Confirmed", color: "#D514A1" },
+  { label: "Job Card Sent", color: "#A114D5" },
+  { label: "Checklist Complete", color: "#00AEEF" },
+  { label: "Internal Review", color: "#F7CE4A" },
+  { label: "Job Invoiced", color: "#83CE67" },
 ];
 
 // --- Circular Progress Ring ---
@@ -269,15 +274,18 @@ export default function JobCardDetailPage() {
   // Assets dialog
   const [assetDialogOpen, setAssetDialogOpen] = useState(false);
   const [availableAssets, setAvailableAssets] = useState<AvailableAsset[]>([]);
-  const [selectedAssetId, setSelectedAssetId] = useState("");
+  const [selectedAssetIds, setSelectedAssetIds] = useState<Set<string>>(new Set());
   const [loadingAssets, setLoadingAssets] = useState(false);
   const [addingAsset, setAddingAsset] = useState(false);
 
   // Technician dialog
   const [techDialogOpen, setTechDialogOpen] = useState(false);
-  const [availableTechnicians, setAvailableTechnicians] = useState<AvailableTechnician[]>([]);
-  const [selectedTechId, setSelectedTechId] = useState("");
+  const [techCompanies, setTechCompanies] = useState<TechCompany[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState("");
+  const [subTechnicians, setSubTechnicians] = useState<SubTechnician[]>([]);
+  const [selectedTechIds, setSelectedTechIds] = useState<Set<string>>(new Set());
   const [loadingTechs, setLoadingTechs] = useState(false);
+  const [loadingSubTechs, setLoadingSubTechs] = useState(false);
   const [addingTech, setAddingTech] = useState(false);
 
   // Job card types
@@ -285,6 +293,17 @@ export default function JobCardDetailPage() {
 
   // Ticket history tab
   const [ticketHistoryTab, setTicketHistoryTab] = useState("asset");
+
+  // Edit job card dialog
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  // Claim dialog
+  const [claimDialogOpen, setClaimDialogOpen] = useState(false);
+  const [claimUsers, setClaimUsers] = useState<{ _id: string; name: string; lastName?: string }[]>([]);
+  const [claimSelectedIds, setClaimSelectedIds] = useState<Set<string>>(new Set());
+  const [claimCurrentUser, setClaimCurrentUser] = useState<{ id: string; name: string; lastName?: string } | null>(null);
+  const [claimLoading, setClaimLoading] = useState(false);
+  const [claimSubmitting, setClaimSubmitting] = useState(false);
 
   // Fetch job card types from settings
   useEffect(() => {
@@ -362,12 +381,18 @@ export default function JobCardDetailPage() {
 
   async function openAssetDialog() {
     setAssetDialogOpen(true);
+    setSelectedAssetIds(new Set());
     if (!jobCard?.clientId?._id) return;
     setLoadingAssets(true);
     try {
       const res = await fetch(`/api/clients/${jobCard.clientId._id}/assets`);
       const json = await res.json();
-      if (json.success) setAvailableAssets(json.data || []);
+      const all = json.success ? (json.data || []) : [];
+      // Filter out assets already on this job card
+      const existingIds = new Set((jobCard.clientAssets || []).map((a: any) =>
+        typeof a.clientAssetId === "object" ? a.clientAssetId._id : a.clientAssetId
+      ));
+      setAvailableAssets(all.filter((a: any) => !existingIds.has(a._id)));
     } catch {
       setAvailableAssets([]);
     } finally {
@@ -375,20 +400,22 @@ export default function JobCardDetailPage() {
     }
   }
 
-  async function handleAddAsset() {
-    if (!selectedAssetId) return;
+  async function handleAddAssets() {
+    if (selectedAssetIds.size === 0) return;
     setAddingAsset(true);
     try {
-      const res = await fetch(`/api/job-cards/${id}/assets`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assetId: selectedAssetId }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.message || "Failed to add asset");
+      for (const assetId of selectedAssetIds) {
+        const res = await fetch(`/api/job-cards/${id}/assets`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ clientAssetId: assetId }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) {
+          throw new Error(json.error || "Failed to add asset");
+        }
       }
-      setSelectedAssetId("");
+      setSelectedAssetIds(new Set());
       setAssetDialogOpen(false);
       fetchJobCard();
     } catch (err: any) {
@@ -398,40 +425,113 @@ export default function JobCardDetailPage() {
     }
   }
 
+  function toggleAssetSelection(assetId: string) {
+    setSelectedAssetIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(assetId)) next.delete(assetId);
+      else next.add(assetId);
+      return next;
+    });
+  }
+
   // --- Technicians ---
 
   async function openTechDialog() {
     setTechDialogOpen(true);
+    setSelectedCompanyId("");
+    setSubTechnicians([]);
+    setSelectedTechIds(new Set());
     setLoadingTechs(true);
     try {
-      const res = await fetch("/api/technicians");
-      const json = await res.json();
-      if (json.success) setAvailableTechnicians(json.data || []);
+      // Fetch companies and existing technicians in parallel
+      const [companiesRes, existingRes] = await Promise.all([
+        fetch("/api/technicians?limit=200"),
+        fetch(`/api/job-cards/${id}/technicians`),
+      ]);
+      const companiesJson = await companiesRes.json();
+      const existingJson = await existingRes.json();
+      if (companiesJson.success) {
+        const raw = companiesJson.data?.data || companiesJson.data || [];
+        setTechCompanies(Array.isArray(raw) ? raw : []);
+      }
+      // Pre-select already assigned technicians
+      const existingIds = (existingJson.data || []).map((t: any) =>
+        typeof t.technicianId === "object" ? t.technicianId._id : t.technicianId
+      );
+      setSelectedTechIds(new Set(existingIds));
     } catch {
-      setAvailableTechnicians([]);
+      setTechCompanies([]);
     } finally {
       setLoadingTechs(false);
     }
   }
 
-  async function handleAddTechnician() {
-    if (!selectedTechId) return;
+  async function handleSelectCompany(companyId: string) {
+    setSelectedCompanyId(companyId);
+    setLoadingSubTechs(true);
+    try {
+      const res = await fetch(`/api/technicians?parentId=${companyId}&limit=200`);
+      const json = await res.json();
+      if (json.success) {
+        const raw = json.data?.data || json.data || [];
+        setSubTechnicians(Array.isArray(raw) ? raw : []);
+      }
+    } catch {
+      setSubTechnicians([]);
+    } finally {
+      setLoadingSubTechs(false);
+    }
+  }
+
+  function toggleTechSelection(techId: string) {
+    setSelectedTechIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(techId)) next.delete(techId);
+      else next.add(techId);
+      return next;
+    });
+  }
+
+  async function handleSaveTechnicians() {
+    if (selectedTechIds.size === 0) return;
     setAddingTech(true);
     try {
-      const res = await fetch(`/api/job-cards/${id}/technicians`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ technicianId: selectedTechId }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.message || "Failed to add technician");
+      // Get existing technician assignments
+      const existingRes = await fetch(`/api/job-cards/${id}/technicians`);
+      const existingJson = await existingRes.json();
+      const existingMap = new Map<string, string>();
+      for (const t of (existingJson.data || [])) {
+        const tid = typeof t.technicianId === "object" ? t.technicianId._id : t.technicianId;
+        existingMap.set(tid, t._id);
       }
-      setSelectedTechId("");
+
+      const selectedArr = Array.from(selectedTechIds);
+      const existingIds = new Set(existingMap.keys());
+
+      // Add new ones
+      for (const techId of selectedArr) {
+        if (!existingIds.has(techId)) {
+          await fetch(`/api/job-cards/${id}/technicians`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ technicianId: techId }),
+          });
+        }
+      }
+
+      // Remove deselected ones
+      for (const [techId, assignmentId] of existingMap) {
+        if (!selectedTechIds.has(techId)) {
+          await fetch(`/api/job-cards/${id}/technicians/${assignmentId}`, {
+            method: "DELETE",
+          });
+        }
+      }
+
       setTechDialogOpen(false);
       fetchJobCard();
-    } catch (err: any) {
-      alert(err.message || "Failed to add technician");
+    } catch {
+      alert("Failed to update technicians");
     } finally {
       setAddingTech(false);
     }
@@ -505,7 +605,87 @@ export default function JobCardDetailPage() {
   const attachments = jobCard.attachments || [];
   const technicians = jobCard.technicians || [];
   const clientAssets = jobCard.clientAssets || [];
+  const owners = jobCard.owners || [];
   const detail = jobCard.detail;
+
+  // ─── Claim job card ──────────────────────────────────────────────────
+  async function openClaimDialog() {
+    setClaimDialogOpen(true);
+    setClaimLoading(true);
+    try {
+      const [sessionRes, usersRes, ownersRes] = await Promise.all([
+        fetch("/api/auth/session"),
+        fetch("/api/users?role=1,2,3&limit=100&status=1"),
+        fetch(`/api/job-cards/${id}/owners`),
+      ]);
+      const sessionJson = await sessionRes.json();
+      const usersJson = await usersRes.json();
+      const ownersJson = await ownersRes.json();
+
+      const sessionUser = sessionJson?.user;
+      const currentUserId = sessionUser?.id || "";
+      const currentUserEmail = sessionUser?.email || "";
+
+      const raw = usersJson.data?.data || usersJson.data || [];
+      const users = Array.isArray(raw) ? raw : [];
+      const meFromList = users.find((u: any) =>
+        String(u._id) === String(currentUserId) || u.email === currentUserEmail
+      );
+
+      const currentUser = meFromList
+        ? { id: meFromList._id, name: meFromList.name, lastName: meFromList.lastName }
+        : sessionUser
+          ? { id: currentUserId, name: sessionUser.name, lastName: sessionUser.lastName }
+          : null;
+      setClaimCurrentUser(currentUser);
+
+      const meId = meFromList?._id;
+      setClaimUsers(meId
+        ? users.filter((u: any) => String(u._id) !== String(meId))
+        : currentUserEmail
+          ? users.filter((u: any) => u.email !== currentUserEmail)
+          : users);
+
+      const existingOwnerIds = (ownersJson.data || []).map((o: any) =>
+        typeof o.userId === "object" ? o.userId._id : o.userId
+      );
+      setClaimSelectedIds(new Set(existingOwnerIds));
+    } catch {
+      // silent
+    } finally {
+      setClaimLoading(false);
+    }
+  }
+
+  async function handleClaimSubmit() {
+    const selectedIds = Array.from(claimSelectedIds);
+    if (selectedIds.length === 0) return;
+    setClaimSubmitting(true);
+    try {
+      const res = await fetch(`/api/job-cards/${id}/owners`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userIds: selectedIds }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error("Failed");
+      setClaimDialogOpen(false);
+      fetchJobCard();
+    } catch {
+      alert("Failed to assign job card");
+    } finally {
+      setClaimSubmitting(false);
+    }
+  }
+
+  function toggleClaimUser(userId: string) {
+    setClaimSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  }
 
   // Compute progress step based on jobCardStatus
   function getProgressStep(): number {
@@ -570,9 +750,18 @@ export default function JobCardDetailPage() {
               {jobCard.userId?.name || "System"}
               <span className="mx-4" />
               <span className="font-bold text-gray-900">Claimed by:</span>{" "}
-              <Link href={`/job-cards/${id}/edit`} className="text-[#00AEEF] underline">
-                Edit
-              </Link>
+              {owners.length > 0 && (
+                <>
+                  {owners.map((o, i) => (
+                    <span key={o._id}>
+                      {i > 0 && ", "}
+                      {o.userId?.name || "Unknown"}
+                    </span>
+                  ))}
+                  {"  "}
+                </>
+              )}
+              <button onClick={openClaimDialog} className="text-cyan-500 underline cursor-pointer">Edit</button>
             </p>
           </div>
         </div>
@@ -632,7 +821,7 @@ export default function JobCardDetailPage() {
           {/* LEFT COLUMN */}
           <div className="min-w-0 flex-[2] space-y-6">
             {/* Main Content Card */}
-            <div className="rounded-[10px] border border-gray-200 bg-white p-7">
+            <div className="rounded-[10px] border border-gray-200 bg-white p-10">
               {/* Client Info */}
               <div className="flex items-start justify-between">
                 <div>
@@ -669,12 +858,12 @@ export default function JobCardDetailPage() {
                     Edit Contact
                   </Link>
                 </div>
-                <Link
-                  href={`/job-cards/${id}/edit`}
-                  className="text-[13px] text-[#00AEEF] underline"
+                <button
+                  onClick={() => setEditDialogOpen(true)}
+                  className="text-[13px] text-[#00AEEF] underline cursor-pointer"
                 >
                   Edit Job Card
-                </Link>
+                </button>
               </div>
 
               {/* Sites Row */}
@@ -720,17 +909,25 @@ export default function JobCardDetailPage() {
                 <h3 className="text-[15px] font-bold text-gray-900">Job Type</h3>
                 <select
                   value={jobCard.jobCardType?._id || ""}
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const val = e.target.value;
-                    handleToggle("jobCardType", val as any);
                     const selected = jobCardTypes.find((t) => t._id === val);
                     setJobCard((prev) =>
                       prev
-                        ? { ...prev, jobCardType: selected ? { _id: selected._id, name: selected.title } : undefined }
+                        ? { ...prev, jobCardType: selected ? { _id: selected._id, title: selected.title } : undefined }
                         : prev
                     );
+                    try {
+                      await fetch(`/api/job-cards/${id}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ jobCardType: val || null }),
+                      });
+                    } catch {
+                      // silent
+                    }
                   }}
-                  className="mt-2 w-full rounded-[10px] border border-gray-200 bg-white px-3 py-2.5 text-[13px] text-gray-700 outline-none"
+                  className="mt-2 w-full rounded-[10px] border border-gray-200 bg-white px-3 py-2.5 text-[13px] text-gray-700 outline-none cursor-pointer"
                 >
                   <option value="">Select</option>
                   {jobCardTypes.map((type) => (
@@ -751,53 +948,58 @@ export default function JobCardDetailPage() {
                     <DialogTrigger asChild>
                       <button
                         onClick={openAssetDialog}
-                        className="flex items-center gap-1 rounded-[10px] border border-gray-200 px-3 py-1.5 text-[13px] text-gray-600 hover:bg-gray-50"
+                        className="flex items-center gap-1 rounded-[10px] border border-gray-200 px-3 py-1.5 text-[13px] text-gray-600 hover:bg-gray-50 cursor-pointer"
                       >
                         <Plus className="h-3.5 w-3.5" />
                         Add Asset
                       </button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="max-w-xl">
                       <DialogHeader>
                         <DialogTitle>Add Asset</DialogTitle>
-                        <DialogDescription>
-                          Select an asset from the client to assign to this job card.
-                        </DialogDescription>
                       </DialogHeader>
+                      <hr />
                       {loadingAssets ? (
                         <div className="flex items-center justify-center py-8">
-                          <Loader2 className="h-6 w-6 animate-spin text-[#00AEEF]" />
+                          <Loader2 className="h-6 w-6 animate-spin text-cyan-500" />
                         </div>
+                      ) : availableAssets.length === 0 ? (
+                        <p className="py-8 text-center text-sm text-gray-500">No more assets available to add.</p>
                       ) : (
-                        <div className="space-y-4">
-                          <Select value={selectedAssetId} onValueChange={setSelectedAssetId}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select an asset" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableAssets.map((asset) => (
-                                <SelectItem key={asset._id} value={asset._id}>
-                                  {asset.machineName}
-                                  {asset.serialNumber ? ` (${asset.serialNumber})` : ""}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                        <div className="space-y-3 px-2">
+                          {availableAssets.map((asset) => (
+                            <label key={asset._id} className="flex items-center gap-3 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={selectedAssetIds.has(asset._id)}
+                                onChange={() => toggleAssetSelection(asset._id)}
+                                className="h-5 w-5 rounded border-gray-300 text-cyan-500 accent-cyan-500"
+                              />
+                              <span className={selectedAssetIds.has(asset._id) ? "text-sm font-medium text-green-600" : "text-sm text-gray-700"}>
+                                {asset.machineName}
+                                {asset.serialNumber ? ` (${asset.serialNumber})` : ""}
+                              </span>
+                            </label>
+                          ))}
                         </div>
                       )}
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => setAssetDialogOpen(false)}>
-                          Cancel
-                        </Button>
+                      <hr />
+                      <div className="flex items-center gap-3 px-2">
                         <Button
-                          onClick={handleAddAsset}
-                          disabled={!selectedAssetId || addingAsset}
-                          className="bg-[#00AEEF] hover:bg-[#009CD8]"
+                          className="bg-cyan-500 hover:bg-cyan-600 text-white"
+                          onClick={handleAddAssets}
+                          disabled={selectedAssetIds.size === 0 || addingAsset}
                         >
                           {addingAsset && <Loader2 className="h-4 w-4 animate-spin" />}
-                          Add Asset
+                          Add Asset{selectedAssetIds.size > 1 ? "s" : ""}
                         </Button>
-                      </DialogFooter>
+                        <button
+                          onClick={() => setAssetDialogOpen(false)}
+                          className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </DialogContent>
                   </Dialog>
                 </div>
@@ -810,26 +1012,38 @@ export default function JobCardDetailPage() {
                       const name = asset.clientAssetId?.machineName || "Unknown Asset";
                       const totalItems = asset.checklistItems?.length || 0;
                       const completedItems = asset.completeChecklist || 0;
-                      const percentage = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
                       return (
                         <div
                           key={asset._id}
-                          className="relative w-[160px] rounded-[10px] border border-gray-200 p-3"
+                          className="w-[220px] rounded-[10px] bg-[#E8F7FD] px-4 py-3"
                         >
-                          <button className="absolute right-2 top-2 text-gray-300 hover:text-red-500">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                          <p className="text-[13px] font-bold text-gray-900">{name}</p>
+                          <div className="flex items-start justify-between">
+                            <p className="text-[13px] font-bold text-gray-900">{name}</p>
+                            <div className="flex items-center gap-1.5">
+                              <button className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                                <PlusSquareIcon />
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(`/api/job-cards/${id}/assets/${asset._id}`, { method: "DELETE" });
+                                    const json = await res.json();
+                                    if (res.ok && json.success) fetchJobCard();
+                                  } catch { /* silent */ }
+                                }}
+                                className="text-gray-400 hover:text-red-500 cursor-pointer"
+                              >
+                                <TrashIcon />
+                              </button>
+                            </div>
+                          </div>
                           <Link
                             href="#"
                             className="text-[12px] text-[#00AEEF] underline"
                           >
-                            Checklist {completedItems}/{totalItems || "0"}
+                            Checklist {completedItems}/{totalItems}
                           </Link>
-                          <div className="mt-2">
-                            <CircularProgress percentage={percentage} />
-                          </div>
                         </div>
                       );
                     })
@@ -842,103 +1056,164 @@ export default function JobCardDetailPage() {
               {/* Technicians */}
               <div>
                 <div className="flex items-center justify-between">
+                  <h3 className="text-[15px] font-bold text-gray-900">Technicians</h3>
                   <div className="flex items-center gap-3">
-                    <h3 className="text-[15px] font-bold text-gray-900">Technicians</h3>
                     <button className="text-gray-400 hover:text-gray-600">
                       <ExternalLink className="h-4 w-4" />
                     </button>
-                    {jobCard.jobCardSentDate && (
-                      <span className="flex items-center gap-1 text-[13px] text-green-600">
-                        <Check className="h-4 w-4" />
-                        Job Card Sent: {formatDate(jobCard.jobCardSentDate)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button className="flex items-center gap-1.5 rounded-[10px] border border-gray-200 px-3 py-1.5 text-[13px] text-gray-600 hover:bg-gray-50">
-                      <Send className="h-3.5 w-3.5" />
-                      Send Job Card
-                    </button>
                     <Dialog open={techDialogOpen} onOpenChange={setTechDialogOpen}>
-                      <DialogTrigger asChild>
-                        <button
-                          onClick={openTechDialog}
-                          className="flex items-center gap-1 rounded-[10px] border border-gray-200 px-3 py-1.5 text-[13px] text-gray-600 hover:bg-gray-50"
+                    <DialogTrigger asChild>
+                      <button
+                        onClick={openTechDialog}
+                        className="flex items-center gap-1 rounded-[10px] border border-gray-200 px-3 py-1.5 text-[13px] text-gray-600 hover:bg-gray-50 cursor-pointer"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Add Technician
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl p-0">
+                      <DialogHeader className="px-6 pt-6 pb-0">
+                        <DialogTitle>Add Technician</DialogTitle>
+                      </DialogHeader>
+                      <hr />
+                      {loadingTechs ? (
+                        <div className="flex items-center justify-center py-12">
+                          <Loader2 className="h-6 w-6 animate-spin text-cyan-500" />
+                        </div>
+                      ) : (
+                        <div className="flex min-h-[400px]">
+                          {/* Left: Companies */}
+                          <div className="w-1/2 shrink-0 border-r border-gray-200 overflow-y-auto px-4 py-3">
+                            <p className="mb-3 text-sm font-medium text-gray-700">Company</p>
+                            <div className="space-y-2">
+                              {techCompanies.map((company) => (
+                                <button
+                                  key={company._id}
+                                  type="button"
+                                  onClick={() => handleSelectCompany(company._id)}
+                                  className={`w-full rounded-[10px] border px-4 py-3 text-left text-sm cursor-pointer transition-colors ${
+                                    selectedCompanyId === company._id
+                                      ? "border-blue-500 bg-blue-50 text-blue-700 font-medium"
+                                      : "border-gray-200 text-blue-800 hover:bg-gray-50"
+                                  }`}
+                                >
+                                  {company.companyName}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Right: Sub-technicians */}
+                          <div className="w-1/2 overflow-y-auto px-4 pr-6 py-3">
+                            {!selectedCompanyId ? (
+                              <p className="py-12 text-center text-sm text-gray-400">Select a company to view technicians</p>
+                            ) : loadingSubTechs ? (
+                              <div className="flex items-center justify-center py-12">
+                                <Loader2 className="h-5 w-5 animate-spin text-cyan-500" />
+                              </div>
+                            ) : subTechnicians.length === 0 ? (
+                              <p className="py-12 text-center text-sm text-gray-400">No technicians found for this company</p>
+                            ) : (
+                              <>
+                                <p className="mb-3 text-sm font-medium text-gray-700">Technicians</p>
+                                <div className="space-y-1">
+                                  {subTechnicians.map((tech) => {
+                                    const isSelected = selectedTechIds.has(tech._id);
+                                    const initials = tech.companyName
+                                      .split(" ")
+                                      .map((w) => w[0])
+                                      .join("")
+                                      .toUpperCase()
+                                      .slice(0, 2);
+                                    return (
+                                      <div
+                                        key={tech._id}
+                                        className="flex items-center justify-between rounded-lg px-2 py-2 hover:bg-gray-50"
+                                      >
+                                        <div className="flex min-w-0 items-center gap-3">
+                                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#DFF6FF] text-[11px] font-bold text-blue-700">
+                                            {initials}
+                                          </div>
+                                          <span className="truncate text-sm text-gray-900">{tech.companyName}</span>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleTechSelection(tech._id)}
+                                          className="shrink-0 cursor-pointer"
+                                        >
+                                          {isSelected ? (
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#3B82F6" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="rounded-full">
+                                              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                              <polyline points="22 4 12 14.01 9 11.01" stroke="white" strokeWidth="2" />
+                                            </svg>
+                                          ) : (
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                              <circle cx="12" cy="12" r="10" />
+                                              <line x1="12" y1="8" x2="12" y2="16" />
+                                              <line x1="8" y1="12" x2="16" y2="12" />
+                                            </svg>
+                                          )}
+                                        </button>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      <hr />
+                      <div className="flex items-center gap-3 px-6 pb-5">
+                        <Button
+                          className="bg-cyan-500 hover:bg-cyan-600 text-white"
+                          onClick={handleSaveTechnicians}
+                          disabled={addingTech || selectedTechIds.size === 0}
                         >
-                          <Plus className="h-3.5 w-3.5" />
-                          Add Technician
+                          {addingTech && <Loader2 className="h-4 w-4 animate-spin" />}
+                          Save Technicians
+                        </Button>
+                        <button
+                          onClick={() => setTechDialogOpen(false)}
+                          className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
+                        >
+                          Cancel
                         </button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Add Technician</DialogTitle>
-                          <DialogDescription>
-                            Select a technician to assign to this job card.
-                          </DialogDescription>
-                        </DialogHeader>
-                        {loadingTechs ? (
-                          <div className="flex items-center justify-center py-8">
-                            <Loader2 className="h-6 w-6 animate-spin text-[#00AEEF]" />
-                          </div>
-                        ) : (
-                          <div className="space-y-4">
-                            <Select value={selectedTechId} onValueChange={setSelectedTechId}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a technician" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {availableTechnicians.map((tech) => (
-                                  <SelectItem key={tech._id} value={tech._id}>
-                                    {tech.companyName}
-                                    {tech.email ? ` (${tech.email})` : ""}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-                        <DialogFooter>
-                          <Button variant="outline" onClick={() => setTechDialogOpen(false)}>
-                            Cancel
-                          </Button>
-                          <Button
-                            onClick={handleAddTechnician}
-                            disabled={!selectedTechId || addingTech}
-                            className="bg-[#00AEEF] hover:bg-[#009CD8]"
-                          >
-                            {addingTech && <Loader2 className="h-4 w-4 animate-spin" />}
-                            Add Technician
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                   </div>
                 </div>
 
-                <div className="mt-3 space-y-2.5">
+                <div className="mt-3">
                   {technicians.length === 0 ? (
-                    <p className="text-[13px] text-gray-400">No technicians assigned.</p>
+                    <p className="text-[13px] text-gray-500">
+                      <button onClick={openTechDialog} className="text-[#00AEEF] underline cursor-pointer">Click here</button>
+                      {" "}to add a technician
+                    </p>
                   ) : (
-                    technicians.map((tech) => {
-                      const name = tech.technicianId?.companyName || "Unknown";
-                      const phone = tech.technicianId?.phone || "";
-                      const email = tech.technicianId?.email || "";
-                      return (
-                        <div key={tech._id} className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-[12px] font-medium text-gray-600">
-                            {name.charAt(0).toUpperCase()}
+                    <div className="space-y-2.5">
+                      {technicians.map((tech) => {
+                        const name = tech.technicianId?.companyName || "Unknown";
+                        const phone = tech.technicianId?.phone || "";
+                        const email = tech.technicianId?.email || "";
+                        return (
+                          <div key={tech._id} className="flex items-center gap-3">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-[12px] font-medium text-gray-600">
+                              {name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex flex-1 items-center gap-8 text-[13px]">
+                              <span className="min-w-[120px] font-medium text-gray-900">{name}</span>
+                              {phone && <span className="text-gray-500">{phone}</span>}
+                              {email && <span className="text-gray-500">{email}</span>}
+                            </div>
+                            <button className="text-gray-300 hover:text-red-500">
+                              <TrashIcon />
+                            </button>
                           </div>
-                          <div className="flex flex-1 items-center gap-8 text-[13px]">
-                            <span className="min-w-[120px] font-medium text-gray-900">{name}</span>
-                            {phone && <span className="text-gray-500">{phone}</span>}
-                            {email && <span className="text-gray-500">{email}</span>}
-                          </div>
-                          <button className="text-gray-300 hover:text-red-500">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      );
-                    })
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
               </div>
@@ -949,11 +1224,12 @@ export default function JobCardDetailPage() {
               <div>
                 <h3 className="text-[15px] font-bold text-gray-900">Technician Notes</h3>
                 <p className="mt-1 text-[13px] text-gray-500">
-                  Technician notes are shown in the Job Card email and Job Card URL, which is seen by Technicians.
+                  Technician notes are shown in the Job Card email and Job Card URL which is seen by Technicians.
                 </p>
-                <button className="mt-2 text-[13px] text-[#00AEEF] underline">
-                  Click here to add a Technician Notes.
-                </button>
+                <p className="mt-2 text-[13px] text-gray-500">
+                  <button className="text-[#00AEEF] underline cursor-pointer">Click here</button>
+                  {" "}to add a Technician Notes.
+                </p>
               </div>
 
               <hr className="my-5 border-gray-200" />
@@ -996,7 +1272,7 @@ export default function JobCardDetailPage() {
                             onClick={() => handleDeleteAttachment(att._id)}
                             className="rounded p-1 text-gray-400 hover:text-red-500"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <TrashIcon />
                           </button>
                         </div>
                       </div>
@@ -1026,7 +1302,7 @@ export default function JobCardDetailPage() {
                               onClick={() => handleDeleteAttachment(att._id)}
                               className="rounded bg-white p-1 text-gray-500 shadow-sm hover:text-red-500"
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <TrashIcon />
                             </button>
                           </div>
                         </div>
@@ -1050,7 +1326,7 @@ export default function JobCardDetailPage() {
             </div>
 
             {/* Comments / Updates Card */}
-            <div className="rounded-[10px] border border-gray-200 bg-white p-7">
+            <div className="rounded-[10px] border border-gray-200 bg-white p-10">
               <h3 className="text-[15px] font-bold text-gray-900">Comments / Updates</h3>
 
               <form onSubmit={handleAddComment} className="mt-4">
@@ -1122,7 +1398,7 @@ export default function JobCardDetailPage() {
             </div>
 
             {/* Ticket History Card */}
-            <div className="rounded-[10px] border border-gray-200 bg-white p-7">
+            <div className="rounded-[10px] border border-gray-200 bg-white p-10">
               <h3 className="mb-4 text-[15px] font-bold text-gray-900">Ticket History</h3>
 
               <div className="flex gap-4 border-b border-gray-200">
@@ -1172,7 +1448,7 @@ export default function JobCardDetailPage() {
           {/* RIGHT COLUMN */}
           <div className="flex-1 space-y-5">
             {/* Support Tickets */}
-            <div className="rounded-[10px] border border-gray-200 bg-white p-5">
+            <div className="rounded-[10px] border border-gray-200 bg-white p-10">
               <div className="flex items-center justify-between">
                 <h4 className="text-[14px] font-semibold text-gray-900">Support Tickets</h4>
                 <button className="text-gray-400 hover:text-gray-600">
@@ -1196,49 +1472,56 @@ export default function JobCardDetailPage() {
               )}
             </div>
 
-            {/* Job Date */}
-            <div className="rounded-[10px] bg-amber-100 p-5">
-              <div className="flex items-center justify-between">
-                <h4 className="text-[14px] font-semibold text-gray-900">Job Date</h4>
-                <button className="text-gray-600 hover:text-gray-800">
-                  <Pencil className="h-4 w-4" />
-                </button>
-              </div>
-              {jobCard.jobDate ? (
-                <div className="mt-2">
-                  <p className="text-[20px] font-bold text-gray-900">
-                    {formatJobDate(jobCard.jobDate)}
-                  </p>
-                  <p className="mt-0.5 text-[13px] font-medium text-[#00AEEF]">
-                    {formatJobTime(jobCard.jobDate)}
-                  </p>
+            {/* Job Date & Job Progress - Dark Card */}
+            <div className="rounded-[10px] bg-[#1E293B] p-10">
+              {/* Job Date */}
+              <div>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[14px] font-semibold text-white">Job Date</h4>
+                  <button className="text-gray-400 hover:text-gray-200">
+                    <Pencil className="h-4 w-4" />
+                  </button>
                 </div>
-              ) : (
-                <p className="mt-3 text-[13px] text-amber-700">
-                  The date for this job has not been set
-                </p>
-              )}
-            </div>
+                {jobCard.jobDate ? (
+                  <div className="mt-2">
+                    <p className="text-[22px] font-bold text-white">
+                      {formatJobDate(jobCard.jobDate)}
+                    </p>
+                    <p className="mt-0.5 text-[13px] font-medium text-[#00AEEF]">
+                      {formatJobTime(jobCard.jobDate)}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-3 text-[13px] text-gray-400">
+                    The date for this job has not been set
+                  </p>
+                )}
+              </div>
 
-            {/* Job Progress */}
-            <div className="rounded-[10px] border border-gray-200 bg-white p-5">
-              <h4 className="mb-4 text-[14px] font-semibold text-gray-900">Job Progress</h4>
+              {/* Divider */}
+              <hr className="my-5 border-gray-600" />
 
-              <div className="space-y-2">
-                {JOB_PROGRESS_STEPS.map((step, idx) => {
-                  const isCompleted = idx < progressStep;
-                  return (
-                    <div
-                      key={step.label}
-                      className="rounded-[8px] px-3 py-2 text-[13px] font-medium text-white"
-                      style={{
-                        backgroundColor: isCompleted ? step.color : "#D1D5DB",
-                      }}
-                    >
-                      {step.label}
-                    </div>
-                  );
-                })}
+              {/* Job Progress */}
+              <div>
+                <h4 className="mb-4 text-[14px] font-semibold text-white">Job Progress</h4>
+
+                <div className="space-y-[10px]">
+                  {JOB_PROGRESS_STEPS.map((step, idx) => {
+                    const isCompleted = idx < progressStep;
+                    return (
+                      <div
+                        key={step.label}
+                        className="w-full cursor-pointer rounded-[10px] border border-[#30373E] px-5 py-[7px] text-[14px] leading-[31px] text-white"
+                        style={{
+                          backgroundColor: isCompleted ? "#EAB308" : "#30373E",
+                          borderColor: isCompleted ? "#EAB308" : "#30373E",
+                        }}
+                      >
+                        {step.label}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -1303,10 +1586,94 @@ export default function JobCardDetailPage() {
 
       {/* Job Card Log Tab */}
       {activeTab === "job-card-log" && (
-        <div className="rounded-[10px] border border-gray-200 bg-white p-5">
+        <div className="rounded-[10px] border border-gray-200 bg-white p-10">
           <p className="text-[13px] text-gray-400">Job card log will be displayed here.</p>
         </div>
       )}
+
+      {/* ─── Claim Job Card Dialog ──────────────────────────────────── */}
+      <Dialog open={claimDialogOpen} onOpenChange={setClaimDialogOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Claim Ticket {jobCard.ticketNo}</DialogTitle>
+          </DialogHeader>
+          <hr />
+          {claimLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-cyan-500" />
+            </div>
+          ) : (
+            <div className="space-y-4 px-2">
+              <p className="text-sm text-gray-500">Assign this ticket to yourself, or other TSC members.</p>
+
+              {/* You */}
+              {claimCurrentUser && (
+                <>
+                  <p className="text-sm font-medium text-gray-700">You</p>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={claimSelectedIds.has(claimCurrentUser.id)}
+                      onChange={() => toggleClaimUser(claimCurrentUser.id)}
+                      className="h-5 w-5 rounded border-gray-300 text-cyan-500 accent-cyan-500"
+                    />
+                    <span className={claimSelectedIds.has(claimCurrentUser.id) ? "text-sm font-medium text-green-600" : "text-sm text-gray-700"}>
+                      {claimCurrentUser.name}{claimCurrentUser.lastName ? ` ${claimCurrentUser.lastName}` : ""}
+                    </span>
+                  </label>
+                </>
+              )}
+
+              {/* Others */}
+              {claimUsers.length > 0 && (
+                <>
+                  <p className="text-sm font-medium text-gray-700">Others</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {claimUsers.map((u) => (
+                      <label key={u._id} className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={claimSelectedIds.has(u._id)}
+                          onChange={() => toggleClaimUser(u._id)}
+                          className="h-5 w-5 rounded border-gray-300 text-cyan-500 accent-cyan-500"
+                        />
+                        <span className={claimSelectedIds.has(u._id) ? "text-sm font-medium text-green-600" : "text-sm text-gray-700"}>
+                          {u.name}{u.lastName ? ` ${u.lastName}` : ""}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          <hr />
+          <div className="flex items-center gap-3 px-2">
+            <Button
+              className="bg-cyan-500 hover:bg-cyan-600 text-white"
+              onClick={handleClaimSubmit}
+              disabled={claimSubmitting || claimSelectedIds.size === 0}
+            >
+              {claimSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              Claim / Assign Ticket
+            </Button>
+            <button
+              onClick={() => setClaimDialogOpen(false)}
+              className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Edit Job Card Dialog ──────────────────────────────────── */}
+      <AddJobCardDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSuccess={fetchJobCard}
+        editData={jobCard}
+      />
     </div>
   );
 }

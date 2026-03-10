@@ -7,13 +7,13 @@ import {
   ArrowLeft,
   Pencil,
   Plus,
-  Trash2,
   Eye,
   Archive,
   Loader2,
   ExternalLink,
   Download,
 } from "lucide-react";
+import { TrashIcon } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cyanBtnStyle } from "@/components/quick-add-buttons";
@@ -870,7 +870,7 @@ export default function TechnicianDetailPage() {
                                 className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-red-50 hover:text-red-500"
                                 title="Delete"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <TrashIcon />
                               </button>
                             </div>
                           </TableCell>
@@ -939,7 +939,7 @@ export default function TechnicianDetailPage() {
                             onClick={() => handleDeleteSub(sub._id)}
                             className="rounded-[10px] border border-gray-200 p-1.5 text-gray-400 cursor-pointer hover:bg-red-50 hover:text-red-500"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <TrashIcon />
                           </button>
                         </div>
                       </TableCell>

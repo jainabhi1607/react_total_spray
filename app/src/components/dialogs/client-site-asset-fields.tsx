@@ -78,6 +78,7 @@ export function ClientSiteAssetFields({
   const clientRef = useRef<HTMLDivElement>(null);
 
   const [loadingClient, setLoadingClient] = useState(false);
+  const userChangedSiteRef = useRef(false);
 
   // Close client dropdown on outside click
   useEffect(() => {
@@ -160,8 +161,10 @@ export function ClientSiteAssetFields({
     ? allContacts.filter((c) => c.clientSiteId === state.siteId)
     : allContacts;
 
-  // Reset asset/contact when site changes and they no longer match
+  // Reset asset/contact when user manually changes site
   useEffect(() => {
+    if (!userChangedSiteRef.current) return;
+    userChangedSiteRef.current = false;
     if (state.siteId && state.assetId) {
       const stillValid = filteredAssets.some((a) => a._id === state.assetId);
       if (!stillValid) onChange({ ...state, assetId: "" });
@@ -303,7 +306,10 @@ export function ClientSiteAssetFields({
             id="csaf-site"
             className="flex h-10 w-full rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 cursor-pointer"
             value={state.siteId}
-            onChange={(e) => onChange({ ...state, siteId: e.target.value })}
+            onChange={(e) => {
+              userChangedSiteRef.current = true;
+              onChange({ ...state, siteId: e.target.value });
+            }}
             disabled={!state.clientId || loadingClient}
           >
             <option value="">

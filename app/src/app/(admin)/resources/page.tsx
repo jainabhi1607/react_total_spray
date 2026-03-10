@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Pencil, Trash2, FolderOpen, FileText } from "lucide-react";
+import { Plus, Pencil, FolderOpen, FileText } from "lucide-react";
+import { TrashIcon } from "@/components/ui/icons";
 import { Card, CardContent } from "@/components/ui/card";
 import { cyanBtnStyle } from "@/components/quick-add-buttons";
 import { PageLoading } from "@/components/ui/loading";
@@ -215,7 +216,7 @@ export default function ResourcesPage() {
                   onClick={() => handleDelete(resource._id)}
                   className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-red-50 hover:text-red-500"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <TrashIcon />
                 </button>
               </div>
             </div>

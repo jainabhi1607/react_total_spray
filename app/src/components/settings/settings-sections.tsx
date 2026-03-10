@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Plus,
   Pencil,
-  Trash2,
   Save,
   X,
   Search,
@@ -14,6 +13,7 @@ import {
   Wrench,
   Settings2,
 } from "lucide-react";
+import { TrashIcon } from "@/components/ui/icons";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -294,7 +294,7 @@ export function SettingsListSection({
                               className="rounded p-1.5 text-gray-400 cursor-pointer transition-colors hover:bg-red-50 hover:text-red-600"
                               title="Delete"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <TrashIcon />
                             </button>
                           </div>
                         </TableCell>
@@ -640,7 +640,7 @@ export function TableCrudSection({
                           if (confirm(`Delete "${item.title}"?`)) deleteItem(item._id);
                         }}
                       >
-                        <Trash2 className="h-4 w-4 text-red-500" />
+                        <TrashIcon />
                       </Button>
                     </div>
                   </TableCell>
@@ -964,7 +964,7 @@ export function AssetMakesSection() {
                               className="shrink-0 rounded-[10px] border border-gray-200 p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
                               title="Delete"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <TrashIcon />
                             </button>
                           </div>
                         </TableCell>
@@ -1279,7 +1279,7 @@ export function AssetModelsSection() {
                               className="shrink-0 rounded-[10px] border border-gray-200 p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
                               title="Delete"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <TrashIcon />
                             </button>
                           </div>
                         </TableCell>
