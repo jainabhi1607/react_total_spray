@@ -26,6 +26,29 @@ export async function GET(
   }
 }
 
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await dbConnect();
+    await requireAuth();
+    const { id } = await params;
+
+    const body = await req.json();
+    if (body.visibility !== undefined) {
+      await JobCardAttachment.updateMany(
+        { jobCardId: id },
+        { $set: { visibility: body.visibility } }
+      );
+    }
+
+    return successResponse({ message: "Attachments updated" });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

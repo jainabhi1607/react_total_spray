@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 import { successResponse, errorResponse, handleApiError } from "@/lib/api-helpers";
+import { auth } from "@/lib/auth";
 import User from "@/models/User";
 import UserLoginCode from "@/models/UserLoginCode";
 
@@ -12,6 +13,13 @@ export async function POST(req: NextRequest) {
 
     if (!userId || !otp) {
       return errorResponse("User ID and OTP are required");
+    }
+
+    // Verify the userId matches the authenticated session
+    const session = await auth();
+    const sessionUserId = (session?.user as any)?.id;
+    if (sessionUserId && sessionUserId !== userId) {
+      return errorResponse("Unauthorized", 403);
     }
 
     const loginCode = await UserLoginCode.findOne({

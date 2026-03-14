@@ -96,10 +96,10 @@ export async function PUT(
 
     await JobCardOwner.insertMany(docs);
 
-    // Auto-set status to 2 (Date Allocated) if currently Open (1)
+    // Auto-set status to 3 (Assigned Technicians) if below that
     const jobCard = await JobCard.findById(id);
-    if (jobCard && jobCard.jobCardStatus === 1) {
-      jobCard.jobCardStatus = 2;
+    if (jobCard && jobCard.jobCardStatus < 3) {
+      jobCard.jobCardStatus = 3;
       await jobCard.save();
     }
 

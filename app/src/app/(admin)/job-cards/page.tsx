@@ -51,12 +51,15 @@ interface Stats {
 // --- Constants ---
 
 const STATUS_BADGE_CONFIG: Record<number, { label: string; bg: string; text: string }> = {
-  1: { label: "Open", bg: "#3B82F6", text: "#FFFFFF" },
-  2: { label: "Date Allocated", bg: "#F59E0B", text: "#FFFFFF" },
-  3: { label: "Job Card Sent", bg: "#3B82F6", text: "#FFFFFF" },
-  4: { label: "Checklist Complete", bg: "#84CC16", text: "#FFFFFF" },
-  5: { label: "Internal Review", bg: "#0EA5E9", text: "#FFFFFF" },
-  6: { label: "Completed", bg: "#22C55E", text: "#FFFFFF" },
+  1: { label: "Date Allocated", bg: "#F7CE4A", text: "#FFFFFF" },
+  2: { label: "Date Confirmed", bg: "#83CE67", text: "#FFFFFF" },
+  3: { label: "Assigned Technicians", bg: "#E18230", text: "#FFFFFF" },
+  4: { label: "Technician Avail. Conf.", bg: "#D514A1", text: "#FFFFFF" },
+  5: { label: "Client Date Confirmed", bg: "#A114D5", text: "#FFFFFF" },
+  6: { label: "Job Card Sent", bg: "#00AEEF", text: "#FFFFFF" },
+  7: { label: "Checklist Complete", bg: "#F7CE4A", text: "#FFFFFF" },
+  8: { label: "Internal Review", bg: "#2B790E", text: "#FFFFFF" },
+  9: { label: "Job Invoiced", bg: "#000000", text: "#FFFFFF" },
 };
 
 const TABS = [

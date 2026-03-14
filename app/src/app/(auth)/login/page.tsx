@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, signOut } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -50,7 +50,9 @@ function LoginForm() {
         if (userId) {
           router.push(`/otp?uid=${userId}&cb=${encodeURIComponent(callbackUrl)}`);
         } else {
-          router.push(callbackUrl);
+          await signOut({ redirect: false });
+          setError("Session error. Please try again.");
+          return;
         }
         router.refresh();
       }

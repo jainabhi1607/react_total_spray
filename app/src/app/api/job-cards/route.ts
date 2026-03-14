@@ -53,8 +53,21 @@ export async function GET(req: NextRequest) {
       query.status = { $ne: 2 };
     }
 
-    // Filter by jobCardStatus
     const { searchParams } = new URL(req.url);
+
+    // Filter by clientSiteId
+    const clientSiteIdParam = searchParams.get("clientSiteId");
+    if (clientSiteIdParam) {
+      query.clientSiteId = clientSiteIdParam;
+    }
+
+    // Filter by clientAssetId
+    const clientAssetIdParam = searchParams.get("clientAssetId");
+    if (clientAssetIdParam) {
+      query.clientAssetId = clientAssetIdParam;
+    }
+
+    // Filter by jobCardStatus
     const jobCardStatus = searchParams.get("jobCardStatus");
     if (jobCardStatus) {
       query.jobCardStatus = parseInt(jobCardStatus);
@@ -63,10 +76,10 @@ export async function GET(req: NextRequest) {
     // Tab filtering: active, complete, recurring
     const tab = searchParams.get("tab");
     if (tab === "active") {
-      query.jobCardStatus = { $in: [1, 2] };
+      query.jobCardStatus = { $gte: 1, $lte: 8 };
       query.recurringJob = { $ne: 1 };
     } else if (tab === "complete") {
-      query.jobCardStatus = 3;
+      query.jobCardStatus = 9;
     } else if (tab === "recurring") {
       query.recurringJob = 1;
     }

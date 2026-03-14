@@ -99,18 +99,28 @@ export const TICKET_STATUS_LABELS: Record<number, string> = {
 
 export const JOB_CARD_STATUS = {
   DRAFT: 0,
-  OPEN: 1,
-  IN_PROGRESS: 2,
-  COMPLETED: 3,
-  CANCELLED: 4,
+  DATE_ALLOCATED: 1,
+  DATE_CONFIRMED: 2,
+  ASSIGNED_TECHNICIANS: 3,
+  TECHNICIAN_AVAIL_CONF: 4,
+  CLIENT_DATE_CONFIRMED: 5,
+  JOB_CARD_SENT: 6,
+  CHECKLIST_COMPLETE: 7,
+  INTERNAL_REVIEW: 8,
+  JOB_INVOICED: 9,
 } as const;
 
 export const JOB_CARD_STATUS_LABELS: Record<number, string> = {
   0: "Draft",
-  1: "Open",
-  2: "In Progress",
-  3: "Completed",
-  4: "Cancelled",
+  1: "Date Allocated",
+  2: "Date Confirmed",
+  3: "Assigned Technicians",
+  4: "Technician Avail. Conf.",
+  5: "Client Date Confirmed",
+  6: "Job Card Sent",
+  7: "Checklist Complete",
+  8: "Internal Review",
+  9: "Job Invoiced",
 };
 
 export function isAdmin(role: number): boolean {

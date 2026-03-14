@@ -38,9 +38,9 @@ export async function GET(req: NextRequest) {
     }
 
     const open = statusMap[1] || 0;
-    const inProgress = statusMap[2] || 0;
-    const completed = statusMap[3] || 0;
-    const total = open + inProgress + completed;
+    const inProgress = [2, 3, 4, 5, 6, 7, 8].reduce((sum, s) => sum + (statusMap[s] || 0), 0);
+    const completed = statusMap[9] || 0;
+    const total = Object.values(statusMap).reduce((a, b) => a + b, 0);
 
     return successResponse({ open, inProgress, completed, total });
   } catch (error) {

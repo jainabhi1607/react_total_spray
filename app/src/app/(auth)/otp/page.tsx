@@ -11,8 +11,8 @@ import { Loader2, ShieldCheck } from "lucide-react";
 function OtpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { update } = useSession();
-  const userId = searchParams.get("uid") || "";
+  const { data: session, update } = useSession();
+  const userId = searchParams.get("uid") || (session?.user as any)?.id || "";
   const callbackUrl = searchParams.get("cb") || "/dashboard";
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -20,6 +20,13 @@ function OtpForm() {
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Redirect already-verified users to dashboard
+  useEffect(() => {
+    if ((session?.user as any)?.otpVerified) {
+      router.replace(callbackUrl);
+    }
+  }, [session, callbackUrl, router]);
 
   useEffect(() => {
     inputRefs.current[0]?.focus();

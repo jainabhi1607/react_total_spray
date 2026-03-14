@@ -1,35 +1,70 @@
 import type { NextAuthConfig } from "next-auth";
+import { encryptToken, decryptToken } from "./token-encryption";
 
 export const authConfig: NextAuthConfig = {
   callbacks: {
     async jwt({ token, user, trigger, session }) {
       if (user) {
-        token.id = user.id;
-        token.role = (user as any).role;
-        token.clientId = (user as any).clientId;
-        token.lastName = (user as any).lastName;
-        token.otpVerified = false;
-        token.rememberMe = (user as any).rememberMe === "true";
+        // Encrypt sensitive user data into a single encrypted payload
+        const encryptedData = encryptToken({
+          id: user.id,
+          role: (user as any).role,
+          clientId: (user as any).clientId,
+          lastName: (user as any).lastName,
+          otpVerified: false,
+          rememberMe: (user as any).rememberMe === "true",
+        });
+        token.encryptedPayload = encryptedData;
+        // Clear old plain-text fields
+        delete token.id;
+        delete token.role;
+        delete token.clientId;
+        delete token.lastName;
+        delete token.otpVerified;
+        delete token.rememberMe;
         // Set token expiry based on remember me
-        if (token.rememberMe) {
+        const rememberMe = (user as any).rememberMe === "true";
+        if (rememberMe) {
           token.maxAge = 30 * 24 * 60 * 60; // 30 days
         } else {
-          token.maxAge = 24 * 60 * 60; // 1 day (session-based)
+          token.maxAge = 24 * 60 * 60; // 1 day
         }
       }
+
+      // Migrate old unencrypted tokens to encrypted format
+      if (!token.encryptedPayload && token.id) {
+        token.encryptedPayload = encryptToken({
+          id: token.id,
+          role: token.role,
+          clientId: token.clientId,
+          lastName: token.lastName,
+          otpVerified: token.otpVerified ?? false,
+          rememberMe: token.rememberMe ?? false,
+        });
+        delete token.id;
+        delete token.role;
+        delete token.clientId;
+        delete token.lastName;
+        delete token.otpVerified;
+        delete token.rememberMe;
+      }
+
       // Handle session update (called from client via update())
-      if (trigger === "update" && session?.otpVerified) {
-        token.otpVerified = true;
+      if (trigger === "update" && session?.otpVerified && token.encryptedPayload) {
+        const decrypted = decryptToken(token.encryptedPayload as string);
+        decrypted.otpVerified = true;
+        token.encryptedPayload = encryptToken(decrypted);
       }
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
-        (session.user as any).id = token.id as string;
-        (session.user as any).role = token.role as number;
-        (session.user as any).clientId = token.clientId as string;
-        (session.user as any).lastName = token.lastName as string;
-        (session.user as any).otpVerified = token.otpVerified as boolean;
+      if (session.user && token.encryptedPayload) {
+        const decrypted = decryptToken(token.encryptedPayload as string);
+        (session.user as any).id = decrypted.id as string;
+        (session.user as any).role = decrypted.role as number;
+        (session.user as any).clientId = decrypted.clientId as string;
+        (session.user as any).lastName = decrypted.lastName as string;
+        (session.user as any).otpVerified = decrypted.otpVerified as boolean;
       }
       return session;
     },

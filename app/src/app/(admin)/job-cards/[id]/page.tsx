@@ -8,17 +8,10 @@ import {
   Pencil,
   Plus,
   Loader2,
-  Eye,
-  EyeOff,
-  Download,
   ExternalLink,
-  Image as ImageIcon,
-  FileText,
   Archive,
   RefreshCcw,
   Link2,
-  Check,
-  Send,
 } from "lucide-react";
 import { PlusSquareIcon, TrashIcon } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
@@ -36,7 +29,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -48,13 +40,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { PageLoading } from "@/components/ui/loading";
 import {
   formatDate,
   formatDateTime,
+  JOB_CARD_STATUS_LABELS,
 } from "@/lib/utils";
 import { AddJobCardDialog } from "@/components/dialogs/add-job-card-dialog";
+import { CommentsSection } from "@/components/comments-section";
+import { AttachmentsSection } from "@/components/attachments-section";
+import { TicketHistorySection } from "@/components/ticket-history-section";
 
 // --- Types ---
 
@@ -201,13 +196,13 @@ interface JobCardData {
 const JOB_PROGRESS_STEPS = [
   { label: "Date Allocated", color: "#F7CE4A" },
   { label: "Date Confirmed", color: "#83CE67" },
-  { label: "Assigned Technicians", color: "#83CE67" },
-  { label: "Technician Avail. Conf.", color: "#E18230" },
-  { label: "Client Date Confirmed", color: "#D514A1" },
-  { label: "Job Card Sent", color: "#A114D5" },
-  { label: "Checklist Complete", color: "#00AEEF" },
-  { label: "Internal Review", color: "#F7CE4A" },
-  { label: "Job Invoiced", color: "#83CE67" },
+  { label: "Assigned Technicians", color: "#E18230" },
+  { label: "Technician Avail. Conf.", color: "#D514A1" },
+  { label: "Client Date Confirmed", color: "#A114D5" },
+  { label: "Job Card Sent", color: "#00AEEF" },
+  { label: "Checklist Complete", color: "#F7CE4A" },
+  { label: "Internal Review", color: "#2B790E" },
+  { label: "Job Invoiced", color: "#000000" },
 ];
 
 // --- Circular Progress Ring ---
@@ -266,11 +261,6 @@ export default function JobCardDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Comments
-  const [newComment, setNewComment] = useState("");
-  const [commentPublic, setCommentPublic] = useState(false);
-  const [submittingComment, setSubmittingComment] = useState(false);
-
   // Assets dialog
   const [assetDialogOpen, setAssetDialogOpen] = useState(false);
   const [availableAssets, setAvailableAssets] = useState<AvailableAsset[]>([]);
@@ -291,11 +281,26 @@ export default function JobCardDetailPage() {
   // Job card types
   const [jobCardTypes, setJobCardTypes] = useState<{ _id: string; title: string }[]>([]);
 
-  // Ticket history tab
-  const [ticketHistoryTab, setTicketHistoryTab] = useState("asset");
-
   // Edit job card dialog
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  // Technician briefing dialog
+  const [briefingDialogOpen, setBriefingDialogOpen] = useState(false);
+  const [briefingText, setBriefingText] = useState("");
+  const [briefingSaving, setBriefingSaving] = useState(false);
+
+  // Job Progress saving lock
+  const [progressSaving, setProgressSaving] = useState(false);
+
+  // Job Date dialog
+  const [jobDateDialogOpen, setJobDateDialogOpen] = useState(false);
+  const [jobDateMultiDay, setJobDateMultiDay] = useState(false);
+  const [jobDateStart, setJobDateStart] = useState("");
+  const [jobDateEnd, setJobDateEnd] = useState("");
+  const [jobDateHour, setJobDateHour] = useState("12");
+  const [jobDateMinute, setJobDateMinute] = useState("00");
+  const [jobDateAmPm, setJobDateAmPm] = useState("AM");
+  const [jobDateSaving, setJobDateSaving] = useState(false);
 
   // Claim dialog
   const [claimDialogOpen, setClaimDialogOpen] = useState(false);
@@ -349,33 +354,6 @@ export default function JobCardDetailPage() {
   }, [fetchJobCard]);
 
   // --- Comments ---
-
-  async function handleAddComment(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newComment.trim()) return;
-    setSubmittingComment(true);
-    try {
-      const res = await fetch(`/api/job-cards/${id}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          comment: newComment.trim(),
-          visibility: commentPublic ? 1 : 0,
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.message || "Failed to add comment");
-      }
-      setNewComment("");
-      setCommentPublic(false);
-      fetchJobCard();
-    } catch (err: any) {
-      alert(err.message || "Failed to add comment");
-    } finally {
-      setSubmittingComment(false);
-    }
-  }
 
   // --- Assets ---
 
@@ -537,22 +515,109 @@ export default function JobCardDetailPage() {
     }
   }
 
-  // --- Attachments ---
+  // --- Technician Briefing ---
 
-  async function handleDeleteAttachment(attachmentId: string) {
-    if (!confirm("Are you sure you want to delete this attachment?")) return;
+  function openBriefingDialog() {
+    setBriefingText(detail?.technicianBriefing || "");
+    setBriefingDialogOpen(true);
+  }
+
+  async function handleSaveBriefing() {
+    setBriefingSaving(true);
     try {
-      const res = await fetch(
-        `/api/job-cards/${id}/attachments/${attachmentId}`,
-        { method: "DELETE" }
-      );
+      const res = await fetch(`/api/job-cards/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ technicianBriefing: briefingText }),
+      });
       const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.message || "Failed to delete attachment");
+      if (res.ok && json.success) {
+        setBriefingDialogOpen(false);
+        fetchJobCard();
       }
-      fetchJobCard();
-    } catch (err: any) {
-      alert(err.message || "Failed to delete attachment");
+    } catch {
+      // silent
+    } finally {
+      setBriefingSaving(false);
+    }
+  }
+
+  // --- Job Date dialog ---
+
+  function openJobDateDialog() {
+    if (jobCard?.jobDate) {
+      const d = new Date(jobCard.jobDate);
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const yyyy = d.getFullYear();
+      setJobDateStart(`${yyyy}-${mm}-${dd}`);
+      let h = d.getHours();
+      const min = String(d.getMinutes()).padStart(2, "0");
+      const ampm = h >= 12 ? "PM" : "AM";
+      h = h % 12 || 12;
+      setJobDateHour(String(h));
+      setJobDateMinute(min);
+      setJobDateAmPm(ampm);
+    } else {
+      setJobDateStart("");
+      setJobDateHour("12");
+      setJobDateMinute("00");
+      setJobDateAmPm("AM");
+    }
+    if (jobCard?.jobEndDate) {
+      const d = new Date(jobCard.jobEndDate);
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const yyyy = d.getFullYear();
+      setJobDateEnd(`${yyyy}-${mm}-${dd}`);
+    } else {
+      setJobDateEnd("");
+    }
+    setJobDateMultiDay(jobCard?.multiDayJob === 1);
+    setJobDateDialogOpen(true);
+  }
+
+  async function handleSaveJobDate() {
+    if (!jobDateStart) return;
+    if (jobDateMultiDay && jobDateEnd && jobDateEnd < jobDateStart) {
+      alert("End date must be on or after the start date.");
+      return;
+    }
+    setJobDateSaving(true);
+    try {
+      // Build jobDate with time
+      let hours = parseInt(jobDateHour);
+      if (jobDateAmPm === "PM" && hours !== 12) hours += 12;
+      if (jobDateAmPm === "AM" && hours === 12) hours = 0;
+      const jobDate = new Date(`${jobDateStart}T${String(hours).padStart(2, "0")}:${jobDateMinute}:00`);
+
+      const body: Record<string, any> = {
+        jobDate: jobDate.toISOString(),
+      };
+      if (jobDateMultiDay && jobDateEnd) {
+        body.multiDayJob = 1;
+        body.jobEndDate = new Date(`${jobDateEnd}T23:59:00`).toISOString();
+      } else {
+        body.multiDayJob = 0;
+        body.jobEndDate = null;
+      }
+
+      const res = await fetch(`/api/job-cards/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setJobDateDialogOpen(false);
+        fetchJobCard();
+      } else {
+        alert(json.error || "Failed to save job date.");
+      }
+    } catch {
+      alert("Failed to save job date. Please try again.");
+    } finally {
+      setJobDateSaving(false);
     }
   }
 
@@ -571,6 +636,49 @@ export default function JobCardDetailPage() {
       }
     } catch {
       // silent
+    }
+  }
+
+  // --- Job Progress click ---
+
+  async function handleProgressClick(stepIdx: number) {
+    if (progressSaving) return;
+
+    const targetStatus = stepIdx + 1; // steps are 1-indexed (1-9)
+    const isActive = targetStatus <= progressStep;
+
+    if (isActive) {
+      // Deactivating — only allow deselecting the last active step (bottom-to-top)
+      if (targetStatus !== progressStep) return;
+      // Confirm before reverting
+      if (!confirm(`Are you sure you want to undo "${JOB_PROGRESS_STEPS[stepIdx].label}"?`)) return;
+    } else {
+      // Activating — only allow selecting the next step in sequence
+      if (targetStatus !== progressStep + 1) return;
+    }
+
+    const newStatus = isActive ? stepIdx : targetStatus;
+    const body: Record<string, any> = { jobCardStatus: newStatus };
+
+    // Optimistic update
+    setProgressSaving(true);
+    const snapshot = jobCard;
+    setJobCard((prev) => prev ? { ...prev, ...body } : prev);
+
+    try {
+      const res = await fetch(`/api/job-cards/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setJobCard(snapshot);
+      }
+    } catch {
+      setJobCard(snapshot);
+    } finally {
+      setProgressSaving(false);
     }
   }
 
@@ -688,28 +796,11 @@ export default function JobCardDetailPage() {
   }
 
   // Compute progress step based on jobCardStatus
-  function getProgressStep(): number {
-    if (jobCard!.invoiceNumber) return 9;
-    if (jobCard!.jobCardStatus >= 5) return 8; // Internal Review
-    if (jobCard!.jobCardStatus >= 4) return 7; // Checklist Complete
-    if (jobCard!.jobCardStatus >= 3) return 6; // Job Card Sent
-    if (jobCard!.jobCardStatus >= 2) return 3; // In progress
-    if (jobCard!.jobDate) return 1; // Date allocated
-    return 0;
-  }
-
-  const progressStep = getProgressStep();
-
-  // Image vs file attachments
-  const imageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg"];
-  const imageAttachments = attachments.filter((a) => {
-    const ext = (a.fileName || "").toLowerCase();
-    return imageExtensions.some((e) => ext.endsWith(e));
-  });
-  const fileAttachments = attachments.filter((a) => {
-    const ext = (a.fileName || "").toLowerCase();
-    return !imageExtensions.some((e) => ext.endsWith(e));
-  });
+  // Progress step is directly from jobCardStatus (0-9)
+  // 0=none, 1=Date Allocated, 2=Date Confirmed, 3=Assigned Technicians,
+  // 4=Technician Avail Conf, 5=Client Date Confirmed, 6=Job Card Sent,
+  // 7=Checklist Complete, 8=Internal Review, 9=Job Invoiced
+  const progressStep = jobCard!.jobCardStatus || 0;
 
   // Format job date for display
   function formatJobDate(dateStr: string) {
@@ -1226,223 +1317,96 @@ export default function JobCardDetailPage() {
                 <p className="mt-1 text-[13px] text-gray-500">
                   Technician notes are shown in the Job Card email and Job Card URL which is seen by Technicians.
                 </p>
-                <p className="mt-2 text-[13px] text-gray-500">
-                  <button className="text-[#00AEEF] underline cursor-pointer">Click here</button>
-                  {" "}to add a Technician Notes.
-                </p>
+                {detail?.technicianBriefing ? (
+                  <>
+                    <p className="mt-3 text-[13px] text-gray-700 whitespace-pre-wrap">{detail.technicianBriefing}</p>
+                    <p className="mt-3 text-[13px]">
+                      <button onClick={openBriefingDialog} className="text-[#00AEEF] underline cursor-pointer">
+                        Edit Technician Notes
+                      </button>
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-2 text-[13px] text-gray-500">
+                    <button onClick={openBriefingDialog} className="text-[#00AEEF] underline cursor-pointer">Click here</button>
+                    {" "}to add a Technician Notes.
+                  </p>
+                )}
               </div>
 
-              <hr className="my-5 border-gray-200" />
-
-              {/* Attachments */}
-              <div>
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[15px] font-bold text-gray-900">Attachments</h3>
-                  <div className="flex items-center gap-3">
-                    <button className="flex items-center gap-1.5 rounded-[10px] border border-gray-200 px-3 py-1.5 text-[13px] text-gray-600 hover:bg-gray-50">
-                      <Eye className="h-3.5 w-3.5" />
-                      Make All Images Public
-                    </button>
-                    <button className="text-gray-400 hover:text-gray-600">
-                      <Download className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* File attachments */}
-                {fileAttachments.length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    {fileAttachments.map((att) => (
-                      <div
-                        key={att._id}
-                        className="flex items-center justify-between rounded-[10px] border border-gray-200 px-3 py-2"
-                      >
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-gray-400" />
-                          <span className="text-[13px] text-gray-700">
-                            {att.documentName || att.fileName}
-                            {att.fileSize ? `, ${(att.fileSize / 1024).toFixed(0)}KB` : ""}
-                          </span>
-                        </div>
-                        <div className="flex gap-1">
-                          <button className="rounded p-1 text-gray-400 hover:text-gray-600">
-                            <Download className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteAttachment(att._id)}
-                            className="rounded p-1 text-gray-400 hover:text-red-500"
-                          >
-                            <TrashIcon />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Image thumbnails */}
-                {imageAttachments.length > 0 && (
-                  <div className="mt-3">
-                    <p className="mb-2 text-[12px] text-gray-400">Click to enlarge</p>
-                    <div className="flex flex-wrap gap-3">
-                      {imageAttachments.map((att) => (
-                        <div
-                          key={att._id}
-                          className="group relative flex h-[160px] w-[140px] items-center justify-center rounded-[10px] border border-gray-200 bg-gray-50"
-                        >
-                          <ImageIcon className="h-8 w-8 text-gray-300" />
-                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                            <button className="rounded bg-white p-1 text-green-500 shadow-sm hover:text-green-700">
-                              <Eye className="h-3.5 w-3.5" />
-                            </button>
-                            <button className="rounded bg-white p-1 text-gray-500 shadow-sm hover:text-gray-700">
-                              <Download className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteAttachment(att._id)}
-                              className="rounded bg-white p-1 text-gray-500 shadow-sm hover:text-red-500"
-                            >
-                              <TrashIcon />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+              {/* Technician Briefing Dialog */}
+              <Dialog open={briefingDialogOpen} onOpenChange={setBriefingDialogOpen}>
+                <DialogContent className="max-w-xl rounded-[10px] p-0 gap-0">
+                  <DialogHeader className="px-6 pt-5 pb-4">
+                    <DialogTitle className="text-lg font-bold">Edit Technician Briefing</DialogTitle>
+                  </DialogHeader>
+                  <DialogDescription className="sr-only">Edit technician briefing notes</DialogDescription>
+                  <hr className="border-gray-200" />
+                  <div className="px-6 py-5">
+                    <div className="flex gap-4">
+                      <label className="w-[140px] shrink-0 text-[13px] text-gray-700 pt-2">Technician Briefing</label>
+                      <Textarea
+                        value={briefingText}
+                        onChange={(e) => setBriefingText(e.target.value)}
+                        rows={5}
+                        className="flex-1 rounded-[10px] text-[13px]"
+                      />
                     </div>
                   </div>
-                )}
-
-                {attachments.length === 0 && (
-                  <p className="mt-3 text-[13px] text-gray-400">No attachments.</p>
-                )}
-              </div>
-
-              <hr className="my-5 border-gray-200" />
-
-              {/* Checklist Uploads */}
-              <div>
-                <h3 className="text-[15px] font-bold text-gray-900">Checklist Uploads</h3>
-                <p className="mt-2 text-[13px] text-gray-400">No checklist uploads.</p>
-              </div>
-            </div>
-
-            {/* Comments / Updates Card */}
-            <div className="rounded-[10px] border border-gray-200 bg-white p-10">
-              <h3 className="text-[15px] font-bold text-gray-900">Comments / Updates</h3>
-
-              <form onSubmit={handleAddComment} className="mt-4">
-                <Textarea
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Start typing..."
-                  rows={4}
-                  className="rounded-[10px] border-gray-200 text-[13px]"
-                />
-                <div className="mt-3 flex items-center gap-4">
-                  <Button
-                    type="submit"
-                    size="sm"
-                    disabled={!newComment.trim() || submittingComment}
-                    className="bg-[#00AEEF] hover:bg-[#009CD8] rounded-[10px] px-6"
-                  >
-                    {submittingComment && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-                    Save
-                  </Button>
-                  <label className="flex items-center gap-2 text-[13px] text-gray-600 cursor-pointer">
-                    <Checkbox
-                      checked={commentPublic}
-                      onCheckedChange={(checked) => setCommentPublic(checked === true)}
-                    />
-                    Make Public
-                  </label>
-                </div>
-              </form>
-
-              {/* Comments list */}
-              <div className="mt-5 space-y-3">
-                {comments.map((comment, idx) => {
-                  const authorName = comment.userId?.name || "System";
-                  const dateStr = formatDateTime(comment.dateTime || comment.createdAt);
-                  const isPublic = comment.visibility === 1;
-
-                  return (
-                    <div
-                      key={comment._id}
-                      className={`rounded-[10px] border px-4 py-3 ${
-                        idx % 3 === 0
-                          ? "border-red-200 bg-red-50"
-                          : idx % 3 === 1
-                          ? "border-amber-200 bg-amber-50"
-                          : "border-gray-200 bg-white"
-                      }`}
+                  <hr className="border-gray-200" />
+                  <div className="flex items-center gap-3 px-6 py-4">
+                    <Button
+                      onClick={handleSaveBriefing}
+                      disabled={briefingSaving}
+                      className="bg-cyan-500 hover:bg-cyan-600 text-white rounded-[10px]"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-[12px]">
-                          <span className="font-medium text-[#00AEEF]">{authorName}</span>
-                          <span className="text-gray-400">{dateStr}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-[12px]">
-                          <button className="text-[#00AEEF] hover:underline">
-                            {isPublic ? "Make Private" : "Make Public"}
-                          </button>
-                          <button className="text-[#00AEEF] hover:underline">Edit</button>
-                          <button className="text-[#00AEEF] hover:underline">Delete</button>
-                        </div>
-                      </div>
-                      <p className="mt-1.5 whitespace-pre-wrap text-[13px] text-gray-700">
-                        {comment.comments}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Ticket History Card */}
-            <div className="rounded-[10px] border border-gray-200 bg-white p-10">
-              <h3 className="mb-4 text-[15px] font-bold text-gray-900">Ticket History</h3>
-
-              <div className="flex gap-4 border-b border-gray-200">
-                {["Asset", "Site"].map((tab) => {
-                  const key = tab.toLowerCase();
-                  return (
+                      {briefingSaving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                      Update
+                    </Button>
                     <button
-                      key={tab}
-                      onClick={() => setTicketHistoryTab(key)}
-                      className={`relative pb-2 text-[13px] font-medium ${
-                        ticketHistoryTab === key
-                          ? "text-[#00AEEF]"
-                          : "text-gray-400 hover:text-gray-600"
-                      }`}
+                      onClick={() => setBriefingDialogOpen(false)}
+                      className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
                     >
-                      {tab}
-                      {ticketHistoryTab === key && (
-                        <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#00AEEF]" />
-                      )}
+                      Cancel
                     </button>
-                  );
-                })}
-              </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
 
-              <div className="mt-3">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-[11px] px-2">Ticket Title</TableHead>
-                      <TableHead className="text-[11px] px-2">Date</TableHead>
-                      <TableHead className="text-[11px] px-2">Ticket Owner</TableHead>
-                      <TableHead className="text-[11px] px-2">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell colSpan={4} className="py-4 text-center text-[12px] text-gray-400">
-                        No ticket history
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </div>
+              <hr className="my-5 border-gray-200" />
+
+              <AttachmentsSection
+                attachments={attachments}
+                apiBaseUrl={`/api/job-cards/${id}`}
+                uploadFolder="job-card-attachments"
+                onRefresh={fetchJobCard}
+              >
+                <hr className="my-5 border-gray-200" />
+                {/* Checklist Uploads */}
+                <div>
+                  <h3 className="text-[15px] font-bold text-gray-900">Checklist Uploads</h3>
+                  <p className="mt-2 text-[13px] text-gray-400">No checklist uploads.</p>
+                </div>
+              </AttachmentsSection>
             </div>
+
+            {/* Comments / Updates */}
+            <CommentsSection
+              comments={comments}
+              apiBaseUrl={`/api/job-cards/${id}`}
+              onRefresh={fetchJobCard}
+            />
+
+            {/* Ticket History */}
+            <TicketHistorySection
+              currentId={id}
+              assetId={jobCard.clientAssetId?._id}
+              siteId={jobCard.clientSiteId?._id}
+              apiListUrl="/api/job-cards"
+              detailPathPrefix="/job-cards"
+              statusLabels={JOB_CARD_STATUS_LABELS}
+              statusField="jobCardStatus"
+            />
           </div>
 
           {/* RIGHT COLUMN */}
@@ -1478,7 +1442,7 @@ export default function JobCardDetailPage() {
               <div>
                 <div className="flex items-center justify-between">
                   <h4 className="text-[14px] font-semibold text-white">Job Date</h4>
-                  <button className="text-gray-400 hover:text-gray-200">
+                  <button onClick={openJobDateDialog} className="text-gray-400 hover:text-gray-200 cursor-pointer">
                     <Pencil className="h-4 w-4" />
                   </button>
                 </div>
@@ -1490,20 +1454,123 @@ export default function JobCardDetailPage() {
                     <p className="mt-0.5 text-[13px] font-medium text-[#00AEEF]">
                       {formatJobTime(jobCard.jobDate)}
                     </p>
+                    {jobCard.multiDayJob === 1 && jobCard.jobEndDate && (
+                      <p className="mt-1 text-[13px] text-gray-400">
+                        to {formatJobDate(jobCard.jobEndDate)}
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <p className="mt-3 text-[13px] text-gray-400">
-                    The date for this job has not been set
+                    <button onClick={openJobDateDialog} className="text-[#00AEEF] underline cursor-pointer">Click here</button>
+                    {" "}to set the job date
                   </p>
                 )}
               </div>
+
+              {/* Job Date Dialog */}
+              <Dialog open={jobDateDialogOpen} onOpenChange={setJobDateDialogOpen}>
+                <DialogContent className="max-w-xl rounded-[10px] p-0 gap-0">
+                  <DialogHeader className="px-6 pt-5 pb-4">
+                    <DialogTitle className="text-lg font-bold">Job Date</DialogTitle>
+                  </DialogHeader>
+                  <DialogDescription className="sr-only">Set job date and time</DialogDescription>
+                  <hr className="border-gray-200" />
+                  <div className="px-6 py-5 space-y-5">
+                    {/* Multi Day Job */}
+                    <label className="flex items-center gap-2 text-[13px] text-gray-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={jobDateMultiDay}
+                        onChange={(e) => setJobDateMultiDay(e.target.checked)}
+                        className="rounded border-gray-300"
+                      />
+                      Multi Day job
+                    </label>
+
+                    {/* Start Date */}
+                    <div className="flex items-center gap-4">
+                      <label className="w-[120px] shrink-0 text-[13px] text-gray-700">Start Date</label>
+                      <input
+                        type="date"
+                        value={jobDateStart}
+                        onChange={(e) => setJobDateStart(e.target.value)}
+                        className="flex-1 rounded-[10px] border border-gray-200 px-3 py-2 text-[13px] text-gray-700 outline-none focus:border-cyan-500"
+                      />
+                    </div>
+
+                    {/* End Date (multi-day only) */}
+                    {jobDateMultiDay && (
+                      <div className="flex items-center gap-4">
+                        <label className="w-[120px] shrink-0 text-[13px] text-gray-700">End Date</label>
+                        <input
+                          type="date"
+                          value={jobDateEnd}
+                          onChange={(e) => setJobDateEnd(e.target.value)}
+                          className="flex-1 rounded-[10px] border border-gray-200 px-3 py-2 text-[13px] text-gray-700 outline-none focus:border-cyan-500"
+                        />
+                      </div>
+                    )}
+
+                    {/* Job Time */}
+                    <div className="flex items-center gap-4">
+                      <label className="w-[120px] shrink-0 text-[13px] text-gray-700">Job Time</label>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={jobDateHour}
+                          onChange={(e) => setJobDateHour(e.target.value)}
+                          className="rounded-[10px] border border-gray-200 px-3 py-2 text-[13px] text-gray-700 outline-none focus:border-cyan-500"
+                        >
+                          {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+                            <option key={h} value={String(h)}>{h}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={jobDateMinute}
+                          onChange={(e) => setJobDateMinute(e.target.value)}
+                          className="rounded-[10px] border border-gray-200 px-3 py-2 text-[13px] text-gray-700 outline-none focus:border-cyan-500"
+                        >
+                          {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
+                            <option key={m} value={String(m).padStart(2, "0")}>{String(m).padStart(2, "0")}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={jobDateAmPm}
+                          onChange={(e) => setJobDateAmPm(e.target.value)}
+                          className="rounded-[10px] border border-gray-200 px-3 py-2 text-[13px] text-gray-700 outline-none focus:border-cyan-500"
+                        >
+                          <option value="AM">AM</option>
+                          <option value="PM">PM</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  <hr className="border-gray-200" />
+                  <div className="flex items-center gap-3 px-6 py-4">
+                    <Button
+                      onClick={handleSaveJobDate}
+                      disabled={jobDateSaving || !jobDateStart}
+                      className="bg-cyan-500 hover:bg-cyan-600 text-white rounded-[10px]"
+                    >
+                      {jobDateSaving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                      Update
+                    </Button>
+                    <button
+                      onClick={() => setJobDateDialogOpen(false)}
+                      className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </DialogContent>
+              </Dialog>
 
               {/* Divider */}
               <hr className="my-5 border-gray-600" />
 
               {/* Job Progress */}
               <div>
-                <h4 className="mb-4 text-[14px] font-semibold text-white">Job Progress</h4>
+                <h4 className="mb-4 text-[14px] font-bold text-white italic">Job Progress</h4>
 
                 <div className="space-y-[10px]">
                   {JOB_PROGRESS_STEPS.map((step, idx) => {
@@ -1511,10 +1578,11 @@ export default function JobCardDetailPage() {
                     return (
                       <div
                         key={step.label}
-                        className="w-full cursor-pointer rounded-[10px] border border-[#30373E] px-5 py-[7px] text-[14px] leading-[31px] text-white"
+                        onClick={() => handleProgressClick(idx)}
+                        className="w-full cursor-pointer rounded-[10px] px-5 py-[7px] text-[14px] leading-[31px] text-white transition-colors"
                         style={{
-                          backgroundColor: isCompleted ? "#EAB308" : "#30373E",
-                          borderColor: isCompleted ? "#EAB308" : "#30373E",
+                          backgroundColor: isCompleted ? step.color : "#30373E",
+                          border: isCompleted ? `2px solid ${step.color}` : "2px solid #3E4650",
                         }}
                       >
                         {step.label}
