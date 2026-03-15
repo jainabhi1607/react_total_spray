@@ -5,9 +5,12 @@ import {
   successResponse,
   errorResponse,
   handleApiError,
+  getClientIp,
 } from "@/lib/api-helpers";
 import JobCardClientAsset from "@/models/JobCardClientAsset";
 import JobCardAssetChecklistItem from "@/models/JobCardAssetChecklistItem";
+import JobCardLog from "@/models/JobCardLog";
+import ClientAsset from "@/models/ClientAsset";
 
 export async function GET(
   req: NextRequest,
@@ -73,6 +76,16 @@ export async function POST(
       addedBy: session.id,
       dateTime: new Date(),
       status: 1,
+    });
+
+    // Log asset addition
+    const asset = await ClientAsset.findById(clientAssetId).lean();
+    await JobCardLog.create({
+      jobCardId: id,
+      userId: session.id,
+      task: `Job assets added: ${(asset as any)?.machineName || clientAssetId}`,
+      dateTime: new Date(),
+      ipAddress: getClientIp(req),
     });
 
     return successResponse(jobCardClientAsset, 201);

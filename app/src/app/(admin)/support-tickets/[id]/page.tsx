@@ -327,6 +327,11 @@ export default function SupportTicketDetailPage() {
   const [resolveSelectedContactIds, setResolveSelectedContactIds] = useState<Set<string>>(new Set());
   const [resolveContactsLoading, setResolveContactsLoading] = useState(false);
 
+  // Add Job Card dialog
+  const [addJobCardOpen, setAddJobCardOpen] = useState(false);
+  const [addJobCardSaving, setAddJobCardSaving] = useState(false);
+  const [linkedJobCards, setLinkedJobCards] = useState<{ _id: string; ticketNo: number; jobCardStatus: number; createdAt: string }[]>([]);
+
   // ─── Fetch ────────────────────────────────────────────────────────────
 
   const fetchTicket = useCallback(async () => {
@@ -376,6 +381,67 @@ export default function SupportTicketDetailPage() {
   useEffect(() => {
     fetchTicket();
   }, [fetchTicket]);
+
+  // ─── Fetch linked job cards ──────────────────────────────────────────
+  const fetchLinkedJobCards = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/job-cards?supportTicketId=${ticketId}&limit=100`);
+      const json = await res.json();
+      if (json.success) {
+        const raw = json.data;
+        setLinkedJobCards(Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : []);
+      }
+    } catch {
+      setLinkedJobCards([]);
+    }
+  }, [ticketId]);
+
+  useEffect(() => {
+    fetchLinkedJobCards();
+  }, [fetchLinkedJobCards]);
+
+  // ─── Add Job Card from support ticket ──────────────────────────────
+  async function handleAddJobCard() {
+    if (!ticket) return;
+    setAddJobCardSaving(true);
+    try {
+      // Create job card with ticket details
+      const res = await fetch("/api/job-cards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: ticket.clientId?._id,
+          clientSiteId: ticket.clientSiteId?._id,
+          clientContactId: ticket.clientContactId?._id,
+          titleId: ticket.titleId?._id,
+          description: detail?.description || "",
+          warranty: 0,
+          supportTicketId: ticket._id,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        // Mark ticket as On-Site Technician (status 3)
+        await fetch(`/api/support-tickets/${ticketId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            onSiteTechnicianRequired: 1,
+            ticketStatus: 3,
+          }),
+        });
+        setAddJobCardOpen(false);
+        fetchTicket();
+        fetchLinkedJobCards();
+      } else {
+        alert(json.error || "Failed to create job card");
+      }
+    } catch {
+      alert("Failed to create job card");
+    } finally {
+      setAddJobCardSaving(false);
+    }
+  }
 
   // ─── Ticket History (handled by TicketHistorySection component) ──────
 
@@ -1643,12 +1709,32 @@ export default function SupportTicketDetailPage() {
             <CardContent className="p-10">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-base font-semibold text-gray-900">Job Cards</p>
-                <button className="flex items-center gap-1.5 rounded-[10px] border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 cursor-pointer hover:bg-gray-50">
+                <button
+                  onClick={() => setAddJobCardOpen(true)}
+                  className="flex items-center gap-1.5 rounded-[10px] border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 cursor-pointer hover:bg-gray-50"
+                >
                   <Plus className="h-3.5 w-3.5" />
                   Add Job Card
                 </button>
               </div>
-              <p className="text-sm text-gray-400 py-2 text-center">No job cards</p>
+              {linkedJobCards.length === 0 ? (
+                <p className="text-sm text-gray-400 py-2 text-center">No job cards</p>
+              ) : (
+                <div className="space-y-2">
+                  {linkedJobCards.map((jc) => (
+                    <Link
+                      key={jc._id}
+                      href={`/job-cards/${jc._id}`}
+                      className="flex items-center justify-between rounded-[10px] border border-gray-200 px-4 py-3 hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="text-sm text-cyan-500 underline font-medium">
+                        #{jc.ticketNo}
+                      </span>
+                      <ExternalLink className="h-4 w-4 text-gray-400" />
+                    </Link>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -1876,6 +1962,43 @@ export default function SupportTicketDetailPage() {
           fetchTicket();
         }}
       />
+
+      {/* ─── Add Job Card Dialog ──────────────────────────────────── */}
+      <Dialog open={addJobCardOpen} onOpenChange={setAddJobCardOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Job Card</DialogTitle>
+          </DialogHeader>
+          <hr />
+          <div className="space-y-4 px-2 py-3">
+            <p className="text-[14px] text-gray-700">Adding a new job card will:</p>
+            <ul className="list-disc pl-8 space-y-1.5 text-[14px] text-gray-900">
+              <li><strong>Create a new Job Card</strong>, with copy job details</li>
+              <li><strong>Link this support ticket</strong> with that job card</li>
+              <li><strong>Mark this support ticket</strong> as &quot;On-Site Technician&quot;</li>
+            </ul>
+            <p className="text-[14px] text-gray-700">Confirm below if you like to proceed.</p>
+            <p className="text-[14px] text-orange-500">This action cannot be undone</p>
+          </div>
+          <hr />
+          <div className="flex items-center gap-3 px-2">
+            <Button
+              onClick={handleAddJobCard}
+              disabled={addJobCardSaving}
+              className="bg-cyan-500 hover:bg-cyan-600 text-white"
+            >
+              {addJobCardSaving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Confirm
+            </Button>
+            <button
+              onClick={() => setAddJobCardOpen(false)}
+              className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ─── Claim Ticket Dialog ──────────────────────────────────── */}
       <Dialog open={claimDialogOpen} onOpenChange={setClaimDialogOpen}>

@@ -7,6 +7,7 @@ import {
   handleApiError,
 } from "@/lib/api-helpers";
 import JobCardAssetChecklistItem from "@/models/JobCardAssetChecklistItem";
+import JobCardAssetChecklistItemAttachment from "@/models/JobCardAssetChecklistItemAttachment";
 import JobCardClientAsset from "@/models/JobCardClientAsset";
 
 export async function GET(
@@ -24,7 +25,25 @@ export async function GET(
       .sort({ orderNo: 1 })
       .lean();
 
-    return successResponse(checklistItems);
+    // Fetch attachments for all checklist items
+    const itemIds = checklistItems.map((item: any) => item._id);
+    const attachments = await JobCardAssetChecklistItemAttachment.find({
+      jobCardAssetChecklistItemId: { $in: itemIds },
+    }).lean();
+
+    const attachmentMap = new Map<string, any[]>();
+    for (const att of attachments as any[]) {
+      const key = att.jobCardAssetChecklistItemId.toString();
+      if (!attachmentMap.has(key)) attachmentMap.set(key, []);
+      attachmentMap.get(key)!.push(att);
+    }
+
+    const itemsWithAttachments = checklistItems.map((item: any) => ({
+      ...item,
+      attachments: attachmentMap.get(item._id.toString()) || [],
+    }));
+
+    return successResponse(itemsWithAttachments);
   } catch (error) {
     return handleApiError(error);
   }
@@ -64,7 +83,6 @@ export async function POST(
       orderNo,
       fileName,
       fileSize,
-      setDateTime: new Date(),
     });
 
     return successResponse(checklistItem, 201);

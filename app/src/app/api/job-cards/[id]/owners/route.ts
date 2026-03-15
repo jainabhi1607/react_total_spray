@@ -5,10 +5,12 @@ import {
   successResponse,
   errorResponse,
   handleApiError,
+  getClientIp,
 } from "@/lib/api-helpers";
 import JobCardOwner from "@/models/JobCardOwner";
 import JobCard from "@/models/JobCard";
-import "@/models/User";
+import JobCardLog from "@/models/JobCardLog";
+import User from "@/models/User";
 
 export async function GET(
   req: NextRequest,
@@ -106,6 +108,17 @@ export async function PUT(
     const owners = await JobCardOwner.find({ jobCardId: id })
       .populate("userId", "name email")
       .lean();
+
+    // Log owner assignment
+    const ownerUsers = await User.find({ _id: { $in: userIds } }).select("name lastName").lean();
+    const ownerNames = ownerUsers.map((u: any) => `${u.name}${u.lastName ? " " + u.lastName : ""}`).join(", ");
+    await JobCardLog.create({
+      jobCardId: id,
+      userId: session.id,
+      task: `Job Card owners updated: ${ownerNames}`,
+      dateTime: new Date(),
+      ipAddress: getClientIp(req),
+    });
 
     return successResponse(owners);
   } catch (error) {

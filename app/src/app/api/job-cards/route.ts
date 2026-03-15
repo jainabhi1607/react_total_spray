@@ -67,6 +67,12 @@ export async function GET(req: NextRequest) {
       query.clientAssetId = clientAssetIdParam;
     }
 
+    // Filter by supportTicketId
+    const supportTicketIdParam = searchParams.get("supportTicketId");
+    if (supportTicketIdParam) {
+      query.supportTicketId = supportTicketIdParam;
+    }
+
     // Filter by jobCardStatus
     const jobCardStatus = searchParams.get("jobCardStatus");
     if (jobCardStatus) {
@@ -76,7 +82,7 @@ export async function GET(req: NextRequest) {
     // Tab filtering: active, complete, recurring
     const tab = searchParams.get("tab");
     if (tab === "active") {
-      query.jobCardStatus = { $gte: 1, $lte: 8 };
+      query.jobCardStatus = { $gte: 0, $lte: 8 };
       query.recurringJob = { $ne: 1 };
     } else if (tab === "complete") {
       query.jobCardStatus = 9;
@@ -126,6 +132,7 @@ export async function POST(req: NextRequest) {
       recurringPeriod,
       recurringRange,
       startDate,
+      supportTicketId,
     } = body;
 
     if (!clientId) {
@@ -140,7 +147,7 @@ export async function POST(req: NextRequest) {
 
     const uniqueId = generateUniqueId();
 
-    const jobCard = await JobCard.create({
+    const createData: Record<string, any> = {
       ticketNo,
       uniqueId,
       userId: session.id,
@@ -157,10 +164,16 @@ export async function POST(req: NextRequest) {
       recurringPeriod,
       recurringRange,
       startDate,
-      jobCardStatus: 1,
+      jobCardStatus: supportTicketId ? 0 : 1,
       status: 1,
       dateTime: new Date(),
-    });
+    };
+
+    if (supportTicketId) {
+      createData.supportTicketId = supportTicketId;
+    }
+
+    const jobCard = await JobCard.create(createData);
 
     // Create JobCardDetail
     await JobCardDetail.create({
@@ -173,7 +186,7 @@ export async function POST(req: NextRequest) {
     await JobCardLog.create({
       jobCardId: jobCard._id,
       userId: session.id,
-      task: "Job card created",
+      task: `Job Card Created: ${ticketNo}${supportTicketId ? " (from Support Ticket)" : ""}`,
       dateTime: new Date(),
     });
 

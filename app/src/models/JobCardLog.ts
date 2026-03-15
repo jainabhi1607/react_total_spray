@@ -5,6 +5,7 @@ export interface IJobCardLogDocument extends Document {
   userId?: mongoose.Types.ObjectId;
   task?: string;
   dateTime?: Date;
+  ipAddress?: string;
 }
 
 const JobCardLogSchema = new Schema<IJobCardLogDocument>(
@@ -13,6 +14,7 @@ const JobCardLogSchema = new Schema<IJobCardLogDocument>(
     userId: { type: Schema.Types.ObjectId, ref: "User" },
     task: { type: String },
     dateTime: { type: Date },
+    ipAddress: { type: String },
   },
   { timestamps: true }
 );

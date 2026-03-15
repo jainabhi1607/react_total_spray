@@ -86,3 +86,11 @@ export function paginatedResponse(data: any[], total: number, page: number, limi
     totalPages: Math.ceil(total / limit),
   });
 }
+
+export function getClientIp(req: NextRequest): string {
+  return (
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown"
+  );
+}

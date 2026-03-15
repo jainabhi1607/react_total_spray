@@ -33,20 +33,26 @@ export async function GET(req: NextRequest) {
       ChecklistTemplate.countDocuments(query),
     ]);
 
-    // Attach tag count to each template
+    // Attach tag count and tag IDs to each template
     const templateIds = templates.map((t: any) => t._id);
-    const tagCounts = await ChecklistTemplateTag.aggregate([
-      { $match: { checklistTemplateId: { $in: templateIds } } },
-      { $group: { _id: "$checklistTemplateId", count: { $sum: 1 } } },
-    ]);
+    const templateTags = await ChecklistTemplateTag.find({
+      checklistTemplateId: { $in: templateIds },
+    }).lean();
 
-    const tagCountMap = new Map(
-      tagCounts.map((tc: any) => [tc._id.toString(), tc.count])
-    );
+    const tagCountMap = new Map<string, number>();
+    const tagIdsMap = new Map<string, string[]>();
+    for (const tt of templateTags as any[]) {
+      const tid = tt.checklistTemplateId.toString();
+      tagCountMap.set(tid, (tagCountMap.get(tid) || 0) + 1);
+      const ids = tagIdsMap.get(tid) || [];
+      ids.push(tt.checklistTagId.toString());
+      tagIdsMap.set(tid, ids);
+    }
 
     const templatesWithTagCount = templates.map((t: any) => ({
       ...t,
       tagCount: tagCountMap.get(t._id.toString()) || 0,
+      tagIds: tagIdsMap.get(t._id.toString()) || [],
     }));
 
     return paginatedResponse(templatesWithTagCount, total, page, limit);

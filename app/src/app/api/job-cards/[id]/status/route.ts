@@ -5,6 +5,7 @@ import {
   successResponse,
   errorResponse,
   handleApiError,
+  getClientIp,
 } from "@/lib/api-helpers";
 import JobCard from "@/models/JobCard";
 import JobCardLog from "@/models/JobCardLog";
@@ -44,6 +45,7 @@ export async function PUT(
       userId: session.id,
       task: `Job card status changed from ${oldLabel} to ${newLabel}`,
       dateTime: new Date(),
+      ipAddress: getClientIp(req),
     });
 
     return successResponse(jobCard);

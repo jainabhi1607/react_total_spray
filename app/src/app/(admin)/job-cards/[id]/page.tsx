@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -12,11 +12,16 @@ import {
   Archive,
   RefreshCcw,
   Link2,
+  Upload,
+  X,
 } from "lucide-react";
 import { PlusSquareIcon, TrashIcon } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -191,6 +196,160 @@ interface JobCardData {
   owners?: OwnerData[];
 }
 
+// --- Checklist Constants ---
+
+const SECTION_BREAK_TYPE = 0;
+
+const CHECKLIST_RESPONSE_TYPES = [
+  { value: 1, label: "Checkbox", color: "bg-teal-100 text-teal-800" },
+  { value: 2, label: "Pass/Fail/N/A", color: "bg-orange-100 text-orange-800" },
+  { value: 3, label: "Image", color: "bg-green-100 text-green-800" },
+  { value: 4, label: "Comment", color: "bg-gray-200 text-gray-800" },
+  { value: 5, label: "Yes/No", color: "bg-blue-100 text-blue-800" },
+  { value: 6, label: "Poor/Fair/Good", color: "bg-purple-100 text-purple-800" },
+  { value: 7, label: "Signature", color: "bg-amber-100 text-amber-800" },
+  { value: 8, label: "Set Date & Time", color: "bg-indigo-100 text-indigo-800" },
+  { value: 9, label: "Text Only - No Response", color: "bg-slate-100 text-slate-700" },
+];
+
+function getChecklistTypeLabel(type: number): string {
+  if (type === SECTION_BREAK_TYPE) return "Section Break";
+  return CHECKLIST_RESPONSE_TYPES.find((t) => t.value === type)?.label || "Unknown";
+}
+
+function getChecklistTypeColor(type: number): string {
+  return (
+    CHECKLIST_RESPONSE_TYPES.find((t) => t.value === type)?.color ||
+    "bg-gray-100 text-gray-800"
+  );
+}
+
+interface ChecklistItemData {
+  _id: string;
+  details: string;
+  checklistItemType: number;
+  makeResponseMandatory: number;
+  orderNo: number;
+  fileName?: string;
+  fileSize?: string;
+  fileRealName?: string;
+  responseType1?: number;
+  responseType2?: number;
+  comments?: string;
+  signature?: string;
+  signatureDateTime?: string;
+  setDateTime?: string;
+  markAsDone?: number;
+  attachments?: { _id: string; documentName?: string; fileName: string; fileSize?: number }[];
+}
+
+interface TemplateData {
+  _id: string;
+  title: string;
+  tagIds?: string[];
+}
+
+interface TemplateTagData {
+  _id: string;
+  title: string;
+}
+
+// --- Image Viewer Popup ---
+
+function ImageViewerPopup({
+  images,
+  initialIndex,
+  onClose,
+}: {
+  images: { src: string; label?: string }[];
+  initialIndex: number;
+  onClose: () => void;
+}) {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") setCurrentIndex((p) => (p > 0 ? p - 1 : images.length - 1));
+      if (e.key === "ArrowRight") setCurrentIndex((p) => (p < images.length - 1 ? p + 1 : 0));
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [images.length, onClose]);
+
+  if (images.length === 0) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80"
+      onClick={onClose}
+    >
+      <div
+        className="relative max-w-[90vw] max-h-[90vh] flex flex-col items-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute -top-3 -right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white text-gray-700 shadow-lg hover:bg-gray-100 cursor-pointer text-lg font-bold"
+        >
+          ×
+        </button>
+
+        {/* Image */}
+        <img
+          src={images[currentIndex].src}
+          alt={images[currentIndex].label || "Image"}
+          className="max-h-[80vh] max-w-[85vw] rounded-[10px] object-contain"
+        />
+
+        {/* Label */}
+        {images[currentIndex].label && (
+          <p className="mt-2 text-sm text-white">{images[currentIndex].label}</p>
+        )}
+
+        {/* Navigation arrows (only if multiple images) */}
+        {images.length > 1 && (
+          <>
+            <button
+              onClick={() => setCurrentIndex((p) => (p > 0 ? p - 1 : images.length - 1))}
+              className="absolute left-[-50px] top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-lg hover:bg-white cursor-pointer text-xl"
+            >
+              ‹
+            </button>
+            <button
+              onClick={() => setCurrentIndex((p) => (p < images.length - 1 ? p + 1 : 0))}
+              className="absolute right-[-50px] top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-lg hover:bg-white cursor-pointer text-xl"
+            >
+              ›
+            </button>
+
+            {/* Dots indicator */}
+            <div className="mt-3 flex gap-1.5">
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentIndex(i)}
+                  className={`h-2 w-2 rounded-full cursor-pointer transition-colors ${
+                    i === currentIndex ? "bg-white" : "bg-white/40"
+                  }`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Counter */}
+        {images.length > 1 && (
+          <p className="mt-1 text-[12px] text-white/70">
+            {currentIndex + 1} / {images.length}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // --- Progress steps ---
 
 const JOB_PROGRESS_STEPS = [
@@ -204,6 +363,104 @@ const JOB_PROGRESS_STEPS = [
   { label: "Internal Review", color: "#2B790E" },
   { label: "Job Invoiced", color: "#000000" },
 ];
+
+// --- Signature Pad Component ---
+
+function SignaturePad({ onSave }: { onSave: (dataUrl: string) => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [hasDrawn, setHasDrawn] = useState(false);
+
+  function getPos(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    if ("touches" in e) {
+      return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+    }
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function startDraw(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
+    e.preventDefault();
+    const ctx = canvasRef.current?.getContext("2d");
+    if (!ctx) return;
+    const { x, y } = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    setIsDrawing(true);
+    setHasDrawn(true);
+  }
+
+  function draw(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
+    e.preventDefault();
+    if (!isDrawing) return;
+    const ctx = canvasRef.current?.getContext("2d");
+    if (!ctx) return;
+    const { x, y } = getPos(e);
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#000";
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  }
+
+  function endDraw() {
+    setIsDrawing(false);
+  }
+
+  function clearCanvas() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setHasDrawn(false);
+  }
+
+  function saveSignature() {
+    const canvas = canvasRef.current;
+    if (!canvas || !hasDrawn) return;
+    const dataUrl = canvas.toDataURL("image/png");
+    onSave(dataUrl);
+  }
+
+  return (
+    <div>
+      <canvas
+        ref={canvasRef}
+        width={300}
+        height={100}
+        className="rounded-[10px] border border-gray-300 bg-white cursor-crosshair"
+        style={{ touchAction: "none" }}
+        onMouseDown={startDraw}
+        onMouseMove={draw}
+        onMouseUp={endDraw}
+        onMouseLeave={endDraw}
+        onTouchStart={startDraw}
+        onTouchMove={draw}
+        onTouchEnd={endDraw}
+      />
+      <div className="flex gap-3 mt-2">
+        <button
+          onClick={saveSignature}
+          disabled={!hasDrawn}
+          className={`text-[12px] font-medium border border-gray-300 rounded-[10px] px-3 py-1 cursor-pointer ${
+            hasDrawn ? "text-gray-700 hover:bg-gray-50" : "text-gray-300"
+          }`}
+        >
+          Save
+        </button>
+        <button
+          onClick={clearCanvas}
+          className="text-[12px] text-gray-600 font-medium border border-gray-300 rounded-[10px] px-3 py-1 hover:bg-gray-50 cursor-pointer"
+        >
+          Clear
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // --- Circular Progress Ring ---
 
@@ -310,6 +567,51 @@ export default function JobCardDetailPage() {
   const [claimLoading, setClaimLoading] = useState(false);
   const [claimSubmitting, setClaimSubmitting] = useState(false);
 
+  // Checklist tab state
+  const [checklistAssetId, setChecklistAssetId] = useState<string | null>(null);
+  const [checklistItems, setChecklistItems] = useState<ChecklistItemData[]>([]);
+  const [checklistLoading, setChecklistLoading] = useState(false);
+
+  // Checklist - Add Template dialog
+  const [addTemplateOpen, setAddTemplateOpen] = useState(false);
+  const [templates, setTemplates] = useState<TemplateData[]>([]);
+  const [templateTags, setTemplateTags] = useState<TemplateTagData[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [addTemplateSaving, setAddTemplateSaving] = useState(false);
+
+  // Checklist - Add Section Break dialog
+  const [clSectionBreakOpen, setClSectionBreakOpen] = useState(false);
+  const [clSectionBreakDetails, setClSectionBreakDetails] = useState("");
+  const [clSectionBreakSaving, setClSectionBreakSaving] = useState(false);
+
+  // Checklist - Add/Edit Item dialog
+  const [clItemOpen, setClItemOpen] = useState(false);
+  const [clItemEditId, setClItemEditId] = useState<string | null>(null);
+  const [clItemDetails, setClItemDetails] = useState("");
+  const [clItemType, setClItemType] = useState("");
+  const [clItemMandatory, setClItemMandatory] = useState(false);
+  const [clItemFile, setClItemFile] = useState<File | null>(null);
+  const [clItemFileName, setClItemFileName] = useState("");
+  const [clItemSaving, setClItemSaving] = useState(false);
+
+  // Checklist - Drag and drop
+  const [clDragIndex, setClDragIndex] = useState<number | null>(null);
+  const [clDragOverIndex, setClDragOverIndex] = useState<number | null>(null);
+
+  // Image viewer popup
+  const [viewerImages, setViewerImages] = useState<{ src: string; label?: string }[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const [viewerOpen, setViewerOpen] = useState(false);
+
+  // Job Card Log tab
+  const [logEntries, setLogEntries] = useState<any[]>([]);
+  const [logLoading, setLogLoading] = useState(false);
+  const [logPage, setLogPage] = useState(1);
+  const [logTotal, setLogTotal] = useState(0);
+  const [logTotalPages, setLogTotalPages] = useState(1);
+  const LOG_LIMIT = 10;
+
   // Fetch job card types from settings
   useEffect(() => {
     async function fetchTypes() {
@@ -338,7 +640,7 @@ export default function JobCardDetailPage() {
       const json = await res.json();
 
       if (!res.ok || !json.success) {
-        throw new Error(json.message || "Failed to load job card");
+        throw new Error(json.error || "Failed to load job card");
       }
 
       setJobCard(json.data);
@@ -352,6 +654,62 @@ export default function JobCardDetailPage() {
   useEffect(() => {
     fetchJobCard();
   }, [fetchJobCard]);
+
+  // ─── Checklist hooks (must be before early returns) ────────────────
+  const fetchChecklistItems = useCallback(async (assetId: string) => {
+    setChecklistLoading(true);
+    try {
+      const res = await fetch(`/api/job-cards/${id}/assets/${assetId}/checklist`);
+      const json = await res.json();
+      if (json.success) {
+        setChecklistItems(json.data || []);
+      }
+    } catch {
+      setChecklistItems([]);
+    } finally {
+      setChecklistLoading(false);
+    }
+  }, [id]);
+
+  const jobCardClientAssets = jobCard?.clientAssets || [];
+
+  useEffect(() => {
+    if (activeTab === "checklists" && jobCardClientAssets.length > 0) {
+      const stillValid = checklistAssetId && jobCardClientAssets.some((a) => a._id === checklistAssetId);
+      if (!stillValid) {
+        const firstId = jobCardClientAssets[0]._id;
+        setChecklistAssetId(firstId);
+        fetchChecklistItems(firstId);
+      }
+    }
+  }, [activeTab, jobCardClientAssets, checklistAssetId, fetchChecklistItems]);
+
+  // --- Job Card Log ---
+  const fetchLogs = useCallback(async (page: number) => {
+    setLogLoading(true);
+    try {
+      const res = await fetch(`/api/job-cards/${id}/logs?page=${page}&limit=${LOG_LIMIT}`);
+      const json = await res.json();
+      if (json.success) {
+        const d = json.data;
+        setLogEntries(d.data || []);
+        setLogTotal(d.total || 0);
+        setLogTotalPages(d.totalPages || 1);
+        setLogPage(d.page || 1);
+      }
+    } catch {
+      setLogEntries([]);
+    } finally {
+      setLogLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (activeTab === "job-card-log") {
+      fetchLogs(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   // --- Comments ---
 
@@ -715,6 +1073,394 @@ export default function JobCardDetailPage() {
   const clientAssets = jobCard.clientAssets || [];
   const owners = jobCard.owners || [];
   const detail = jobCard.detail;
+
+  // Save a single item's response field
+  async function saveItemResponse(itemId: string, data: Record<string, any>) {
+    if (!checklistAssetId) return;
+    const assetId = checklistAssetId;
+    setChecklistItems((prev) =>
+      prev.map((item) => (item._id === itemId ? { ...item, ...data } : item))
+    );
+    try {
+      await fetch(
+        `/api/job-cards/${id}/assets/${assetId}/checklist/${itemId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        }
+      );
+    } catch {
+      fetchChecklistItems(assetId);
+    }
+  }
+
+  // Upload image for checklist item (type 3)
+  async function handleChecklistImageUpload(itemId: string, files: FileList) {
+    if (!checklistAssetId) return;
+    const assetId = checklistAssetId;
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "checklist-attachments");
+      try {
+        const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+        const uploadJson = await uploadRes.json();
+        if (uploadRes.ok && uploadJson.success) {
+          await fetch(
+            `/api/job-cards/${id}/assets/${assetId}/checklist/${itemId}/attachments`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                documentName: file.name,
+                fileName: uploadJson.data.fileName,
+                fileSize: file.size,
+              }),
+            }
+          );
+        }
+      } catch {
+        // silent
+      }
+    }
+    fetchChecklistItems(assetId);
+  }
+
+  // Delete checklist item attachment
+  async function handleDeleteChecklistAttachment(itemId: string, attachmentId: string) {
+    if (!checklistAssetId) return;
+    const assetId = checklistAssetId;
+    try {
+      await fetch(
+        `/api/job-cards/${id}/assets/${assetId}/checklist/${itemId}/attachments?attachmentId=${attachmentId}`,
+        { method: "DELETE" }
+      );
+      fetchChecklistItems(assetId);
+    } catch {
+      // silent
+    }
+  }
+
+  function handleSelectChecklistAsset(assetId: string) {
+    setChecklistAssetId(assetId);
+    fetchChecklistItems(assetId);
+  }
+
+  // Navigate from overview checklist link to checklist tab
+  function navigateToChecklist(assetId: string) {
+    setChecklistAssetId(assetId);
+    setActiveTab("checklists");
+    fetchChecklistItems(assetId);
+  }
+
+  // Add Template dialog
+  async function openAddTemplateDialog() {
+    setAddTemplateOpen(true);
+    setSelectedTemplateId(null);
+    try {
+      const [templatesRes, tagsRes] = await Promise.all([
+        fetch("/api/checklists?limit=200"),
+        fetch("/api/checklists/tags"),
+      ]);
+      const templatesJson = await templatesRes.json();
+      const tagsJson = await tagsRes.json();
+      if (templatesJson.success) {
+        const raw = templatesJson.data;
+        setTemplates(Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : []);
+      }
+      const tags = tagsJson.success ? (tagsJson.data || []) : [];
+      setTemplateTags(tags);
+      // Select all tags by default
+      setSelectedTagIds(new Set(tags.map((t: TemplateTagData) => t._id)));
+    } catch {
+      setTemplates([]);
+      setTemplateTags([]);
+      setSelectedTagIds(new Set());
+    }
+  }
+
+  function toggleTagFilter(tagId: string) {
+    setSelectedTagIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(tagId)) next.delete(tagId);
+      else next.add(tagId);
+      return next;
+    });
+  }
+
+  async function handleAddTemplate() {
+    if (!selectedTemplateId || !checklistAssetId) return;
+    setAddTemplateSaving(true);
+    try {
+      const res = await fetch(
+        `/api/job-cards/${id}/assets/${checklistAssetId}/checklist/add-template`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ templateId: selectedTemplateId }),
+        }
+      );
+      const json = await res.json();
+      setAddTemplateOpen(false);
+      if (res.ok && json.success && Array.isArray(json.data) && json.data.length > 0) {
+        fetchChecklistItems(checklistAssetId);
+        fetchJobCard();
+      }
+    } catch {
+      setAddTemplateOpen(false);
+    } finally {
+      setAddTemplateSaving(false);
+    }
+  }
+
+  // Add Section Break
+  async function handleAddSectionBreak() {
+    if (!clSectionBreakDetails.trim() || !checklistAssetId) return;
+    setClSectionBreakSaving(true);
+    try {
+      const maxOrder = Math.max(0, ...checklistItems.map((i) => i.orderNo || 0));
+      const res = await fetch(
+        `/api/job-cards/${id}/assets/${checklistAssetId}/checklist`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            details: clSectionBreakDetails.trim(),
+            checklistItemType: SECTION_BREAK_TYPE,
+            makeResponseMandatory: 0,
+            orderNo: maxOrder + 1,
+          }),
+        }
+      );
+      const json = await res.json();
+      if (json.success) {
+        setClSectionBreakOpen(false);
+        setClSectionBreakDetails("");
+        fetchChecklistItems(checklistAssetId);
+        fetchJobCard();
+      }
+    } catch {
+      // silent
+    } finally {
+      setClSectionBreakSaving(false);
+    }
+  }
+
+  // Add/Edit Checklist Item
+  function openAddItemDialog() {
+    setClItemEditId(null);
+    setClItemDetails("");
+    setClItemType("1");
+    setClItemMandatory(false);
+    setClItemFile(null);
+    setClItemFileName("");
+    setClItemOpen(true);
+  }
+
+  function openEditItemDialog(item: ChecklistItemData) {
+    const isSB = item.checklistItemType === SECTION_BREAK_TYPE;
+    if (isSB) {
+      // Edit section break inline via section break dialog
+      setClSectionBreakDetails(item.details || "");
+      setClItemEditId(item._id);
+      setClSectionBreakOpen(true);
+      return;
+    }
+    setClItemEditId(item._id);
+    setClItemDetails(item.details || "");
+    setClItemType(String(item.checklistItemType));
+    setClItemMandatory(item.makeResponseMandatory === 1);
+    setClItemFileName(item.fileName || "");
+    setClItemFile(null);
+    setClItemOpen(true);
+  }
+
+  async function handleSaveChecklistItem() {
+    if (!clItemDetails.trim() || !clItemType || !checklistAssetId) return;
+    const assetId = checklistAssetId;
+    setClItemSaving(true);
+    try {
+      // Upload file first if selected
+      let uploadedFileName = clItemFileName || "";
+      let uploadedFileSize = "";
+      if (clItemFile) {
+        const formData = new FormData();
+        formData.append("file", clItemFile);
+        formData.append("folder", "checklist-attachments");
+        const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+        const uploadJson = await uploadRes.json();
+        if (uploadRes.ok && uploadJson.success) {
+          uploadedFileName = uploadJson.data.fileName;
+          uploadedFileSize = String(clItemFile.size);
+        }
+      }
+
+      if (clItemEditId) {
+        // Update existing item
+        const res = await fetch(
+          `/api/job-cards/${id}/assets/${assetId}/checklist/${clItemEditId}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              details: clItemDetails.trim(),
+              checklistItemType: parseInt(clItemType),
+              makeResponseMandatory: clItemMandatory ? 1 : 0,
+              fileName: uploadedFileName,
+              fileSize: uploadedFileSize || undefined,
+              fileRealName: clItemFile ? clItemFile.name : undefined,
+            }),
+          }
+        );
+        const json = await res.json();
+        if (json.success) {
+          setClItemOpen(false);
+          fetchChecklistItems(assetId);
+        }
+      } else {
+        // Create new item
+        const maxOrder = Math.max(0, ...checklistItems.map((i) => i.orderNo || 0));
+        const res = await fetch(
+          `/api/job-cards/${id}/assets/${assetId}/checklist`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              details: clItemDetails.trim(),
+              checklistItemType: parseInt(clItemType),
+              makeResponseMandatory: clItemMandatory ? 1 : 0,
+              orderNo: maxOrder + 1,
+              fileName: uploadedFileName,
+              fileSize: uploadedFileSize,
+              fileRealName: clItemFile ? clItemFile.name : "",
+            }),
+          }
+        );
+        const json = await res.json();
+        if (json.success) {
+          setClItemOpen(false);
+          fetchChecklistItems(assetId);
+          fetchJobCard();
+        }
+      }
+    } catch {
+      // silent
+    } finally {
+      setClItemSaving(false);
+    }
+  }
+
+  // Edit section break (uses same dialog but with edit ID)
+  async function handleEditSectionBreak() {
+    if (!clSectionBreakDetails.trim() || !checklistAssetId) return;
+    setClSectionBreakSaving(true);
+    try {
+      if (clItemEditId) {
+        // Update existing section break
+        const res = await fetch(
+          `/api/job-cards/${id}/assets/${checklistAssetId}/checklist/${clItemEditId}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              details: clSectionBreakDetails.trim(),
+              checklistItemType: SECTION_BREAK_TYPE,
+              makeResponseMandatory: 0,
+            }),
+          }
+        );
+        const json = await res.json();
+        if (json.success) {
+          setClSectionBreakOpen(false);
+          setClItemEditId(null);
+          fetchChecklistItems(checklistAssetId);
+        }
+      } else {
+        await handleAddSectionBreak();
+      }
+    } catch {
+      // silent
+    } finally {
+      setClSectionBreakSaving(false);
+    }
+  }
+
+  // Delete checklist item
+  async function handleDeleteChecklistItem(itemId: string) {
+    if (!confirm("Delete this item?") || !checklistAssetId) return;
+    const assetId = checklistAssetId;
+    try {
+      const res = await fetch(
+        `/api/job-cards/${id}/assets/${assetId}/checklist/${itemId}`,
+        { method: "DELETE" }
+      );
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        alert(json.error || "Failed to delete item.");
+        return;
+      }
+      fetchChecklistItems(assetId);
+      fetchJobCard();
+    } catch {
+      alert("Failed to delete item.");
+    }
+  }
+
+  // Clear all checklist items
+  async function handleClearAllChecklist() {
+    if (!confirm("Clear all checklist items for this asset?") || !checklistAssetId) return;
+    const assetId = checklistAssetId;
+    let failCount = 0;
+    for (const item of checklistItems) {
+      try {
+        await fetch(
+          `/api/job-cards/${id}/assets/${assetId}/checklist/${item._id}`,
+          { method: "DELETE" }
+        );
+      } catch {
+        failCount++;
+      }
+    }
+    if (failCount > 0) {
+      alert(`${failCount} item(s) could not be deleted.`);
+    }
+    fetchChecklistItems(assetId);
+    fetchJobCard();
+  }
+
+  // Drag and drop reorder
+  async function handleChecklistDrop(fromIndex: number, toIndex: number) {
+    if (fromIndex === toIndex || !checklistAssetId) return;
+    const assetId = checklistAssetId;
+    const snapshot = [...checklistItems];
+    const sorted = [...checklistItems].sort((a, b) => (a.orderNo || 0) - (b.orderNo || 0));
+    const [moved] = sorted.splice(fromIndex, 1);
+    sorted.splice(toIndex, 0, moved);
+
+    const reordered = sorted.map((item, i) => ({ ...item, orderNo: i + 1 }));
+
+    // Optimistic update
+    setChecklistItems(reordered);
+
+    try {
+      await fetch(
+        `/api/job-cards/${id}/assets/${assetId}/checklist/reorder`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: reordered.map((item) => ({ id: item._id, orderNo: item.orderNo })),
+          }),
+        }
+      );
+    } catch {
+      setChecklistItems(snapshot);
+    }
+    setClDragIndex(null);
+    setClDragOverIndex(null);
+  }
 
   // ─── Claim job card ──────────────────────────────────────────────────
   async function openClaimDialog() {
@@ -1129,12 +1875,12 @@ export default function JobCardDetailPage() {
                               </button>
                             </div>
                           </div>
-                          <Link
-                            href="#"
-                            className="text-[12px] text-[#00AEEF] underline"
+                          <button
+                            onClick={() => navigateToChecklist(asset._id)}
+                            className="text-[12px] text-[#00AEEF] underline cursor-pointer"
                           >
                             Checklist {completedItems}/{totalItems}
-                          </Link>
+                          </button>
                         </div>
                       );
                     })
@@ -1597,65 +2343,484 @@ export default function JobCardDetailPage() {
       )}
 
       {/* Checklists Tab */}
-      {activeTab === "checklists" && (
-        <div className="space-y-4">
-          {clientAssets.length === 0 ? (
-            <div className="py-12 text-center">
-              <p className="text-[14px] text-gray-500">No assets with checklists.</p>
-            </div>
-          ) : (
-            clientAssets.map((asset) => {
-              const name = asset.clientAssetId?.machineName || "Unknown Asset";
-              const items = asset.checklistItems || [];
+      {activeTab === "checklists" && (() => {
+        const sortedChecklistItems = [...checklistItems].sort((a, b) => (a.orderNo || 0) - (b.orderNo || 0));
+        let clItemCounter = 0;
 
-              return (
-                <div key={asset._id} className="rounded-[10px] border border-gray-200 bg-white p-5">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-[15px] font-semibold text-gray-900">{name}</h3>
-                    <Badge variant="outline" className="text-[12px]">
-                      {items.length} item{items.length !== 1 ? "s" : ""}
-                    </Badge>
-                  </div>
-
-                  {items.length > 0 ? (
-                    <Table className="mt-4">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Details</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Response</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {items.map((item: any) => (
-                          <TableRow key={item._id}>
-                            <TableCell className="text-[13px]">{item.details}</TableCell>
-                            <TableCell>
-                              <Badge variant="secondary" className="text-[11px]">
-                                {item.checklistItemType}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-[13px] text-gray-600">
-                              {item.responseType1 || item.responseType2 || "-"}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <p className="mt-3 text-[13px] text-gray-400">No checklist items.</p>
-                  )}
+        return (
+          <div>
+            {clientAssets.length === 0 ? (
+              <div className="py-12 text-center">
+                <p className="text-[14px] text-gray-500">No assets with checklists.</p>
+              </div>
+            ) : (
+              <>
+                {/* Asset tabs */}
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  {clientAssets.map((asset) => {
+                    const name = asset.clientAssetId?.machineName || "Unknown";
+                    const isActive = checklistAssetId === asset._id;
+                    return (
+                      <button
+                        key={asset._id}
+                        onClick={() => handleSelectChecklistAsset(asset._id)}
+                        className={`rounded-full px-5 py-1.5 text-[13px] font-medium transition-colors cursor-pointer ${
+                          isActive
+                            ? "bg-[#00AEEF] text-white"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        {name}
+                      </button>
+                    );
+                  })}
                 </div>
-              );
-            })
-          )}
-        </div>
-      )}
+
+                {/* Selected asset name + action buttons */}
+                {checklistAssetId && (() => {
+                  const selectedAsset = clientAssets.find((a) => a._id === checklistAssetId);
+                  const assetName = selectedAsset?.clientAssetId?.machineName || "Unknown";
+                  return (
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-[15px] font-semibold text-[#00AEEF]">{assetName}</h3>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={handleClearAllChecklist}
+                          className="rounded-[10px] border border-gray-300 px-4 py-1.5 text-[13px] font-medium text-gray-600 hover:bg-gray-50 cursor-pointer"
+                        >
+                          + Clear All
+                        </button>
+                        <button
+                          onClick={openAddTemplateDialog}
+                          className="rounded-[10px] border border-gray-300 px-4 py-1.5 text-[13px] font-medium text-gray-600 hover:bg-gray-50 cursor-pointer"
+                        >
+                          + Add template
+                        </button>
+                        <button
+                          onClick={() => {
+                            setClItemEditId(null);
+                            setClSectionBreakDetails("");
+                            setClSectionBreakOpen(true);
+                          }}
+                          className="rounded-[10px] border border-gray-300 px-4 py-1.5 text-[13px] font-medium text-gray-600 hover:bg-gray-50 cursor-pointer"
+                        >
+                          + Add section break
+                        </button>
+                        <button
+                          onClick={openAddItemDialog}
+                          className="rounded-[10px] border border-gray-300 px-4 py-1.5 text-[13px] font-medium text-gray-600 hover:bg-gray-50 cursor-pointer"
+                        >
+                          + Add item
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Checklist items list */}
+                {checklistLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-6 w-6 animate-spin text-cyan-500" />
+                  </div>
+                ) : sortedChecklistItems.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <p className="text-[13px] text-gray-400">No checklist items. Add a template or create items manually.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-[10px]">
+                    {sortedChecklistItems.map((item, index) => {
+                      const isSectionBreak = item.checklistItemType === SECTION_BREAK_TYPE;
+                      if (!isSectionBreak) clItemCounter++;
+                      const displayNum = clItemCounter;
+
+                      return (
+                        <div
+                          key={item._id}
+                          draggable
+                          onDragStart={() => setClDragIndex(index)}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            setClDragOverIndex(index);
+                          }}
+                          onDragEnd={() => {
+                            setClDragIndex(null);
+                            setClDragOverIndex(null);
+                          }}
+                          onDrop={() => {
+                            if (clDragIndex !== null) handleChecklistDrop(clDragIndex, index);
+                          }}
+                          style={{ padding: "27px 15px 27px 35px", lineHeight: "30px" }}
+                          className={`flex items-start gap-3 rounded-[10px] border border-[#d0dfe6] transition-all ${
+                            isSectionBreak
+                              ? "!bg-[#2E3E4E] !text-white !border-[#2E3E4E]"
+                              : "bg-white hover:bg-gray-50"
+                          } ${
+                            clDragOverIndex === index && clDragIndex !== index
+                              ? "border-cyan-400 shadow-sm"
+                              : ""
+                          } ${clDragIndex === index ? "opacity-50" : ""}`}
+                        >
+                          {/* Drag handle */}
+                          <div className="shrink-0 cursor-grab active:cursor-grabbing mt-0.5">
+                            <img
+                              src="/move.svg"
+                              alt="Move"
+                              className={`h-5 w-5 ${isSectionBreak ? "opacity-80" : "opacity-40"}`}
+                            />
+                          </div>
+
+                          {isSectionBreak ? (
+                            <>
+                              <div className="min-w-0 flex-1">
+                                <span className="font-semibold text-white">{item.details}</span>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <span className="shrink-0 text-sm font-medium text-gray-400 mt-0.5">
+                                {displayNum}.
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-gray-900">{item.details}</span>
+                                </div>
+
+                                {/* Response type UI */}
+                                <div className="mt-2">
+                                  {/* Type 1: Checkbox - COMPLETED toggle */}
+                                  {item.checklistItemType === 1 && (
+                                    <button
+                                      onClick={() => saveItemResponse(item._id, {
+                                        responseType1: item.responseType1 === 1 ? 0 : 1,
+                                      })}
+                                      className={`rounded-[10px] px-4 py-1 text-[12px] font-medium cursor-pointer transition-colors ${
+                                        item.responseType1 === 1
+                                          ? "bg-[#00AEEF] text-white"
+                                          : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                                      }`}
+                                    >
+                                      COMPLETED
+                                    </button>
+                                  )}
+
+                                  {/* Type 2: Pass/Fail/N/A - radio style */}
+                                  {item.checklistItemType === 2 && (
+                                    <div className="flex gap-2">
+                                      {[{ label: "PASS", val: 1 }, { label: "FAIL", val: 2 }, { label: "N/A", val: 3 }].map((opt) => (
+                                        <button
+                                          key={opt.val}
+                                          onClick={() => saveItemResponse(item._id, {
+                                            responseType2: item.responseType2 === opt.val ? 0 : opt.val,
+                                          })}
+                                          className={`rounded-[10px] px-4 py-1 text-[12px] font-medium cursor-pointer transition-colors ${
+                                            item.responseType2 === opt.val
+                                              ? "bg-[#00AEEF] text-white"
+                                              : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                                          }`}
+                                        >
+                                          {opt.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {/* Type 3: Image - multiple file upload */}
+                                  {item.checklistItemType === 3 && (
+                                    <div>
+                                      <label className="inline-flex items-center gap-2 rounded-[10px] border border-gray-300 px-4 py-1.5 text-[12px] text-gray-600 cursor-pointer hover:bg-gray-50">
+                                        Choose Files
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          multiple
+                                          className="hidden"
+                                          onChange={(e) => {
+                                            if (e.target.files && e.target.files.length > 0) {
+                                              handleChecklistImageUpload(item._id, e.target.files);
+                                              e.target.value = "";
+                                            }
+                                          }}
+                                        />
+                                      </label>
+                                      {(item.attachments || []).length > 0 && (
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                          {(item.attachments || []).map((att, attIdx) => (
+                                            <div key={att._id} className="relative group">
+                                              <img
+                                                src={`/uploads/checklist-attachments/${att.fileName}`}
+                                                alt={att.documentName || att.fileName}
+                                                className="h-16 w-16 object-cover rounded-[10px] border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
+                                                onClick={() => {
+                                                  const allImages = (item.attachments || []).map((a) => ({
+                                                    src: `/uploads/checklist-attachments/${a.fileName}`,
+                                                    label: a.documentName || a.fileName,
+                                                  }));
+                                                  setViewerImages(allImages);
+                                                  setViewerIndex(attIdx);
+                                                  setViewerOpen(true);
+                                                }}
+                                              />
+                                              <button
+                                                onClick={() => handleDeleteChecklistAttachment(item._id, att._id)}
+                                                className="absolute -top-1.5 -right-1.5 hidden group-hover:flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-[10px] cursor-pointer"
+                                              >
+                                                ×
+                                              </button>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Type 4: Comment - textarea */}
+                                  {item.checklistItemType === 4 && (
+                                    <Textarea
+                                      value={item.comments || ""}
+                                      placeholder="Enter comment..."
+                                      className="max-w-md text-[13px] rounded-[10px] min-h-[60px]"
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setChecklistItems((prev) =>
+                                          prev.map((it) => it._id === item._id ? { ...it, comments: val } : it)
+                                        );
+                                      }}
+                                      onBlur={(e) => saveItemResponse(item._id, { comments: e.target.value })}
+                                    />
+                                  )}
+
+                                  {/* Type 5: Yes/No - radio style */}
+                                  {item.checklistItemType === 5 && (
+                                    <div className="flex gap-2">
+                                      {[{ label: "YES", val: 1 }, { label: "NO", val: 2 }].map((opt) => (
+                                        <button
+                                          key={opt.val}
+                                          onClick={() => saveItemResponse(item._id, {
+                                            responseType1: item.responseType1 === opt.val ? 0 : opt.val,
+                                          })}
+                                          className={`rounded-[10px] px-4 py-1 text-[12px] font-medium cursor-pointer transition-colors ${
+                                            item.responseType1 === opt.val
+                                              ? "bg-[#00AEEF] text-white"
+                                              : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                                          }`}
+                                        >
+                                          {opt.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {/* Type 6: Poor/Fair/Good - radio style */}
+                                  {item.checklistItemType === 6 && (
+                                    <div className="flex gap-2">
+                                      {[{ label: "POOR", val: 1 }, { label: "FAIR", val: 2 }, { label: "GOOD", val: 3 }].map((opt) => (
+                                        <button
+                                          key={opt.val}
+                                          onClick={() => saveItemResponse(item._id, {
+                                            responseType2: item.responseType2 === opt.val ? 0 : opt.val,
+                                          })}
+                                          className={`rounded-[10px] px-4 py-1 text-[12px] font-medium cursor-pointer transition-colors ${
+                                            item.responseType2 === opt.val
+                                              ? "bg-[#00AEEF] text-white"
+                                              : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                                          }`}
+                                        >
+                                          {opt.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {/* Type 7: Signature - canvas pad */}
+                                  {item.checklistItemType === 7 && (
+                                    <div>
+                                      {item.signature ? (
+                                        <div>
+                                          <img
+                                            src={item.signature}
+                                            alt="Signature"
+                                            className="rounded-[10px] border border-gray-300 h-[100px] bg-white"
+                                          />
+                                          <div className="flex gap-3 mt-2">
+                                            <button
+                                              onClick={() => saveItemResponse(item._id, { signature: "", signatureDateTime: null })}
+                                              className="text-[12px] text-gray-600 font-medium border border-gray-300 rounded-[10px] px-3 py-1 hover:bg-gray-50 cursor-pointer"
+                                            >
+                                              Clear
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <SignaturePad
+                                          onSave={(dataUrl) => saveItemResponse(item._id, {
+                                            signature: dataUrl,
+                                            signatureDateTime: new Date().toISOString(),
+                                          })}
+                                        />
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Type 8: Set Date & Time */}
+                                  {item.checklistItemType === 8 && (
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <button
+                                        onClick={() => saveItemResponse(item._id, {
+                                          setDateTime: new Date().toISOString(),
+                                        })}
+                                        className="text-[12px] text-[#00AEEF] font-medium cursor-pointer hover:underline"
+                                      >
+                                        SET CURRENT TIME
+                                      </button>
+                                      <input
+                                        type="datetime-local"
+                                        value={item.setDateTime ? new Date(item.setDateTime).toISOString().slice(0, 16) : ""}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          if (val) saveItemResponse(item._id, { setDateTime: new Date(val).toISOString() });
+                                        }}
+                                        className="rounded-[10px] border border-gray-300 px-3 py-1 text-[12px] text-gray-700"
+                                      />
+                                      {item.setDateTime && (
+                                        <span className="text-[12px] text-gray-500">
+                                          {new Date(item.setDateTime).toLocaleString()}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Type 9: Text Only - No response needed */}
+                                  {item.checklistItemType === 9 && null}
+                                </div>
+                              </div>
+
+                              {/* Mandatory star + Reference badge */}
+                              <div className="flex shrink-0 items-center gap-2">
+                                {item.makeResponseMandatory === 1 && (
+                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4.96641 12L5.33307 7.63333L1.89974 10.1333L0.566406 7.83333L4.36641 6L0.566406 4.13333L1.89974 1.83333L5.33307 4.33333L4.96641 0H7.59974L7.23307 4.33333L10.6664 1.83333L11.9997 4.13333L8.16641 6L11.9997 7.83333L10.6664 10.1333L7.23307 7.63333L7.59974 12H4.96641Z" fill="#00AEEF"/></svg>
+                                )}
+                                {item.fileName && (
+                                  <button
+                                    onClick={() => {
+                                      setViewerImages([{ src: `/uploads/checklist-attachments/${item.fileName}`, label: item.fileRealName || item.fileName }]);
+                                      setViewerIndex(0);
+                                      setViewerOpen(true);
+                                    }}
+                                    className="inline-flex items-center gap-1.5 rounded-[10px] border border-gray-300 px-3 py-1 text-[12px] text-gray-600 cursor-pointer hover:bg-gray-50"
+                                  >
+                                    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.8333 2.5H4.16667C3.24619 2.5 2.5 3.24619 2.5 4.16667V15.8333C2.5 16.7538 3.24619 17.5 4.16667 17.5H15.8333C16.7538 17.5 17.5 16.7538 17.5 15.8333V4.16667C17.5 3.24619 16.7538 2.5 15.8333 2.5Z" stroke="#99A3B1" strokeLinecap="round" strokeLinejoin="round"/><path d="M7.08325 8.3335C7.77361 8.3335 8.33325 7.77385 8.33325 7.0835C8.33325 6.39314 7.77361 5.8335 7.08325 5.8335C6.3929 5.8335 5.83325 6.39314 5.83325 7.0835C5.83325 7.77385 6.3929 8.3335 7.08325 8.3335Z" stroke="#99A3B1" strokeLinecap="round" strokeLinejoin="round"/><path d="M17.5001 12.5002L13.3334 8.3335L4.16675 17.5002" stroke="#99A3B1" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                    Reference
+                                  </button>
+                                )}
+                              </div>
+                            </>
+                          )}
+
+                          {/* Edit / Delete */}
+                          <div className="ml-1 flex shrink-0 items-center gap-1">
+                            <button
+                              onClick={() => openEditItemDialog(item)}
+                              className={`rounded p-1 cursor-pointer ${
+                                isSectionBreak
+                                  ? "text-white hover:text-gray-200"
+                                  : "text-gray-400 hover:text-gray-600"
+                              }`}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteChecklistItem(item._id)}
+                              className={`rounded p-1 cursor-pointer ${
+                                isSectionBreak
+                                  ? "text-white hover:text-red-200"
+                                  : "text-gray-400 hover:text-red-600"
+                              }`}
+                            >
+                              <TrashIcon />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Job Card Log Tab */}
       {activeTab === "job-card-log" && (
-        <div className="rounded-[10px] border border-gray-200 bg-white p-10">
-          <p className="text-[13px] text-gray-400">Job card log will be displayed here.</p>
+        <div>
+          {/* Header */}
+          <h3 className="text-[15px] font-semibold text-[#00AEEF] mb-1">Job Card Log</h3>
+          <p className="text-[13px] text-gray-400 mb-5">
+            Job Card {jobCard.ticketNo} was created by - {formatDate(jobCard.createdAt)}
+          </p>
+
+          {logLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-cyan-500" />
+            </div>
+          ) : logEntries.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-[13px] text-gray-400">No log entries yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {logEntries.map((log: any) => {
+                const userName = log.userId
+                  ? `${log.userId.name}${log.userId.lastName ? " " + log.userId.lastName : ""}`
+                  : "System";
+                const logDate = log.dateTime || log.createdAt;
+
+                return (
+                  <div
+                    key={log._id}
+                    className="rounded-[10px] border border-gray-200 bg-white px-6 py-5"
+                  >
+                    <p className="text-[14px] font-semibold text-gray-900 mb-1">
+                      {logDate ? new Date(logDate).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) : ""}{" "}
+                      - {logDate ? new Date(logDate).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : ""}
+                    </p>
+                    <p className="text-[13px] text-gray-600">
+                      {userName} - {log.task}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {logTotal > 0 && (
+            <div className="flex items-center justify-end gap-3 mt-5">
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => fetchLogs(logPage - 1)}
+                  disabled={logPage <= 1}
+                  className={`rounded-[10px] border border-gray-300 px-3 py-1 text-[13px] ${
+                    logPage <= 1 ? "text-gray-300 cursor-not-allowed" : "text-gray-600 hover:bg-gray-50 cursor-pointer"
+                  }`}
+                >
+                  &lt; Prev
+                </button>
+                <button
+                  onClick={() => fetchLogs(logPage + 1)}
+                  disabled={logPage >= logTotalPages}
+                  className={`rounded-[10px] border border-gray-300 px-3 py-1 text-[13px] ${
+                    logPage >= logTotalPages ? "text-gray-300 cursor-not-allowed" : "text-gray-600 hover:bg-gray-50 cursor-pointer"
+                  }`}
+                >
+                  Next &gt;
+                </button>
+              </div>
+              <p className="text-[12px] text-gray-500">
+                Page {logPage} of {logTotalPages}, showing {logEntries.length} record(s) out of {logTotal} total
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -1742,6 +2907,240 @@ export default function JobCardDetailPage() {
         onSuccess={fetchJobCard}
         editData={jobCard}
       />
+
+      {/* ─── Add Checklist (Template) Dialog ──────────────────────── */}
+      <Dialog open={addTemplateOpen} onOpenChange={setAddTemplateOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Add Checklist</DialogTitle>
+          </DialogHeader>
+          <hr className="border-gray-200" />
+          <div className="grid grid-cols-2 gap-6 py-3" style={{ minHeight: 350 }}>
+            {/* Left - Tags */}
+            <div>
+              <h4 className="text-[14px] font-semibold text-[#00AEEF] mb-3">Tags</h4>
+              <div className="flex flex-wrap gap-2">
+                {templateTags.map((tag) => {
+                  const isSelected = selectedTagIds.has(tag._id);
+                  return (
+                    <button
+                      key={tag._id}
+                      onClick={() => toggleTagFilter(tag._id)}
+                      className={`rounded-full px-4 py-1.5 text-[13px] font-medium transition-colors cursor-pointer border ${
+                        isSelected
+                          ? "bg-[#00AEEF] text-white border-[#00AEEF]"
+                          : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"
+                      }`}
+                    >
+                      {tag.title}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Right - Templates */}
+            <div>
+              <h4 className="text-[14px] font-semibold text-[#00AEEF] mb-3">Checklist Templates</h4>
+              <div className="space-y-2">
+                {(() => {
+                  const filtered = selectedTagIds.size === 0
+                    ? []
+                    : templates.filter((t) =>
+                        (t.tagIds || []).some((tagId) => selectedTagIds.has(tagId))
+                      );
+                  return filtered.length === 0 ? (
+                    <p className="py-4 text-center text-[13px] text-gray-400">No templates available</p>
+                  ) : (
+                    filtered.map((t) => (
+                      <button
+                        key={t._id}
+                        onClick={() => setSelectedTemplateId(t._id)}
+                        className={`w-full text-left rounded-[10px] border px-4 py-2.5 text-[13px] transition-colors cursor-pointer ${
+                          selectedTemplateId === t._id
+                            ? "border-[#00AEEF] bg-cyan-50 text-gray-900"
+                            : "border-gray-200 text-gray-700 hover:border-gray-300"
+                        }`}
+                      >
+                        {t.title}
+                      </button>
+                    ))
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+          <hr className="border-gray-200" />
+          <div className="flex items-center gap-4 pt-2">
+            <Button
+              onClick={handleAddTemplate}
+              disabled={!selectedTemplateId || addTemplateSaving}
+              className="bg-cyan-500 hover:bg-cyan-600 text-white"
+            >
+              {addTemplateSaving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Add Checklist
+            </Button>
+            <button
+              onClick={() => setAddTemplateOpen(false)}
+              className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Add/Edit Section Break Dialog ──────────────────────── */}
+      <Dialog open={clSectionBreakOpen} onOpenChange={(open) => {
+        setClSectionBreakOpen(open);
+        if (!open) setClItemEditId(null);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{clItemEditId ? "Edit Section Break" : "Add Section Break"}</DialogTitle>
+          </DialogHeader>
+          <hr className="border-gray-200" />
+          <div className="flex items-center gap-6 py-2">
+            <Label className="shrink-0 text-sm text-gray-700">Details</Label>
+            <Input
+              value={clSectionBreakDetails}
+              onChange={(e) => setClSectionBreakDetails(e.target.value)}
+              autoFocus
+              onKeyDown={(e) => e.key === "Enter" && (clItemEditId ? handleEditSectionBreak() : handleAddSectionBreak())}
+            />
+          </div>
+          <hr className="border-gray-200" />
+          <div className="flex items-center gap-4 pt-2">
+            <Button
+              onClick={clItemEditId ? handleEditSectionBreak : handleAddSectionBreak}
+              disabled={clSectionBreakSaving || !clSectionBreakDetails.trim()}
+              className="bg-cyan-500 hover:bg-cyan-600 text-white"
+            >
+              {clSectionBreakSaving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              {clItemEditId ? "Save Section Break" : "Add Section Break"}
+            </Button>
+            <button
+              onClick={() => { setClSectionBreakOpen(false); setClItemEditId(null); }}
+              className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Add/Edit Checklist Item Dialog ──────────────────────── */}
+      <Dialog open={clItemOpen} onOpenChange={setClItemOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{clItemEditId ? "Edit Checklist Item" : "Add Checklist Item"}</DialogTitle>
+          </DialogHeader>
+          <hr className="border-gray-200" />
+          <div className="space-y-4 py-3">
+            {/* Details */}
+            <div className="flex items-center gap-6">
+              <Label className="w-28 shrink-0 text-sm text-gray-700">Details</Label>
+              <Input
+                value={clItemDetails}
+                onChange={(e) => setClItemDetails(e.target.value)}
+                autoFocus
+              />
+            </div>
+            {/* Response Type */}
+            <div className="flex items-center gap-6">
+              <Label className="w-28 shrink-0 text-sm text-gray-700">Response Type</Label>
+              <Select value={clItemType} onValueChange={setClItemType}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Select response type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CHECKLIST_RESPONSE_TYPES.map((rt) => (
+                    <SelectItem key={rt.value} value={String(rt.value)}>
+                      {rt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Make response mandatory */}
+            <div className="flex items-center gap-3 pl-[7.5rem]">
+              <Checkbox
+                id="cl-mandatory"
+                checked={clItemMandatory}
+                onCheckedChange={(v) => setClItemMandatory(v === true)}
+              />
+              <Label htmlFor="cl-mandatory" className="text-sm text-gray-700">
+                Make response mandatory
+              </Label>
+            </div>
+            {/* Item Image */}
+            <div className="flex items-center gap-6">
+              <Label className="w-28 shrink-0 text-sm text-gray-700">Item Image</Label>
+              <div className="flex flex-1 items-center gap-3">
+                {clItemFile ? (
+                  <>
+                    <span className="text-sm text-gray-700">{clItemFile.name}</span>
+                    <button onClick={() => setClItemFile(null)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </>
+                ) : clItemFileName ? (
+                  <>
+                    <span className="text-sm text-gray-700">{clItemFileName}</span>
+                    <button onClick={() => setClItemFileName("")} className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </>
+                ) : (
+                  <label className="flex cursor-pointer items-center gap-2 rounded-[10px] border border-gray-300 bg-white px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50">
+                    <Upload className="h-4 w-4" />
+                    Choose File
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => setClItemFile(e.target.files?.[0] || null)}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+            {/* Progress bar placeholder */}
+            <div className="flex items-center gap-6">
+              <Label className="w-28 shrink-0 text-sm text-gray-700">Progress</Label>
+              <div className="flex-1 h-1 bg-gray-200 rounded-full">
+                <div className="h-1 bg-cyan-500 rounded-full" style={{ width: "100%" }} />
+              </div>
+            </div>
+          </div>
+          <hr className="border-gray-200" />
+          <div className="flex items-center gap-4 pt-2">
+            <Button
+              onClick={handleSaveChecklistItem}
+              disabled={clItemSaving || !clItemDetails.trim() || !clItemType}
+              className="bg-cyan-500 hover:bg-cyan-600 text-white"
+            >
+              {clItemSaving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              {clItemEditId ? "Update Checklist Item" : "Add Checklist Item"}
+            </Button>
+            <button
+              onClick={() => setClItemOpen(false)}
+              className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Image Viewer Popup ──────────────────────────────────── */}
+      {viewerOpen && (
+        <ImageViewerPopup
+          images={viewerImages}
+          initialIndex={viewerIndex}
+          onClose={() => setViewerOpen(false)}
+        />
+      )}
     </div>
   );
 }
