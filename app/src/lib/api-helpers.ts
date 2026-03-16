@@ -87,6 +87,24 @@ export function paginatedResponse(data: any[], total: number, page: number, limi
   });
 }
 
+/**
+ * For portal users (role 4, 6), verify the resource's clientId matches
+ * the session clientId. Throws AuthError("Forbidden") if not.
+ * No-op for admin users (role 1, 2, 3).
+ */
+export function enforcePortalScope(
+  session: AuthSession,
+  resourceClientId: any
+): void {
+  if (![4, 6].includes(session.role)) return;
+  if (
+    !session.clientId ||
+    resourceClientId?.toString() !== session.clientId
+  ) {
+    throw new AuthError("Forbidden");
+  }
+}
+
 export function getClientIp(req: NextRequest): string {
   return (
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||

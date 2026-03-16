@@ -6,6 +6,7 @@ import {
   successResponse,
   errorResponse,
   handleApiError,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
 import SupportTicket from "@/models/SupportTicket";
 import SupportTicketDetail from "@/models/SupportTicketDetail";
@@ -23,7 +24,7 @@ export async function GET(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
 
     const { id } = await params;
 
@@ -40,17 +41,27 @@ export async function GET(
       return errorResponse("Ticket not found", 404);
     }
 
+    enforcePortalScope(session, (ticket as any).clientId?._id || (ticket as any).clientId);
+
+    const isPortal = [4, 6].includes(session.role);
+    const commentQuery: Record<string, any> = { supportTicketId: id };
+    const attachQuery: Record<string, any> = { supportTicketId: id };
+    if (isPortal) {
+      commentQuery.visibility = 2;
+      attachQuery.visibility = 2;
+    }
+
     const [detail, comments, attachments, technicians, owners, timeLogs] =
       await Promise.all([
         SupportTicketDetail.findOne({ supportTicketId: id })
           .populate("rootCauseUserId", "name lastName")
           .populate("resolutionUserId", "name lastName")
           .lean(),
-        SupportTicketComment.find({ supportTicketId: id })
+        SupportTicketComment.find(commentQuery)
           .populate("userId", "name email")
           .sort({ createdAt: -1 })
           .lean(),
-        SupportTicketAttachment.find({ supportTicketId: id })
+        SupportTicketAttachment.find(attachQuery)
           .sort({ createdAt: -1 })
           .lean(),
         SupportTicketTechnician.find({ supportTicketId: id })
@@ -88,9 +99,14 @@ export async function PUT(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
 
     const { id } = await params;
+
+    const ticketCheck = await SupportTicket.findById(id).select("clientId").lean();
+    if (!ticketCheck) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (ticketCheck as any).clientId);
+
     const body = await req.json();
 
     const allowedFields = [

@@ -17,7 +17,7 @@ import "@/models/Tag";
 export async function GET(req: NextRequest) {
   try {
     await dbConnect();
-    await requireAuth();
+    await requireAdmin();
     const { page, limit, skip, search } = getSearchParams(req);
 
     const { searchParams } = new URL(req.url);

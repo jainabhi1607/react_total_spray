@@ -5,7 +5,9 @@ import {
   successResponse,
   errorResponse,
   handleApiError,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
+import SupportTicket from "@/models/SupportTicket";
 import SupportTicketAttachment from "@/models/SupportTicketAttachment";
 
 export async function PUT(
@@ -14,8 +16,12 @@ export async function PUT(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
     const { id, attachmentId } = await params;
+
+    const ticket = await SupportTicket.findById(id).select("clientId").lean();
+    if (!ticket) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (ticket as any).clientId);
 
     const body = await req.json();
     const update: Record<string, any> = {};
@@ -45,9 +51,13 @@ export async function DELETE(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
 
-    const { attachmentId } = await params;
+    const { id, attachmentId } = await params;
+
+    const ticketForScope = await SupportTicket.findById(id).select("clientId").lean();
+    if (!ticketForScope) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (ticketForScope as any).clientId);
 
     const attachment =
       await SupportTicketAttachment.findByIdAndDelete(attachmentId);

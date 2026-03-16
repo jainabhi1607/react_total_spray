@@ -5,7 +5,9 @@ import {
   successResponse,
   errorResponse,
   handleApiError,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
+import JobCard from "@/models/JobCard";
 import JobCardAssetChecklistItem from "@/models/JobCardAssetChecklistItem";
 import JobCardAssetChecklistItemAttachment from "@/models/JobCardAssetChecklistItemAttachment";
 import JobCardClientAsset from "@/models/JobCardClientAsset";
@@ -16,8 +18,11 @@ export async function GET(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
-    const { assetId } = await params;
+    const session = await requireAuth();
+    const { id, assetId } = await params;
+    const jobCard = await JobCard.findById(id).select("clientId").lean();
+    if (!jobCard) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (jobCard as any).clientId);
 
     const checklistItems = await JobCardAssetChecklistItem.find({
       jobCardClientAssetId: assetId,
@@ -56,7 +61,10 @@ export async function POST(
   try {
     await dbConnect();
     const session = await requireAuth();
-    const { assetId } = await params;
+    const { id, assetId } = await params;
+    const jobCard = await JobCard.findById(id).select("clientId").lean();
+    if (!jobCard) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (jobCard as any).clientId);
 
     const body = await req.json();
     const {
@@ -97,8 +105,11 @@ export async function PUT(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
-    const { assetId } = await params;
+    const session = await requireAuth();
+    const { id, assetId } = await params;
+    const jobCard = await JobCard.findById(id).select("clientId").lean();
+    if (!jobCard) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (jobCard as any).clientId);
 
     const body = await req.json();
     const { items } = body;

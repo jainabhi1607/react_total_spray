@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -79,6 +79,14 @@ const TABS = [
 // --- Page Component ---
 
 export default function JobCardsListPage() {
+  return (
+    <Suspense>
+      <JobCardsContent />
+    </Suspense>
+  );
+}
+
+function JobCardsContent() {
   useEffect(() => {
     document.title = "Job Cards";
   }, []);

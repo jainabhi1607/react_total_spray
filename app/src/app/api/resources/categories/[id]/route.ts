@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 import {
-  requireAuth,
+  requireAdmin,
   successResponse,
   errorResponse,
   handleApiError,
@@ -15,7 +15,7 @@ export async function PUT(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    await requireAdmin();
     const { id } = await params;
 
     const body = await req.json();
@@ -42,7 +42,7 @@ export async function DELETE(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    await requireAdmin();
     const { id } = await params;
 
     const category = await ResourceCategory.findById(id);

@@ -3,8 +3,11 @@ import dbConnect from "@/lib/db";
 import {
   requireAuth,
   successResponse,
+  errorResponse,
   handleApiError,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
+import SupportTicket from "@/models/SupportTicket";
 import SupportTicketTechnician from "@/models/SupportTicketTechnician";
 import SupportTicketLog from "@/models/SupportTicketLog";
 
@@ -14,9 +17,13 @@ export async function GET(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
 
     const { id } = await params;
+
+    const ticket = await SupportTicket.findById(id).select("clientId").lean();
+    if (!ticket) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (ticket as any).clientId);
 
     const technicians = await SupportTicketTechnician.find({
       supportTicketId: id,
@@ -42,6 +49,11 @@ export async function POST(
     const session = await requireAuth();
 
     const { id } = await params;
+
+    const ticketForPost = await SupportTicket.findById(id).select("clientId").lean();
+    if (!ticketForPost) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (ticketForPost as any).clientId);
+
     const body = await req.json();
     const { technicianId, onSite } = body;
 

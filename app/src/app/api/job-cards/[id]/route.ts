@@ -7,6 +7,7 @@ import {
   errorResponse,
   handleApiError,
   getClientIp,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
 import JobCard from "@/models/JobCard";
 import JobCardDetail from "@/models/JobCardDetail";
@@ -34,7 +35,7 @@ export async function GET(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
     const { id } = await params;
 
     const jobCard = await JobCard.findById(id)
@@ -50,16 +51,25 @@ export async function GET(
     if (!jobCard) {
       return errorResponse("Job card not found", 404);
     }
+    enforcePortalScope(session, (jobCard as any).clientId?._id || (jobCard as any).clientId);
+
+    const isPortal = [4, 6].includes(session.role);
+    const jcCommentQuery: Record<string, any> = { jobCardId: id };
+    const jcAttachQuery: Record<string, any> = { jobCardId: id };
+    if (isPortal) {
+      jcCommentQuery.visibility = 2;
+      jcAttachQuery.visibility = 2;
+    }
 
     // Fetch related data in parallel
     const [detail, comments, attachments, technicians, owners, clientAssets] =
       await Promise.all([
         JobCardDetail.findOne({ jobCardId: id }).lean(),
-        JobCardComment.find({ jobCardId: id })
+        JobCardComment.find(jcCommentQuery)
           .populate("userId", "name email")
           .sort({ createdAt: -1 })
           .lean(),
-        JobCardAttachment.find({ jobCardId: id })
+        JobCardAttachment.find(jcAttachQuery)
           .sort({ createdAt: -1 })
           .lean(),
         JobCardTechnician.find({ jobCardId: id })
@@ -158,6 +168,7 @@ export async function PUT(
     if (!jobCard) {
       return errorResponse("Job card not found", 404);
     }
+    enforcePortalScope(session, jobCard.clientId);
 
     // Track changes for logging
     const changes: string[] = [];

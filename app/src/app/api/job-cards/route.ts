@@ -143,7 +143,12 @@ export async function POST(req: NextRequest) {
       supportTicketId,
     } = body;
 
-    if (!clientId) {
+    // Portal users: enforce clientId from session
+    const effectiveClientId = [4, 6].includes(session.role) && session.clientId
+      ? session.clientId
+      : clientId;
+
+    if (!effectiveClientId) {
       return errorResponse("Client is required");
     }
 
@@ -159,7 +164,7 @@ export async function POST(req: NextRequest) {
       ticketNo,
       uniqueId,
       userId: session.id,
-      clientId,
+      clientId: effectiveClientId,
       clientSiteId,
       clientAssetId,
       clientContactId,

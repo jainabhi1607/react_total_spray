@@ -3,10 +3,13 @@ import dbConnect from "@/lib/db";
 import {
   requireAuth,
   successResponse,
+  errorResponse,
   getSearchParams,
   paginatedResponse,
   handleApiError,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
+import SupportTicket from "@/models/SupportTicket";
 import SupportTicketLog from "@/models/SupportTicketLog";
 
 export async function GET(
@@ -15,9 +18,14 @@ export async function GET(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
 
     const { id } = await params;
+
+    const ticket = await SupportTicket.findById(id).select("clientId").lean();
+    if (!ticket) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (ticket as any).clientId);
+
     const { page, limit, skip } = getSearchParams(req);
 
     const [logs, total] = await Promise.all([

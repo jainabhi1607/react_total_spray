@@ -120,7 +120,7 @@ export async function sendInviteEmail(
   authcode: string,
   inviterName?: string
 ) {
-  const inviteUrl = `${APP_URL}/invite?email=${encodeURIComponent(to)}&token=${authcode}`;
+  const inviteUrl = `${APP_URL}/invite/${authcode}`;
   return sendEmail(
     to,
     "You're Invited to Total Spray Care",

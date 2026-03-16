@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import dbConnect from "@/lib/db";
 import {
   requireAuth,
@@ -67,7 +68,16 @@ export async function GET() {
       // Client user (role 4, 6)
       const clientId = session.clientId;
 
-      const [sites, assets, openTickets, openJobCards] = await Promise.all([
+      const [
+        sites,
+        assets,
+        openTickets,
+        openJobCards,
+        recentTickets,
+        recentJobCards,
+        ticketsByStatus,
+        jobCardsByStatus,
+      ] = await Promise.all([
         ClientSite.countDocuments({ clientId, status: 1 }),
         ClientAsset.countDocuments({ clientId, status: 1 }),
         SupportTicket.countDocuments({
@@ -80,13 +90,36 @@ export async function GET() {
           status: 1,
           jobCardStatus: { $nin: [3, 4] },
         }),
+        SupportTicket.find({ clientId, status: 1 })
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .populate("clientId", "companyName")
+          .lean(),
+        JobCard.find({ clientId, status: 1 })
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .populate("clientId", "companyName")
+          .lean(),
+        SupportTicket.aggregate([
+          { $match: { clientId: new mongoose.Types.ObjectId(clientId), status: 1 } },
+          { $group: { _id: "$ticketStatus", count: { $sum: 1 } } },
+        ]),
+        JobCard.aggregate([
+          { $match: { clientId: new mongoose.Types.ObjectId(clientId), status: 1 } },
+          { $group: { _id: "$jobCardStatus", count: { $sum: 1 } } },
+        ]),
       ]);
 
       return successResponse({
+        isPortal: true,
         sites,
         assets,
         openTickets,
         openJobCards,
+        recentTickets,
+        recentJobCards,
+        ticketsByStatus,
+        jobCardsByStatus,
       });
     }
   } catch (error) {

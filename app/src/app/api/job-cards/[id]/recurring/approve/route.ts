@@ -5,6 +5,7 @@ import {
   successResponse,
   errorResponse,
   handleApiError,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
 import JobCard from "@/models/JobCard";
 import JobCardDetail from "@/models/JobCardDetail";
@@ -25,6 +26,7 @@ export async function POST(
     if (!recurringJob || recurringJob.recurringJob !== 1) {
       return errorResponse("Recurring job not found", 404);
     }
+    enforcePortalScope(session, recurringJob.clientId);
 
     if (!recurringJob.nextRecurringDate || !recurringJob.recurringPeriod || !recurringJob.recurringRange) {
       return errorResponse("Recurring details not set");

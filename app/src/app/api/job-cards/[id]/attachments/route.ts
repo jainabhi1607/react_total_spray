@@ -3,8 +3,11 @@ import dbConnect from "@/lib/db";
 import {
   requireAuth,
   successResponse,
+  errorResponse,
   handleApiError,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
+import JobCard from "@/models/JobCard";
 import JobCardAttachment from "@/models/JobCardAttachment";
 
 export async function GET(
@@ -13,10 +16,19 @@ export async function GET(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
     const { id } = await params;
+    const jobCard = await JobCard.findById(id).select("clientId").lean();
+    if (!jobCard) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (jobCard as any).clientId);
 
-    const attachments = await JobCardAttachment.find({ jobCardId: id })
+    const attachQuery: Record<string, any> = { jobCardId: id };
+    // Portal users only see public attachments
+    if ([4, 6].includes(session.role)) {
+      attachQuery.visibility = 2;
+    }
+
+    const attachments = await JobCardAttachment.find(attachQuery)
       .sort({ createdAt: -1 })
       .lean();
 
@@ -32,8 +44,11 @@ export async function PUT(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
     const { id } = await params;
+    const jobCard = await JobCard.findById(id).select("clientId").lean();
+    if (!jobCard) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (jobCard as any).clientId);
 
     const body = await req.json();
     if (body.visibility !== undefined) {
@@ -57,6 +72,9 @@ export async function POST(
     await dbConnect();
     const session = await requireAuth();
     const { id } = await params;
+    const jobCard = await JobCard.findById(id).select("clientId").lean();
+    if (!jobCard) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (jobCard as any).clientId);
 
     const body = await req.json();
     const { documentName, fileName, fileSize, visibility } = body;

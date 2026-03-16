@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 import {
-  requireAuth,
   requireAdmin,
   successResponse,
   errorResponse,
@@ -16,7 +15,7 @@ export async function GET(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    await requireAdmin();
     const { id } = await params;
 
     const resource = await Resource.findById(id)

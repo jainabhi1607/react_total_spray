@@ -5,6 +5,7 @@ import {
   successResponse,
   errorResponse,
   handleApiError,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
 import SupportTicket from "@/models/SupportTicket";
 import SupportTicketDetail from "@/models/SupportTicketDetail";
@@ -36,6 +37,8 @@ export async function PUT(
     if (!ticket) {
       return errorResponse("Ticket not found", 404);
     }
+
+    enforcePortalScope(session, ticket.clientId);
 
     // Update ticket status to Resolved (4)
     ticket.ticketStatus = 4;

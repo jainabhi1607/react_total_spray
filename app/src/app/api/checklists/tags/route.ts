@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 import {
-  requireAuth,
+  requireAdmin,
   successResponse,
   errorResponse,
   handleApiError,
@@ -11,7 +11,7 @@ import ChecklistTag from "@/models/ChecklistTag";
 export async function GET(req: NextRequest) {
   try {
     await dbConnect();
-    await requireAuth();
+    await requireAdmin();
 
     const tags = await ChecklistTag.find()
       .sort({ createdAt: -1 })
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
-    await requireAuth();
+    await requireAdmin();
 
     const body = await req.json();
     const { title } = body;

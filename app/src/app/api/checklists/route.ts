@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 import {
-  requireAuth,
+  requireAdmin,
   successResponse,
   errorResponse,
   handleApiError,
@@ -14,7 +14,7 @@ import ChecklistTemplateTag from "@/models/ChecklistTemplateTag";
 export async function GET(req: NextRequest) {
   try {
     await dbConnect();
-    await requireAuth();
+    await requireAdmin();
     const { page, limit, skip, search } = getSearchParams(req);
 
     const query: Record<string, any> = {};
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
-    const session = await requireAuth();
+    const session = await requireAdmin();
 
     const body = await req.json();
     const { title } = body;

@@ -3,6 +3,7 @@ import dbConnect from "@/lib/db";
 import {
   requireAuth,
   successResponse,
+  errorResponse,
   handleApiError,
   getSearchParams,
 } from "@/lib/api-helpers";
@@ -13,11 +14,19 @@ import "@/models/ClientSite";
 export async function GET(req: NextRequest) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
 
     const { search } = getSearchParams(req);
 
     const query: Record<string, any> = {};
+
+    // Portal users can only see their own client's contacts
+    if ([4, 6].includes(session.role)) {
+      if (!session.clientId) {
+        return errorResponse("No client associated with this account", 403);
+      }
+      query.clientId = session.clientId;
+    }
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: "i" } },

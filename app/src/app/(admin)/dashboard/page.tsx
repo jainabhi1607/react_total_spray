@@ -42,7 +42,7 @@ interface StatusCount {
   count: number;
 }
 
-interface DashboardData {
+interface AdminDashboardData {
   activeClients: number;
   openTickets: number;
   openJobCards: number;
@@ -52,6 +52,20 @@ interface DashboardData {
   ticketsByStatus: StatusCount[];
   jobCardsByStatus: StatusCount[];
 }
+
+interface PortalDashboardData {
+  isPortal: true;
+  sites: number;
+  assets: number;
+  openTickets: number;
+  openJobCards: number;
+  recentTickets: RecentTicket[];
+  recentJobCards: RecentJobCard[];
+  ticketsByStatus: StatusCount[];
+  jobCardsByStatus: StatusCount[];
+}
+
+type DashboardData = AdminDashboardData | PortalDashboardData;
 
 // --- Status color helpers ---
 
@@ -101,9 +115,9 @@ function getJobCardStatusBarColor(status: number): string {
   }
 }
 
-// --- Stat card config ---
+// --- Stat card configs ---
 
-const statCards = [
+const adminStatCards = [
   {
     key: "activeClients" as const,
     label: "Active Clients",
@@ -126,6 +140,33 @@ const statCards = [
     key: "activeTechnicians" as const,
     label: "Active Technicians",
     iconSrc: "/tool.svg",
+    iconBg: "bg-purple-100",
+  },
+];
+
+const portalStatCards = [
+  {
+    key: "sites" as const,
+    label: "Sites",
+    iconSrc: "/clients.svg",
+    iconBg: "bg-blue-100",
+  },
+  {
+    key: "assets" as const,
+    label: "Assets",
+    iconSrc: "/package.svg",
+    iconBg: "bg-green-100",
+  },
+  {
+    key: "openTickets" as const,
+    label: "Open Tickets",
+    iconSrc: "/support_tickets.svg",
+    iconBg: "bg-orange-100",
+  },
+  {
+    key: "openJobCards" as const,
+    label: "Open Job Cards",
+    iconSrc: "/briefcase.svg",
     iconBg: "bg-purple-100",
   },
 ];
@@ -178,8 +219,16 @@ export default function DashboardPage() {
     );
   }
 
-  const ticketTotal = data.ticketsByStatus.reduce((s, i) => s + i.count, 0);
-  const jobCardTotal = data.jobCardsByStatus.reduce((s, i) => s + i.count, 0);
+  const isPortal = "isPortal" in data && data.isPortal;
+  const statCards = isPortal ? portalStatCards : adminStatCards;
+
+  const ticketsByStatus = "ticketsByStatus" in data ? data.ticketsByStatus : [];
+  const jobCardsByStatus = "jobCardsByStatus" in data ? data.jobCardsByStatus : [];
+  const recentTickets = "recentTickets" in data ? data.recentTickets : [];
+  const recentJobCards = "recentJobCards" in data ? data.recentJobCards : [];
+
+  const ticketTotal = ticketsByStatus.reduce((s, i) => s + i.count, 0);
+  const jobCardTotal = jobCardsByStatus.reduce((s, i) => s + i.count, 0);
 
   return (
     <div className="space-y-6">
@@ -201,7 +250,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900">
-                    {data[card.key]}
+                    {(data as any)[card.key]}
                   </p>
                   <p className="text-sm text-gray-500">{card.label}</p>
                 </div>
@@ -219,7 +268,7 @@ export default function DashboardPage() {
             <CardTitle className="text-lg">Recent Support Tickets</CardTitle>
           </CardHeader>
           <CardContent>
-            {data.recentTickets.length === 0 ? (
+            {recentTickets.length === 0 ? (
               <p className="py-4 text-center text-sm text-gray-500">
                 No tickets found
               </p>
@@ -228,13 +277,13 @@ export default function DashboardPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Ticket #</TableHead>
-                    <TableHead>Client</TableHead>
+                    {!isPortal && <TableHead>Client</TableHead>}
                     <TableHead>Status</TableHead>
                     <TableHead>Date</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.recentTickets.map((ticket) => (
+                  {recentTickets.map((ticket) => (
                     <TableRow key={ticket._id}>
                       <TableCell>
                         <Link
@@ -244,9 +293,11 @@ export default function DashboardPage() {
                           {ticket.ticketNo}
                         </Link>
                       </TableCell>
-                      <TableCell className="max-w-[140px] truncate">
-                        {ticket.clientId?.companyName || "-"}
-                      </TableCell>
+                      {!isPortal && (
+                        <TableCell className="max-w-[140px] truncate">
+                          {ticket.clientId?.companyName || "-"}
+                        </TableCell>
+                      )}
                       <TableCell>
                         <Badge
                           className={getTicketStatusColor(ticket.ticketStatus)}
@@ -272,7 +323,7 @@ export default function DashboardPage() {
             <CardTitle className="text-lg">Recent Job Cards</CardTitle>
           </CardHeader>
           <CardContent>
-            {data.recentJobCards.length === 0 ? (
+            {recentJobCards.length === 0 ? (
               <p className="py-4 text-center text-sm text-gray-500">
                 No job cards found
               </p>
@@ -281,13 +332,13 @@ export default function DashboardPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Job #</TableHead>
-                    <TableHead>Client</TableHead>
+                    {!isPortal && <TableHead>Client</TableHead>}
                     <TableHead>Status</TableHead>
                     <TableHead>Date</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.recentJobCards.map((job) => (
+                  {recentJobCards.map((job) => (
                     <TableRow key={job._id}>
                       <TableCell>
                         <Link
@@ -297,9 +348,11 @@ export default function DashboardPage() {
                           {job.ticketNo}
                         </Link>
                       </TableCell>
-                      <TableCell className="max-w-[140px] truncate">
-                        {job.clientId?.companyName || "-"}
-                      </TableCell>
+                      {!isPortal && (
+                        <TableCell className="max-w-[140px] truncate">
+                          {job.clientId?.companyName || "-"}
+                        </TableCell>
+                      )}
                       <TableCell>
                         <Badge
                           className={getJobCardStatusColor(job.jobCardStatus)}
@@ -328,13 +381,13 @@ export default function DashboardPage() {
             <CardTitle className="text-lg">Tickets by Status</CardTitle>
           </CardHeader>
           <CardContent>
-            {data.ticketsByStatus.length === 0 ? (
+            {ticketsByStatus.length === 0 ? (
               <p className="py-4 text-center text-sm text-gray-500">
                 No data available
               </p>
             ) : (
               <div className="space-y-3">
-                {data.ticketsByStatus.map((item) => {
+                {ticketsByStatus.map((item) => {
                   const pct =
                     ticketTotal > 0
                       ? Math.round((item.count / ticketTotal) * 100)
@@ -369,13 +422,13 @@ export default function DashboardPage() {
             <CardTitle className="text-lg">Job Cards by Status</CardTitle>
           </CardHeader>
           <CardContent>
-            {data.jobCardsByStatus.length === 0 ? (
+            {jobCardsByStatus.length === 0 ? (
               <p className="py-4 text-center text-sm text-gray-500">
                 No data available
               </p>
             ) : (
               <div className="space-y-3">
-                {data.jobCardsByStatus.map((item) => {
+                {jobCardsByStatus.map((item) => {
                   const pct =
                     jobCardTotal > 0
                       ? Math.round((item.count / jobCardTotal) * 100)

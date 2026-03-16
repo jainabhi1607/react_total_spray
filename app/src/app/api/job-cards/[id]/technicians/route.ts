@@ -5,7 +5,9 @@ import {
   successResponse,
   errorResponse,
   handleApiError,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
+import JobCard from "@/models/JobCard";
 import JobCardTechnician from "@/models/JobCardTechnician";
 import JobCardLog from "@/models/JobCardLog";
 
@@ -15,8 +17,11 @@ export async function GET(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
     const { id } = await params;
+    const jobCard = await JobCard.findById(id).select("clientId").lean();
+    if (!jobCard) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (jobCard as any).clientId);
 
     const technicians = await JobCardTechnician.find({ jobCardId: id })
       .populate("technicianId")
@@ -36,6 +41,9 @@ export async function POST(
     await dbConnect();
     const session = await requireAuth();
     const { id } = await params;
+    const jobCard = await JobCard.findById(id).select("clientId").lean();
+    if (!jobCard) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (jobCard as any).clientId);
 
     const body = await req.json();
     const { technicianId } = body;

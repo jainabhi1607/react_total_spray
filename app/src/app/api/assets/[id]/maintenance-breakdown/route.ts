@@ -2,9 +2,12 @@ import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 import {
   requireAuth,
+  enforcePortalScope,
   successResponse,
+  errorResponse,
   handleApiError,
 } from "@/lib/api-helpers";
+import ClientAsset from "@/models/ClientAsset";
 import JobCardClientAsset from "@/models/JobCardClientAsset";
 import JobCard from "@/models/JobCard";
 import JobCardType from "@/models/JobCardType";
@@ -15,8 +18,13 @@ export async function GET(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
     const { id } = await params;
+
+    // Portal users: verify asset belongs to their client
+    const asset = await ClientAsset.findById(id).select("clientId").lean();
+    if (!asset) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (asset as any).clientId);
 
     // Find all job card assignments for this asset
     const jcAssets = await JobCardClientAsset.find({ clientAssetId: id })

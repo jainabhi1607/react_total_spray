@@ -33,9 +33,16 @@ export async function POST(req: NextRequest) {
       return errorResponse("Invalid or expired OTP", 400);
     }
 
-    // Mark OTP as used
-    loginCode.status = 0;
-    await loginCode.save();
+    // Delete all OTP entries for this user (used, expired, and the current one)
+    await UserLoginCode.deleteMany({ userId });
+
+    // Also clean up expired/used OTPs from all users
+    await UserLoginCode.deleteMany({
+      $or: [
+        { expiryTime: { $lt: new Date() } },
+        { status: 0 },
+      ],
+    });
 
     const user = await User.findById(userId).select("-password");
 

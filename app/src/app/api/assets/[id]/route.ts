@@ -29,7 +29,7 @@ export async function GET(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
     const { id } = await params;
 
     const asset = await ClientAsset.findById(id)
@@ -40,6 +40,13 @@ export async function GET(
 
     if (!asset) {
       return errorResponse("Asset not found", 404);
+    }
+
+    // Portal users can only view their own client's assets
+    if ([4, 6].includes(session.role) && session.clientId) {
+      if (asset.clientId?._id?.toString() !== session.clientId) {
+        return errorResponse("Forbidden", 403);
+      }
     }
 
     // Auto-generate publicCode for existing assets that don't have one
@@ -103,13 +110,20 @@ export async function PUT(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
     const { id } = await params;
 
     const body = await req.json();
     const asset = await ClientAsset.findById(id);
     if (!asset) {
       return errorResponse("Asset not found", 404);
+    }
+
+    // Portal users can only update their own client's assets
+    if ([4, 6].includes(session.role) && session.clientId) {
+      if (asset.clientId?.toString() !== session.clientId) {
+        return errorResponse("Forbidden", 403);
+      }
     }
 
     const { notes, image } = body;

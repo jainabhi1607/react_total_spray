@@ -3,6 +3,7 @@ import dbConnect from "@/lib/db";
 import {
   requireAuth,
   successResponse,
+  errorResponse,
   handleApiError,
 } from "@/lib/api-helpers";
 import ClientAsset from "@/models/ClientAsset";
@@ -13,14 +14,23 @@ import "@/models/ClientSite";
 export async function GET(req: NextRequest) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
 
     const { searchParams } = new URL(req.url);
     const clientId = searchParams.get("clientId");
     const siteId = searchParams.get("siteId");
 
     const query: Record<string, any> = { status: { $ne: 2 } };
-    if (clientId) query.clientId = clientId;
+
+    // Portal users can only see their own client's assets
+    if ([4, 6].includes(session.role)) {
+      if (!session.clientId) {
+        return errorResponse("No client associated with this account", 403);
+      }
+      query.clientId = session.clientId;
+    } else if (clientId) {
+      query.clientId = clientId;
+    }
     if (siteId) query.clientSiteId = siteId;
 
     const assets = await ClientAsset.find(query)

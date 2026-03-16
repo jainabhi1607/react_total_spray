@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 import {
-  requireAuth,
   requireAdmin,
   successResponse,
   errorResponse,
@@ -15,7 +14,7 @@ import "@/models/ResourceCategory";
 export async function GET(req: NextRequest) {
   try {
     await dbConnect();
-    await requireAuth();
+    await requireAdmin();
     const { page, limit, skip, search } = getSearchParams(req);
 
     const { searchParams } = new URL(req.url);

@@ -5,7 +5,9 @@ import {
   successResponse,
   errorResponse,
   handleApiError,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
+import SupportTicket from "@/models/SupportTicket";
 import SupportTicketTechnician from "@/models/SupportTicketTechnician";
 import SupportTicketLog from "@/models/SupportTicketLog";
 
@@ -17,7 +19,11 @@ export async function DELETE(
     await dbConnect();
     const session = await requireAuth();
 
-    const { technicianId } = await params;
+    const { id, technicianId } = await params;
+
+    const ticket = await SupportTicket.findById(id).select("clientId").lean();
+    if (!ticket) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (ticket as any).clientId);
 
     const technician =
       await SupportTicketTechnician.findByIdAndDelete(technicianId);

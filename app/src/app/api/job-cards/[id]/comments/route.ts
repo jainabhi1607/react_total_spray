@@ -5,7 +5,9 @@ import {
   successResponse,
   errorResponse,
   handleApiError,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
+import JobCard from "@/models/JobCard";
 import JobCardComment from "@/models/JobCardComment";
 
 export async function GET(
@@ -14,10 +16,19 @@ export async function GET(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
     const { id } = await params;
+    const jobCard = await JobCard.findById(id).select("clientId").lean();
+    if (!jobCard) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (jobCard as any).clientId);
 
-    const comments = await JobCardComment.find({ jobCardId: id })
+    const commentQuery: Record<string, any> = { jobCardId: id };
+    // Portal users only see public comments
+    if ([4, 6].includes(session.role)) {
+      commentQuery.visibility = 2;
+    }
+
+    const comments = await JobCardComment.find(commentQuery)
       .populate("userId", "name email")
       .sort({ createdAt: -1 })
       .lean();
@@ -36,6 +47,9 @@ export async function POST(
     await dbConnect();
     const session = await requireAuth();
     const { id } = await params;
+    const jobCard = await JobCard.findById(id).select("clientId").lean();
+    if (!jobCard) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (jobCard as any).clientId);
 
     const body = await req.json();
     const { comments, commentType, visibility } = body;

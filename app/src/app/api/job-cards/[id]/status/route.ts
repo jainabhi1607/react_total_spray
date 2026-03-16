@@ -6,6 +6,7 @@ import {
   errorResponse,
   handleApiError,
   getClientIp,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
 import JobCard from "@/models/JobCard";
 import JobCardLog from "@/models/JobCardLog";
@@ -31,6 +32,7 @@ export async function PUT(
     if (!jobCard) {
       return errorResponse("Job card not found", 404);
     }
+    enforcePortalScope(session, jobCard.clientId);
 
     const oldStatus = jobCard.jobCardStatus;
     jobCard.jobCardStatus = jobCardStatus;

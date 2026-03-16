@@ -5,7 +5,9 @@ import {
   successResponse,
   errorResponse,
   handleApiError,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
+import SupportTicket from "@/models/SupportTicket";
 import SupportTicketDetail from "@/models/SupportTicketDetail";
 
 export async function PUT(
@@ -17,6 +19,11 @@ export async function PUT(
     const session = await requireAuth();
 
     const { id } = await params;
+
+    const ticket = await SupportTicket.findById(id).select("clientId").lean();
+    if (!ticket) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (ticket as any).clientId);
+
     const body = await req.json();
 
     const updateData: Record<string, any> = {};

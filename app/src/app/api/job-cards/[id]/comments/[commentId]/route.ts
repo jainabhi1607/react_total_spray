@@ -5,7 +5,9 @@ import {
   successResponse,
   errorResponse,
   handleApiError,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
+import JobCard from "@/models/JobCard";
 import JobCardComment from "@/models/JobCardComment";
 
 export async function PUT(
@@ -16,6 +18,9 @@ export async function PUT(
     await dbConnect();
     const session = await requireAuth();
     const { id, commentId } = await params;
+    const jobCard = await JobCard.findById(id).select("clientId").lean();
+    if (!jobCard) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (jobCard as any).clientId);
 
     const body = await req.json();
     const comment = await JobCardComment.findOne({
@@ -50,6 +55,9 @@ export async function DELETE(
     await dbConnect();
     const session = await requireAuth();
     const { id, commentId } = await params;
+    const jobCard = await JobCard.findById(id).select("clientId").lean();
+    if (!jobCard) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (jobCard as any).clientId);
 
     const comment = await JobCardComment.findOne({
       _id: commentId,

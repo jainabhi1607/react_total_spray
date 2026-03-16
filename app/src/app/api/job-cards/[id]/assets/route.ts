@@ -6,7 +6,9 @@ import {
   errorResponse,
   handleApiError,
   getClientIp,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
+import JobCard from "@/models/JobCard";
 import JobCardClientAsset from "@/models/JobCardClientAsset";
 import JobCardAssetChecklistItem from "@/models/JobCardAssetChecklistItem";
 import JobCardLog from "@/models/JobCardLog";
@@ -18,8 +20,11 @@ export async function GET(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
     const { id } = await params;
+    const jobCard = await JobCard.findById(id).select("clientId").lean();
+    if (!jobCard) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (jobCard as any).clientId);
 
     const clientAssets = await JobCardClientAsset.find({ jobCardId: id })
       .populate("clientAssetId")
@@ -51,6 +56,9 @@ export async function POST(
     await dbConnect();
     const session = await requireAuth();
     const { id } = await params;
+    const jobCard = await JobCard.findById(id).select("clientId").lean();
+    if (!jobCard) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (jobCard as any).clientId);
 
     const body = await req.json();
     const { clientAssetId } = body;

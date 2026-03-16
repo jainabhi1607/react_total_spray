@@ -15,6 +15,14 @@ export async function POST(req: NextRequest) {
       return errorResponse("Token, name, and password are required");
     }
 
+    if (typeof token !== "string" || typeof name !== "string" || typeof password !== "string") {
+      return errorResponse("Invalid input", 400);
+    }
+
+    if (password.length < 8) {
+      return errorResponse("Password must be at least 8 characters", 400);
+    }
+
     const userDetail = await UserDetail.findOne({ authcode: token });
 
     if (!userDetail) {

@@ -6,6 +6,7 @@ import {
   errorResponse,
   handleApiError,
   getClientIp,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
 import JobCardOwner from "@/models/JobCardOwner";
 import JobCard from "@/models/JobCard";
@@ -18,8 +19,11 @@ export async function GET(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
     const { id } = await params;
+    const jobCard = await JobCard.findById(id).select("clientId").lean();
+    if (!jobCard) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (jobCard as any).clientId);
 
     const owners = await JobCardOwner.find({ jobCardId: id })
       .populate("userId", "name email")
@@ -39,6 +43,9 @@ export async function POST(
     await dbConnect();
     const session = await requireAuth();
     const { id } = await params;
+    const jobCardForScope = await JobCard.findById(id).select("clientId").lean();
+    if (!jobCardForScope) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (jobCardForScope as any).clientId);
 
     const body = await req.json();
     const { userId } = body;
@@ -78,6 +85,9 @@ export async function PUT(
     await dbConnect();
     const session = await requireAuth();
     const { id } = await params;
+    const jobCardForScope = await JobCard.findById(id).select("clientId").lean();
+    if (!jobCardForScope) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (jobCardForScope as any).clientId);
 
     const body = await req.json();
     const { userIds } = body;

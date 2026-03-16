@@ -25,6 +25,7 @@ interface NavItem {
   iconInline?: React.ReactNode;
   roles: number[];
   badge?: number;
+  dividerBefore?: boolean;
   dividerAfter?: boolean;
 }
 
@@ -51,16 +52,22 @@ function ArchiveIcon({ className }: { className?: string }) {
 
 const navItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", iconSrc: "/dashboard.svg", roles: [1, 2, 3, 4, 6] },
+  { label: "Services", href: "/job-cards", iconSrc: "/briefcase.svg", roles: [4, 6] },
   { label: "Support Tickets", href: "/support-tickets", iconSrc: "/support_tickets.svg", roles: [1, 2, 3, 4, 6] },
-  { label: "Job Cards", href: "/job-cards", iconSrc: "/briefcase.svg", roles: [1, 2, 3, 4, 6] },
+  { label: "Job Cards", href: "/job-cards", iconSrc: "/briefcase.svg", roles: [1, 2, 3] },
   { label: "Clients", href: "/clients", iconSrc: "/clients.svg", roles: [1, 2, 3] },
+  { label: "Sites", href: "/sites", iconSrc: "/clients.svg", roles: [4, 6] },
   { label: "Assets", href: "/assets", iconSrc: "/package.svg", roles: [1, 2, 3, 4, 6] },
   { label: "Contacts", href: "/contacts", iconSrc: "/phone.svg", roles: [1, 2, 3, 4, 6] },
   { label: "Technicians", href: "/technicians", iconSrc: "/tool.svg", roles: [1, 2, 3] },
   { label: "To Invoice", href: "/support-tickets?tab=to-invoice", iconSrc: "/invoice.svg", roles: [1, 2, 3] },
-  { label: "Resources", href: "/resources", iconSrc: "/resources.svg", roles: [1, 2, 3, 4], dividerAfter: true },
+  { label: "Resources", href: "/resources", iconSrc: "/resources.svg", roles: [1, 2, 3], dividerAfter: true },
+  { label: "Company", href: "/company", iconSrc: "/clients.svg", roles: [4], dividerBefore: true },
+  { label: "Users", href: "/portal-users", iconSrc: "/users.svg", roles: [4] },
+  { label: "User Groups", href: "/user-groups", iconSrc: "/users.svg", roles: [4] },
+  { label: "Settings", href: "/portal-settings", iconSrc: "/settings.svg", roles: [4] },
   { label: "Archive", href: "/archive", icon: ArchiveIcon, roles: [1, 2, 3] },
-  { label: "Settings", href: "/settings", iconSrc: "/settings.svg", roles: [1, 4] },
+  { label: "Settings", href: "/settings", iconSrc: "/settings.svg", roles: [1] },
   { label: "Users", href: "/users", iconSrc: "/users.svg", roles: [1] },
 ];
 
@@ -120,7 +127,10 @@ export function Sidebar({ userRole, collapsed, onToggle }: SidebarProps) {
             }
 
             return (
-              <React.Fragment key={item.href}>
+              <React.Fragment key={item.label + item.href}>
+                {item.dividerBefore && !collapsed && (
+                  <hr className="my-2 border-t border-gray-200" />
+                )}
                 <Link
                   href={item.href}
                   className={cn(
@@ -148,6 +158,9 @@ export function Sidebar({ userRole, collapsed, onToggle }: SidebarProps) {
                     </span>
                   )}
                 </Link>
+                {item.dividerAfter && !collapsed && (
+                  <hr className="my-2 border-t border-gray-200" />
+                )}
               </React.Fragment>
             );
           })}

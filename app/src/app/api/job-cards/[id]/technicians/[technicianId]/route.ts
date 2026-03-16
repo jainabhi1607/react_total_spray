@@ -5,7 +5,9 @@ import {
   successResponse,
   errorResponse,
   handleApiError,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
+import JobCard from "@/models/JobCard";
 import JobCardTechnician from "@/models/JobCardTechnician";
 import JobCardLog from "@/models/JobCardLog";
 
@@ -17,6 +19,9 @@ export async function DELETE(
     await dbConnect();
     const session = await requireAuth();
     const { id, technicianId } = await params;
+    const jobCard = await JobCard.findById(id).select("clientId").lean();
+    if (!jobCard) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (jobCard as any).clientId);
 
     const technician = await JobCardTechnician.findOne({
       _id: technicianId,

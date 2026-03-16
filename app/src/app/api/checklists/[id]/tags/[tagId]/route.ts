@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
 import {
-  requireAuth,
+  requireAdmin,
   successResponse,
   errorResponse,
   handleApiError,
@@ -14,7 +14,7 @@ export async function DELETE(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    await requireAdmin();
     const { id, tagId } = await params;
 
     const tag = await ChecklistTemplateTag.findOneAndDelete({

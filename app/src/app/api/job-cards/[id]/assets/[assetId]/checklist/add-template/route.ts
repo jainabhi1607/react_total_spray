@@ -6,7 +6,9 @@ import {
   errorResponse,
   handleApiError,
   getClientIp,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
+import JobCard from "@/models/JobCard";
 import JobCardAssetChecklistItem from "@/models/JobCardAssetChecklistItem";
 import JobCardClientAsset from "@/models/JobCardClientAsset";
 import ChecklistTemplate from "@/models/ChecklistTemplate";
@@ -21,6 +23,9 @@ export async function POST(
     await dbConnect();
     const session = await requireAuth();
     const { id, assetId } = await params;
+    const jobCard = await JobCard.findById(id).select("clientId").lean();
+    if (!jobCard) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (jobCard as any).clientId);
 
     const body = await req.json();
     const { templateId } = body;

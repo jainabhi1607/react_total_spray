@@ -3,8 +3,11 @@ import dbConnect from "@/lib/db";
 import {
   requireAuth,
   successResponse,
+  errorResponse,
   handleApiError,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
+import SupportTicket from "@/models/SupportTicket";
 import SupportTicketTime from "@/models/SupportTicketTime";
 
 export async function GET(
@@ -13,9 +16,13 @@ export async function GET(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
 
     const { id } = await params;
+
+    const ticket = await SupportTicket.findById(id).select("clientId").lean();
+    if (!ticket) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (ticket as any).clientId);
 
     const timeEntries = await SupportTicketTime.find({ supportTicketId: id })
       .sort({ createdAt: -1 })
@@ -36,6 +43,11 @@ export async function POST(
     const session = await requireAuth();
 
     const { id } = await params;
+
+    const ticketForPost = await SupportTicket.findById(id).select("clientId").lean();
+    if (!ticketForPost) return errorResponse("Not found", 404);
+    enforcePortalScope(session, (ticketForPost as any).clientId);
+
     const body = await req.json();
     const { timeHours, timeMinutes, timeDate, description, timeType } = body;
 

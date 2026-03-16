@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
 import { cn } from "@/lib/utils";
@@ -41,11 +41,13 @@ export function AdminLayout({ children, user }: AdminLayoutProps) {
       <div className="flex flex-1">
         {/* Sidebar - desktop */}
         <div className="hidden lg:block">
-          <Sidebar
-            userRole={user.role}
-            collapsed={sidebarCollapsed}
-            onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-          />
+          <Suspense>
+            <Sidebar
+              userRole={user.role}
+              collapsed={sidebarCollapsed}
+              onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+            />
+          </Suspense>
         </div>
 
         {/* Sidebar - mobile */}
@@ -55,11 +57,13 @@ export function AdminLayout({ children, user }: AdminLayoutProps) {
             mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
-          <Sidebar
-            userRole={user.role}
-            collapsed={false}
-            onToggle={() => setMobileMenuOpen(false)}
-          />
+          <Suspense>
+            <Sidebar
+              userRole={user.role}
+              collapsed={false}
+              onToggle={() => setMobileMenuOpen(false)}
+            />
+          </Suspense>
         </div>
 
         {/* Main content */}

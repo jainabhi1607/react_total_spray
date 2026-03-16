@@ -5,6 +5,7 @@ import {
   successResponse,
   errorResponse,
   handleApiError,
+  enforcePortalScope,
 } from "@/lib/api-helpers";
 import JobCard from "@/models/JobCard";
 import JobCardLog from "@/models/JobCardLog";
@@ -22,6 +23,7 @@ export async function POST(
     if (!jobCard) {
       return errorResponse("Job card not found", 404);
     }
+    enforcePortalScope(session, jobCard.clientId);
 
     jobCard.jobCardSendDate = new Date();
     await jobCard.save();

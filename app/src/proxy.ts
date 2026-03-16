@@ -54,19 +54,21 @@ export const proxy = auth((req) => {
 
   const role = (req.auth.user as any)?.role;
 
-  // Admin routes - require role 1, 2, or 3
-  if (pathname.startsWith("/dashboard") || pathname.startsWith("/clients") ||
-      pathname.startsWith("/job-cards") || pathname.startsWith("/support-tickets") ||
-      pathname.startsWith("/technicians") || pathname.startsWith("/checklists") ||
-      pathname.startsWith("/resources") || pathname.startsWith("/settings") ||
-      pathname.startsWith("/users") || pathname.startsWith("/assets") ||
-      pathname.startsWith("/contacts") || pathname.startsWith("/archive")) {
+  // Protected routes — check role-based access
+  const protectedPaths = [
+    "/dashboard", "/clients", "/job-cards", "/support-tickets",
+    "/technicians", "/checklists", "/resources", "/settings",
+    "/users", "/assets", "/contacts", "/archive",
+    "/sites", "/company", "/portal-users", "/user-groups", "/portal-settings",
+  ];
 
-    // Client portal users (4, 6) can access limited admin routes
+  if (protectedPaths.some((path) => pathname.startsWith(path))) {
+    // Client portal users (4, 6) can access limited routes
     if (role === 4 || role === 6) {
       const clientAllowedPaths = [
-        "/dashboard", "/clients", "/job-cards", "/support-tickets",
-        "/assets", "/contacts", "/resources", "/settings",
+        "/dashboard", "/job-cards", "/support-tickets",
+        "/assets", "/contacts", "/sites",
+        "/company", "/portal-users", "/user-groups", "/portal-settings",
       ];
       if (!clientAllowedPaths.some((path) => pathname.startsWith(path))) {
         return NextResponse.redirect(new URL("/dashboard", req.url));
