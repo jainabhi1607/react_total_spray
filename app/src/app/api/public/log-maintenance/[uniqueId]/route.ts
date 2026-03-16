@@ -4,6 +4,8 @@ import { successResponse, errorResponse } from "@/lib/api-helpers";
 import ClientAsset from "@/models/ClientAsset";
 import MaintenanceTask from "@/models/MaintenanceTask";
 import ClientAssetLogMaintenance from "@/models/ClientAssetLogMaintenance";
+import "@/models/AssetMake";
+import "@/models/AssetModel";
 
 export async function GET(
   req: NextRequest,
@@ -13,9 +15,11 @@ export async function GET(
     await dbConnect();
     const { uniqueId } = await params;
 
-    const asset = await ClientAsset.findById(uniqueId)
+    const asset = await ClientAsset.findOne({ publicCode: uniqueId, status: { $ne: 2 } })
       .populate("clientId", "companyName")
       .populate("clientSiteId", "siteName")
+      .populate("assetMakeId", "title")
+      .populate("assetModelId", "title")
       .lean();
 
     if (!asset) {

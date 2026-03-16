@@ -17,4 +17,6 @@ const ChecklistTemplateSchema = new Schema<IChecklistTemplateDocument>(
   { timestamps: true }
 );
 
+ChecklistTemplateSchema.index({ title: 1 });
+
 export default mongoose.models.ChecklistTemplate || mongoose.model<IChecklistTemplateDocument>("ChecklistTemplate", ChecklistTemplateSchema);

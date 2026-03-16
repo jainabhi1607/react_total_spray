@@ -51,5 +51,8 @@ SupportTicketSchema.index({ ticketNo: 1 });
 SupportTicketSchema.index({ clientId: 1 });
 SupportTicketSchema.index({ ticketStatus: 1 });
 SupportTicketSchema.index({ status: 1 });
+SupportTicketSchema.index({ clientSiteId: 1 });
+SupportTicketSchema.index({ clientAssetId: 1 });
+SupportTicketSchema.index({ status: 1, ticketStatus: 1 });
 
 export default mongoose.models.SupportTicket || mongoose.model<ISupportTicketDocument>("SupportTicket", SupportTicketSchema);

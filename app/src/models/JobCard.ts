@@ -74,5 +74,8 @@ JobCardSchema.index({ uniqueId: 1 });
 JobCardSchema.index({ clientId: 1 });
 JobCardSchema.index({ jobCardStatus: 1 });
 JobCardSchema.index({ status: 1 });
+JobCardSchema.index({ supportTicketId: 1 });
+JobCardSchema.index({ recurringJob: 1 });
+JobCardSchema.index({ status: 1, jobCardStatus: 1 });
 
 export default mongoose.models.JobCard || mongoose.model<IJobCardDocument>("JobCard", JobCardSchema);

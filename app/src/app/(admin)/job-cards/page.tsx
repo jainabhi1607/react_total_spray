@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { PageLoading } from "@/components/ui/loading";
+import { PageLoading, PageError } from "@/components/ui/loading";
 import { QuickAddButtons, cyanBtnStyle } from "@/components/quick-add-buttons";
 import { AddJobCardDialog } from "@/components/dialogs/add-job-card-dialog";
 import {
@@ -24,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDate } from "@/lib/utils";
+import { CircularProgress } from "@/components/ui/circular-progress";
 
 // --- Types ---
 
@@ -39,6 +40,13 @@ interface JobCard {
   jobDate?: string;
   jobCardSendDate?: string;
   createdAt: string;
+  jobCardType?: { _id: string; title: string } | null;
+  recurringJob?: number;
+  recurringPeriod?: number;
+  recurringRange?: number;
+  nextRecurringDate?: string;
+  contractApprove?: number;
+  startDate?: string;
 }
 
 interface Stats {
@@ -68,65 +76,11 @@ const TABS = [
   { label: "Recurring", value: "recurring" },
 ];
 
-// --- Circular Progress Ring ---
-
-function CircularProgress({
-  percentage,
-  color,
-  trackColor = "#e5e7eb",
-  textColor = "#6b7280",
-  size = 56,
-}: {
-  percentage: number;
-  color: string;
-  trackColor?: string;
-  textColor?: string;
-  size?: number;
-}) {
-  const strokeWidth = 5;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (percentage / 100) * circumference;
-
-  return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="transform -rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={trackColor}
-          strokeWidth={strokeWidth}
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={color}
-          strokeWidth={strokeWidth}
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          className="transition-all duration-500"
-        />
-      </svg>
-      <span
-        className="absolute inset-0 flex items-center justify-center text-xs font-semibold"
-        style={{ color: textColor }}
-      >
-        {percentage}%
-      </span>
-    </div>
-  );
-}
-
 // --- Page Component ---
 
 export default function JobCardsListPage() {
   useEffect(() => {
-    document.title = "TSC - Job Cards";
+    document.title = "Job Cards";
   }, []);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -141,6 +95,7 @@ export default function JobCardsListPage() {
     searchParams.get("tab") || "active"
   );
   const [addJobCardOpen, setAddJobCardOpen] = useState(false);
+  const [addRecurringOpen, setAddRecurringOpen] = useState(false);
   const [stats, setStats] = useState<Stats>({
     open: 0,
     inProgress: 0,
@@ -261,17 +216,11 @@ export default function JobCardsListPage() {
 
   if (error && jobCards.length === 0) {
     return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg font-medium text-gray-900">
-            Unable to load job cards
-          </p>
-          <p className="mt-1 text-sm text-gray-500">{error}</p>
-          <Button className="mt-4" onClick={fetchJobCards}>
-            Try Again
-          </Button>
-        </div>
-      </div>
+      <PageError
+        message="Unable to load job cards"
+        detail={error}
+        onRetry={fetchJobCards}
+      />
     );
   }
 
@@ -282,15 +231,14 @@ export default function JobCardsListPage() {
         <h1 className="text-2xl font-bold text-gray-900">Job Cards</h1>
         <div className="flex items-center gap-2">
           <QuickAddButtons />
-          <Link href="/job-cards/add?recurring=1">
-            <button
-              style={cyanBtnStyle}
-              className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add Recurring
-            </button>
-          </Link>
+          <button
+            style={cyanBtnStyle}
+            className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80"
+            onClick={() => setAddRecurringOpen(true)}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Recurring
+          </button>
           <button
             style={cyanBtnStyle}
             className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80"
@@ -373,7 +321,122 @@ export default function JobCardsListPage() {
             <div className="py-12 text-center">
               <p className="text-sm text-gray-500">No job cards found</p>
             </div>
+          ) : activeTab === "recurring" ? (
+            /* Recurring tab - table with approve/dismiss/cancel */
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Client Name</TableHead>
+                    <TableHead>Site</TableHead>
+                    <TableHead>Asset</TableHead>
+                    <TableHead>Recurring Period</TableHead>
+                    <TableHead>Next Date</TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {jobCards.map((job) => {
+                    const hasRecurringData = !!(job.recurringPeriod && job.recurringRange && job.nextRecurringDate);
+                    const periodLabels: Record<number, string> = { 1: "Years", 2: "Months", 3: "Weeks" };
+                    const periodText = hasRecurringData
+                      ? `${job.recurringRange} ${periodLabels[job.recurringPeriod!] || ""}`
+                      : "";
+                    const nextDate = job.nextRecurringDate ? new Date(job.nextRecurringDate) : null;
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const daysUntilNext = nextDate
+                      ? Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+                      : Infinity;
+                    const showApprove = hasRecurringData && daysUntilNext <= 45;
+
+                    return (
+                      <TableRow key={job._id}>
+                        <TableCell className="font-medium">{job.clientId?.companyName || "-"}</TableCell>
+                        <TableCell>{job.clientSiteId?.siteName || "-"}</TableCell>
+                        <TableCell>{job.clientAssetId?.machineName || "-"}</TableCell>
+                        <TableCell>{periodText}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {nextDate ? formatDate(job.nextRecurringDate!) : ""}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {showApprove && (
+                              job.contractApprove === 1 ? (
+                                <span
+                                  className="inline-flex items-center px-4 py-1.5 text-xs font-medium rounded-[10px] border"
+                                  style={{ color: "#22c55e", borderColor: "#22c55e" }}
+                                >
+                                  Auto Approve
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={async () => {
+                                    if (!confirm("Approve this recurring job for the next date?")) return;
+                                    try {
+                                      const res = await fetch(`/api/job-cards/${job._id}/recurring/approve`, { method: "POST" });
+                                      const json = await res.json();
+                                      if (res.ok && json.success) fetchJobCards();
+                                      else alert(json.error || "Failed to approve");
+                                    } catch { alert("Failed to approve"); }
+                                  }}
+                                  className="inline-flex items-center px-4 py-1.5 text-xs font-medium text-white rounded-[10px] cursor-pointer hover:opacity-80"
+                                  style={{ backgroundColor: "#22c55e" }}
+                                >
+                                  Approve
+                                </button>
+                              )
+                            )}
+                            {hasRecurringData && (
+                              <button
+                                onClick={async () => {
+                                  if (!confirm("Dismiss and skip to the next recurring date?")) return;
+                                  try {
+                                    const res = await fetch(`/api/job-cards/${job._id}/recurring/dismiss`, { method: "POST" });
+                                    const json = await res.json();
+                                    if (res.ok && json.success) fetchJobCards();
+                                    else alert(json.error || "Failed to dismiss");
+                                  } catch { alert("Failed to dismiss"); }
+                                }}
+                                className="inline-flex items-center px-4 py-1.5 text-xs font-medium text-white rounded-[10px] cursor-pointer hover:opacity-80"
+                                style={{ backgroundColor: "#F29C38" }}
+                              >
+                                Dismiss
+                              </button>
+                            )}
+                            <button
+                              onClick={async () => {
+                                if (!confirm("Cancel this recurring job card?")) return;
+                                try {
+                                  const res = await fetch(`/api/job-cards/${job._id}`, {
+                                    method: "PUT",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ status: 2 }),
+                                  });
+                                  const json = await res.json();
+                                  if (res.ok && json.success) fetchJobCards();
+                                } catch { /* silent */ }
+                              }}
+                              className="inline-flex items-center px-4 py-1.5 text-xs font-medium text-white rounded-[10px] cursor-pointer hover:opacity-80"
+                              style={{ backgroundColor: "#ef4444" }}
+                            >
+                              Cancel
+                            </button>
+                            <Link href={`/job-cards/${job._id}`}>
+                              <button className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-gray-100 text-gray-500 cursor-pointer hover:bg-gray-200 hover:text-gray-700">
+                                <ArrowRight className="h-4 w-4" />
+                              </button>
+                            </Link>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
+            /* Active/Complete tabs - full table */
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -453,7 +516,7 @@ export default function JobCardsListPage() {
                           {formatDate(job.createdAt)}
                         </TableCell>
                         <TableCell className="max-w-[140px] truncate">
-                          {job.titleId?.title || ""}
+                          {job.jobCardType?.title || ""}
                         </TableCell>
                         <TableCell>
                           {statusConfig && job.jobCardStatus > 1 ? (
@@ -519,6 +582,16 @@ export default function JobCardsListPage() {
       <AddJobCardDialog
         open={addJobCardOpen}
         onOpenChange={setAddJobCardOpen}
+        onSuccess={() => {
+          fetchJobCards();
+          fetchStats();
+        }}
+      />
+
+      <AddJobCardDialog
+        open={addRecurringOpen}
+        onOpenChange={setAddRecurringOpen}
+        recurring
         onSuccess={() => {
           fetchJobCards();
           fetchStats();

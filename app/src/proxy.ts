@@ -17,7 +17,6 @@ const publicPaths = [
   "/history",
   "/api/auth",
   "/api/public",
-  "/api/seed",
 ];
 
 export const proxy = auth((req) => {

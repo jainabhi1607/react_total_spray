@@ -29,5 +29,6 @@ const ClientSchema = new Schema<IClientDocument>(
 
 ClientSchema.index({ companyName: 1 });
 ClientSchema.index({ status: 1 });
+ClientSchema.index({ accessToken: 1 }, { sparse: true });
 
 export default mongoose.models.Client || mongoose.model<IClientDocument>("Client", ClientSchema);

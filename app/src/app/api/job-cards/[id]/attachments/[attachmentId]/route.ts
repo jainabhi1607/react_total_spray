@@ -14,7 +14,7 @@ export async function PUT(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
     const { id, attachmentId } = await params;
 
     const body = await req.json();
@@ -25,6 +25,11 @@ export async function PUT(
 
     if (!attachment) {
       return errorResponse("Attachment not found", 404);
+    }
+
+    const isAdmin = [1, 2, 3].includes(session.role);
+    if (!isAdmin && String(attachment.userId) !== String(session.id)) {
+      return errorResponse("Forbidden", 403);
     }
 
     if (body.visibility !== undefined) attachment.visibility = body.visibility;
@@ -43,7 +48,7 @@ export async function DELETE(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
     const { id, attachmentId } = await params;
 
     const attachment = await JobCardAttachment.findOne({
@@ -53,6 +58,11 @@ export async function DELETE(
 
     if (!attachment) {
       return errorResponse("Attachment not found", 404);
+    }
+
+    const isAdmin = [1, 2, 3].includes(session.role);
+    if (!isAdmin && String(attachment.userId) !== String(session.id)) {
+      return errorResponse("Forbidden", 403);
     }
 
     await JobCardAttachment.deleteOne({ _id: attachmentId });

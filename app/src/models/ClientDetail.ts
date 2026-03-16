@@ -13,4 +13,6 @@ const ClientDetailSchema = new Schema<IClientDetailDocument>(
   { timestamps: true }
 );
 
+ClientDetailSchema.index({ clientId: 1 });
+
 export default mongoose.models.ClientDetail || mongoose.model<IClientDetailDocument>("ClientDetail", ClientDetailSchema);

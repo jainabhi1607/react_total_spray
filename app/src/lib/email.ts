@@ -4,6 +4,15 @@ const EMAILJS_PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY!;
 const EMAILJS_PRIVATE_KEY = process.env.EMAILJS_PRIVATE_KEY!;
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 async function sendEmail(to: string, subject: string, html: string) {
   const res = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
     method: "POST",
@@ -89,14 +98,14 @@ export async function sendTicketResolvedEmail(
     `TSC #${ticketNo} - Your ticket has been resolved`,
     `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <p>Hi ${contactName},</p>
-        <p>Your Total Spraybooth Care Support Ticket <strong>#${ticketNo}</strong> has been marked as <strong>resolved</strong>.</p>
+        <p>Hi ${escapeHtml(contactName)},</p>
+        <p>Your Total Spray Care Support Ticket <strong>#${ticketNo}</strong> has been marked as <strong>resolved</strong>.</p>
         <p>Please find details of the ticket below.</p>
-        <p><strong>Site</strong>: ${siteName}</p>
-        <p><strong>Asset</strong>: ${assetName}</p>
+        <p><strong>Site</strong>: ${escapeHtml(siteName)}</p>
+        <p><strong>Asset</strong>: ${escapeHtml(assetName)}</p>
         <p><strong>Resolution Comment</strong>:</p>
         <div style="background: #f4f4f4; padding: 15px; border-radius: 10px; margin: 10px 0;">
-          ${comment}
+          ${escapeHtml(comment)}
         </div>
         <p style="color: #666; font-size: 14px;">If you have any questions, please contact our support team.</p>
         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />

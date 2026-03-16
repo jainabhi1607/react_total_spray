@@ -25,6 +25,15 @@ export function generateAccessToken(): string {
   return CryptoJS.lib.WordArray.random(32).toString();
 }
 
+export function formatLongDate(date: Date | string): string {
+  const d = new Date(date);
+  return d.toLocaleDateString("en-AU", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export function formatDate(date: Date | string): string {
   const d = new Date(date);
   return d.toLocaleDateString("en-AU", {

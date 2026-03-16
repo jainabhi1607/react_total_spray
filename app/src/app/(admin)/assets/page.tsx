@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PageLoading } from "@/components/ui/loading";
+import { formatLongDate } from "@/lib/utils";
 
 // --- Types ---
 
@@ -35,17 +36,6 @@ interface ClientOption {
 interface SiteOption {
   _id: string;
   siteName: string;
-}
-
-// --- Helpers ---
-
-function formatLongDate(date: string): string {
-  const d = new Date(date);
-  return d.toLocaleDateString("en-AU", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
 }
 
 // --- Page ---

@@ -55,6 +55,12 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
 
+    // Filter by clientId
+    const clientIdParam = searchParams.get("clientId");
+    if (clientIdParam && !query.clientId) {
+      query.clientId = clientIdParam;
+    }
+
     // Filter by clientSiteId
     const clientSiteIdParam = searchParams.get("clientSiteId");
     if (clientSiteIdParam) {
@@ -96,6 +102,7 @@ export async function GET(req: NextRequest) {
         .populate("clientSiteId", "siteName")
         .populate("clientAssetId", "machineName")
         .populate("titleId", "title")
+        .populate("jobCardType", "title")
         .populate("userId", "name email")
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -119,6 +126,7 @@ export async function POST(req: NextRequest) {
     const {
       clientId,
       clientSiteId,
+      clientAssetId,
       clientContactId,
       titleId,
       description,
@@ -153,6 +161,7 @@ export async function POST(req: NextRequest) {
       userId: session.id,
       clientId,
       clientSiteId,
+      clientAssetId,
       clientContactId,
       titleId,
       jobDate,
@@ -164,7 +173,7 @@ export async function POST(req: NextRequest) {
       recurringPeriod,
       recurringRange,
       startDate,
-      jobCardStatus: supportTicketId ? 0 : 1,
+      jobCardStatus: supportTicketId ? 0 : recurringJob === 1 ? 0 : 1,
       status: 1,
       dateTime: new Date(),
     };

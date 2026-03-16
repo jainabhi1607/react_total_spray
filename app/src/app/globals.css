@@ -40,6 +40,26 @@ a, button, [role="button"], [type="button"], [type="submit"], [type="reset"], la
   background: #9ca3af;
 }
 
+/* Styled scrollbar for popups */
+.styled-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.styled-scroll::-webkit-scrollbar-track {
+  background: #e8f4f8;
+  border-radius: 10px;
+  margin: 4px 0;
+}
+
+.styled-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #00AEEF, #0090c7);
+  border-radius: 10px;
+}
+
+.styled-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #0090c7, #006f99);
+}
+
 /* Animations */
 @keyframes slide-in-from-bottom-5 {
   from { transform: translateY(1.25rem); opacity: 0; }

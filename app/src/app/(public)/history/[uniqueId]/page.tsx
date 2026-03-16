@@ -25,6 +25,10 @@ export default function PublicHistoryPage() {
   const [error, setError] = useState("");
   const [data, setData] = useState<any>(null);
 
+  useEffect(() => {
+    document.title = "Job Cards";
+  }, []);
+
   const fetchData = useCallback(async () => {
     try {
       const res = await fetch(`/api/public/history/${uniqueId}`);

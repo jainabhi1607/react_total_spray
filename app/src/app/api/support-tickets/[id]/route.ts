@@ -15,6 +15,7 @@ import SupportTicketTechnician from "@/models/SupportTicketTechnician";
 import SupportTicketOwner from "@/models/SupportTicketOwner";
 import SupportTicketTime from "@/models/SupportTicketTime";
 import "@/models/ClientContact";
+import "@/models/User";
 
 export async function GET(
   req: NextRequest,
@@ -62,6 +63,7 @@ export async function GET(
           .populate("userId", "name lastName email")
           .lean(),
         SupportTicketTime.find({ supportTicketId: id })
+          .populate("userId", "name lastName")
           .sort({ createdAt: -1 })
           .lean(),
       ]);
@@ -91,7 +93,17 @@ export async function PUT(
     const { id } = await params;
     const body = await req.json();
 
-    const ticket = await SupportTicket.findByIdAndUpdate(id, body, {
+    const allowedFields = [
+      "clientId", "clientSiteId", "clientAssetId", "clientContactId",
+      "titleId", "warranty", "parts", "productionImpact",
+      "onSiteTechnicianRequired", "ticketStatus", "description",
+    ];
+    const updateData: Record<string, unknown> = {};
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) updateData[field] = body[field];
+    }
+
+    const ticket = await SupportTicket.findByIdAndUpdate(id, updateData, {
       new: true,
       runValidators: true,
     });

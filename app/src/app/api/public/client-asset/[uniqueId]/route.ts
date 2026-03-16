@@ -5,6 +5,8 @@ import ClientAsset from "@/models/ClientAsset";
 import ClientAssetAttachment from "@/models/ClientAssetAttachment";
 import ClientAssetComment from "@/models/ClientAssetComment";
 import ClientAssetLogMaintenance from "@/models/ClientAssetLogMaintenance";
+import "@/models/AssetMake";
+import "@/models/AssetModel";
 
 export async function GET(
   req: NextRequest,
@@ -14,9 +16,11 @@ export async function GET(
     await dbConnect();
     const { uniqueId } = await params;
 
-    const asset = await ClientAsset.findById(uniqueId)
+    const asset = await ClientAsset.findOne({ publicCode: uniqueId, status: { $ne: 2 } })
       .populate("clientId", "companyName accessToken")
       .populate("clientSiteId", "siteName")
+      .populate("assetMakeId", "title")
+      .populate("assetModelId", "title")
       .lean();
 
     if (!asset) {

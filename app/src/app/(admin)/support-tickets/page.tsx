@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { PageLoading } from "@/components/ui/loading";
+import { PageLoading, PageError } from "@/components/ui/loading";
 import { AddSupportTicketDialog } from "@/components/dialogs/add-support-ticket-dialog";
 import { QuickAddButtons, cyanBtnStyle } from "@/components/quick-add-buttons";
 import {
@@ -24,6 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { CircularProgress } from "@/components/ui/circular-progress";
 
 // --- Types ---
 
@@ -95,60 +96,6 @@ function getInitials(name: string): string {
     .join("")
     .toUpperCase()
     .slice(0, 2);
-}
-
-// --- Circular Progress Ring ---
-
-function CircularProgress({
-  percentage,
-  color,
-  trackColor = "#e5e7eb",
-  textColor = "#6b7280",
-  size = 56,
-}: {
-  percentage: number;
-  color: string;
-  trackColor?: string;
-  textColor?: string;
-  size?: number;
-}) {
-  const strokeWidth = 5;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (percentage / 100) * circumference;
-
-  return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="transform -rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={trackColor}
-          strokeWidth={strokeWidth}
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={color}
-          strokeWidth={strokeWidth}
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          className="transition-all duration-500"
-        />
-      </svg>
-      <span
-        className="absolute inset-0 flex items-center justify-center text-xs font-semibold"
-        style={{ color: textColor }}
-      >
-        {percentage}%
-      </span>
-    </div>
-  );
 }
 
 // --- Page Component ---
@@ -306,17 +253,11 @@ export default function SupportTicketsPage() {
 
   if (error && tickets.length === 0) {
     return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg font-medium text-gray-900">
-            Unable to load tickets
-          </p>
-          <p className="mt-1 text-sm text-gray-500">{error}</p>
-          <Button className="mt-4" onClick={fetchTickets}>
-            Try Again
-          </Button>
-        </div>
-      </div>
+      <PageError
+        message="Unable to load tickets"
+        detail={error}
+        onRetry={fetchTickets}
+      />
     );
   }
 

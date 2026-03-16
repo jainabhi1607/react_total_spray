@@ -38,6 +38,7 @@ interface AddJobCardDialogProps {
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
   editData?: JobCardEditData | null;
+  recurring?: boolean;
 }
 
 export function AddJobCardDialog({
@@ -45,6 +46,7 @@ export function AddJobCardDialog({
   onOpenChange,
   onSuccess,
   editData,
+  recurring = false,
 }: AddJobCardDialogProps) {
   const isEdit = !!editData;
   const [fields, setFields] = useState<ClientSiteAssetState>(initialClientSiteAssetState);
@@ -118,6 +120,7 @@ export function AddJobCardDialog({
       };
       if (finalContactId) payload.clientContactId = finalContactId;
       if (jobCardTypeId) payload.jobCardType = jobCardTypeId;
+      if (recurring) payload.recurringJob = 1;
 
       const url = isEdit ? `/api/job-cards/${editData!._id}` : "/api/job-cards";
       const method = isEdit ? "PUT" : "POST";
@@ -147,9 +150,12 @@ export function AddJobCardDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Job Card" : "Add Job Card"}</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit Job Card" : recurring ? "Create Recurring Job Card" : "Add Job Card"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5 pt-2">
+          {recurring && !isEdit && (
+            <p className="text-sm text-gray-500">You are about to create a recurring job card template.</p>
+          )}
           {error && (
             <div className="rounded-[10px] border border-red-200 bg-red-50 p-3 text-sm text-red-800">
               {error}
@@ -184,7 +190,7 @@ export function AddJobCardDialog({
               className="bg-cyan-500 hover:bg-cyan-600 text-white"
             >
               {submitting && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-              {isEdit ? "Update" : "Add Job Card"}
+              {isEdit ? "Update" : recurring ? "Create Recurring Job Card" : "Add Job Card"}
             </Button>
             <button
               type="button"

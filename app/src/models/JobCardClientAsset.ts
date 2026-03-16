@@ -28,5 +28,6 @@ const JobCardClientAssetSchema = new Schema<IJobCardClientAssetDocument>(
 );
 
 JobCardClientAssetSchema.index({ jobCardId: 1 });
+JobCardClientAssetSchema.index({ clientAssetId: 1 });
 
 export default mongoose.models.JobCardClientAsset || mongoose.model<IJobCardClientAssetDocument>("JobCardClientAsset", JobCardClientAssetSchema);

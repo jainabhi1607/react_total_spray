@@ -19,6 +19,7 @@ import {
   ExternalLink,
   User,
   X,
+  Eye,
 } from "lucide-react";
 import { TrashIcon } from "@/components/ui/icons";
 import { AddClientDialog } from "@/components/dialogs/add-client-dialog";
@@ -143,8 +144,25 @@ interface ClientDocument {
 
 interface SupportTicket {
   _id: string;
+  ticketNo?: number;
   titleId?: { _id: string; title: string } | null;
   ticketStatus: number;
+  clientSiteId?: { _id: string; siteName: string } | string | null;
+  clientAssetId?: { _id: string; machineName: string } | string | null;
+  description?: string;
+  createdAt?: string;
+  detail?: { description?: string } | null;
+}
+
+interface WorkHistoryJobCard {
+  _id: string;
+  ticketNo?: number;
+  jobCardStatus?: number;
+  jobCardType?: { _id: string; title: string } | null;
+  clientSiteId?: { _id: string; siteName: string } | string | null;
+  clientAssetId?: { _id: string; machineName: string } | string | null;
+  jobDate?: string;
+  createdAt: string;
 }
 
 interface ServiceAgreement {
@@ -163,6 +181,25 @@ interface ServiceAgreement {
   document?: string;
   createdAt?: string;
 }
+
+const TICKET_STATUS_BADGES: Record<number, { label: string; bg: string }> = {
+  1: { label: "Open", bg: "#22c55e" },
+  2: { label: "Working", bg: "#F7CE4A" },
+  3: { label: "On-site Technician", bg: "#E18230" },
+  4: { label: "Resolved", bg: "#F7CE4A" },
+};
+
+const JC_STATUS_BADGES: Record<number, { label: string; bg: string }> = {
+  1: { label: "Date Allocated", bg: "#F7CE4A" },
+  2: { label: "Date Confirmed", bg: "#83CE67" },
+  3: { label: "Assigned Technicians", bg: "#E18230" },
+  4: { label: "Technician Avail. Conf.", bg: "#D514A1" },
+  5: { label: "Client Date Confirmed", bg: "#A114D5" },
+  6: { label: "Job Card Sent", bg: "#00AEEF" },
+  7: { label: "Checklist Complete", bg: "#F7CE4A" },
+  8: { label: "Internal Review", bg: "#2B790E" },
+  9: { label: "Job Invoiced", bg: "#000000" },
+};
 
 const FREQUENCY_LABELS: Record<number, string> = {
   1: "Monthly",
@@ -216,6 +253,7 @@ function ClientDetailPage() {
   const [documents, setDocuments] = useState<ClientDocument[]>([]);
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
   const [serviceAgreements, setServiceAgreements] = useState<ServiceAgreement[]>([]);
+  const [workHistoryJobCards, setWorkHistoryJobCards] = useState<WorkHistoryJobCard[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -347,6 +385,17 @@ function ClientDetailPage() {
     } catch {}
   }, [clientId]);
 
+  const fetchJobCards = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/job-cards?clientId=${clientId}&limit=1000`);
+      const json = await res.json();
+      if (json.success) {
+        const data = json.data?.data || json.data || [];
+        setWorkHistoryJobCards(Array.isArray(data) ? data : []);
+      }
+    } catch {}
+  }, [clientId]);
+
   const fetchServiceAgreements = useCallback(async () => {
     try {
       const res = await fetch(`/api/clients/${clientId}/service-agreements`);
@@ -373,6 +422,7 @@ function ClientDetailPage() {
       fetchNotes();
       fetchDocuments();
       fetchSupportTickets();
+      fetchJobCards();
       fetchServiceAgreements();
     }
   }, [loading, client, fetchSites, fetchAssets, fetchContacts, fetchNotes, fetchDocuments, fetchSupportTickets, fetchServiceAgreements]);
@@ -1229,11 +1279,134 @@ function ClientDetailPage() {
         <ServiceAgreementsTab clientId={clientId} serviceAgreements={filteredServiceAgreements} sites={sites} onRefresh={fetchServiceAgreements} />
       )}
 
-      {activeTab === "work-history" && (
-        <div className="flex items-center justify-center py-16">
-          <p className="text-gray-500 text-sm">Coming soon</p>
-        </div>
-      )}
+      {activeTab === "work-history" && (() => {
+        // Combine tickets and job cards into a single sorted list
+        const workItems: {
+          type: "ticket" | "jobcard";
+          _id: string;
+          ticketNo?: number;
+          siteName: string;
+          assetName: string;
+          age: string;
+          description: string;
+          date: string;
+          statusBadge: { label: string; bg: string } | null;
+          link: string;
+        }[] = [];
+
+        // Add support tickets
+        for (const t of supportTickets) {
+          const site = typeof t.clientSiteId === "object" && t.clientSiteId ? t.clientSiteId.siteName : "";
+          const asset = typeof t.clientAssetId === "object" && t.clientAssetId ? t.clientAssetId.machineName : "";
+          const created = t.createdAt ? new Date(t.createdAt) : null;
+          const ageDays = created ? Math.floor((Date.now() - created.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+          const badge = TICKET_STATUS_BADGES[t.ticketStatus] || null;
+          workItems.push({
+            type: "ticket",
+            _id: t._id,
+            ticketNo: t.ticketNo,
+            siteName: site,
+            assetName: asset,
+            age: ageDays > 0 ? `${ageDays} Day${ageDays !== 1 ? "s" : ""}` : "",
+            description: t.detail?.description || "",
+            date: t.createdAt ? formatDate(t.createdAt) : "",
+            statusBadge: badge,
+            link: `/support-tickets/${t._id}`,
+          });
+        }
+
+        // Add job cards
+        for (const jc of workHistoryJobCards) {
+          const site = typeof jc.clientSiteId === "object" && jc.clientSiteId ? jc.clientSiteId.siteName : "";
+          const asset = typeof jc.clientAssetId === "object" && jc.clientAssetId ? jc.clientAssetId.machineName : "";
+          const created = new Date(jc.createdAt);
+          const ageDays = Math.floor((Date.now() - created.getTime()) / (1000 * 60 * 60 * 24));
+          const badge = JC_STATUS_BADGES[jc.jobCardStatus || 0] || null;
+          workItems.push({
+            type: "jobcard",
+            _id: jc._id,
+            ticketNo: jc.ticketNo,
+            siteName: site,
+            assetName: asset || (jc.clientAssetId && typeof jc.clientAssetId === "object" ? (jc.clientAssetId as any).machineName : "Multiple"),
+            age: ageDays > 0 ? `${ageDays} Day${ageDays !== 1 ? "s" : ""}` : "",
+            description: jc.jobCardType?.title || "",
+            date: jc.jobDate ? formatDate(jc.jobDate) : "",
+            statusBadge: badge,
+            link: `/job-cards/${jc._id}`,
+          });
+        }
+
+        // Sort by ticketNo ascending
+        workItems.sort((a, b) => (a.ticketNo || 0) - (b.ticketNo || 0));
+
+        // Filter by selected site
+        const filtered = selectedSiteId
+          ? workItems.filter((w) => {
+              const ticket = supportTickets.find((t) => t._id === w._id);
+              const jc = workHistoryJobCards.find((j) => j._id === w._id);
+              const siteId = ticket
+                ? (typeof ticket.clientSiteId === "object" ? ticket.clientSiteId?._id : ticket.clientSiteId)
+                : (typeof jc?.clientSiteId === "object" ? jc?.clientSiteId?._id : jc?.clientSiteId);
+              return siteId === selectedSiteId;
+            })
+          : workItems;
+
+        return (
+          <Card>
+            <CardContent className="p-0">
+              {filtered.length === 0 ? (
+                <div className="flex items-center justify-center py-16">
+                  <p className="text-gray-500 text-sm">No work history found</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ticket No.</TableHead>
+                      <TableHead>Client Site</TableHead>
+                      <TableHead>Asset</TableHead>
+                      <TableHead>Age</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((item) => (
+                      <TableRow key={`${item.type}-${item._id}`}>
+                        <TableCell className="font-medium">{item.ticketNo || ""}</TableCell>
+                        <TableCell>{item.siteName}</TableCell>
+                        <TableCell>{item.assetName}</TableCell>
+                        <TableCell className="whitespace-nowrap">{item.age}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">{item.description}</TableCell>
+                        <TableCell className="whitespace-nowrap">{item.date}</TableCell>
+                        <TableCell>
+                          {item.statusBadge && (
+                            <span
+                              className="inline-flex items-center px-3 py-1 text-xs font-medium text-white whitespace-nowrap"
+                              style={{ backgroundColor: item.statusBadge.bg, borderRadius: 5 }}
+                            >
+                              {item.statusBadge.label}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Link href={item.link}>
+                            <button className="rounded-full p-1.5 text-gray-400 cursor-pointer hover:bg-gray-100 hover:text-gray-600">
+                              <Eye className="h-4 w-4" />
+                            </button>
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {activeTab === "portal-users" && (
         <PortalUsersTab clientId={clientId} />

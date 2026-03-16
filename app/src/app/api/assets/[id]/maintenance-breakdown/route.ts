@@ -5,7 +5,9 @@ import {
   successResponse,
   handleApiError,
 } from "@/lib/api-helpers";
-import ClientAssetLogMaintenance from "@/models/ClientAssetLogMaintenance";
+import JobCardClientAsset from "@/models/JobCardClientAsset";
+import JobCard from "@/models/JobCard";
+import JobCardType from "@/models/JobCardType";
 
 export async function GET(
   req: NextRequest,
@@ -16,29 +18,52 @@ export async function GET(
     await requireAuth();
     const { id } = await params;
 
-    // Group maintenance logs by taskName and count
-    const breakdown = await ClientAssetLogMaintenance.aggregate([
-      { $match: { clientAssetId: { $toObjectId: id } } },
-      {
-        $group: {
-          _id: "$taskName",
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { count: -1 } },
-    ]);
+    // Find all job card assignments for this asset
+    const jcAssets = await JobCardClientAsset.find({ clientAssetId: id })
+      .select("jobCardId")
+      .lean();
 
-    const items = breakdown
-      .filter((b: { _id: string | null }) => b._id)
-      .map((b: { _id: string; count: number }) => ({
-        name: b._id,
-        count: b.count,
-      }));
+    if (jcAssets.length === 0) {
+      return successResponse({ items: [], total: 0 });
+    }
 
-    const total = items.reduce(
-      (sum: number, item: { count: number }) => sum + item.count,
-      0
-    );
+    const jobCardIds = jcAssets.map((a: any) => a.jobCardId);
+
+    // Get job cards with their types
+    const jobCards = await JobCard.find({
+      _id: { $in: jobCardIds },
+      status: { $ne: 2 },
+      jobCardType: { $exists: true, $ne: null },
+    })
+      .select("jobCardType")
+      .lean();
+
+    // Count by jobCardType
+    const typeCounts = new Map<string, number>();
+    for (const jc of jobCards as any[]) {
+      const typeId = jc.jobCardType.toString();
+      typeCounts.set(typeId, (typeCounts.get(typeId) || 0) + 1);
+    }
+
+    // Fetch type names
+    const typeIds = [...typeCounts.keys()];
+    const types = await JobCardType.find({ _id: { $in: typeIds } })
+      .select("title")
+      .lean();
+
+    const typeNameMap = new Map<string, string>();
+    for (const t of types as any[]) {
+      typeNameMap.set(t._id.toString(), t.title);
+    }
+
+    const items = typeIds.map((typeId) => ({
+      name: typeNameMap.get(typeId) || "Unknown",
+      count: typeCounts.get(typeId) || 0,
+    }));
+
+    items.sort((a, b) => b.count - a.count);
+
+    const total = items.reduce((sum, i) => sum + i.count, 0);
 
     return successResponse({ items, total });
   } catch (error) {

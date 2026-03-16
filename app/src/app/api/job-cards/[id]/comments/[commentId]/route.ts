@@ -14,7 +14,7 @@ export async function PUT(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
     const { id, commentId } = await params;
 
     const body = await req.json();
@@ -25,6 +25,11 @@ export async function PUT(
 
     if (!comment) {
       return errorResponse("Comment not found", 404);
+    }
+
+    const isAdmin = [1, 2, 3].includes(session.role);
+    if (!isAdmin && String(comment.userId) !== String(session.id)) {
+      return errorResponse("Forbidden", 403);
     }
 
     if (body.comments !== undefined) comment.comments = body.comments;
@@ -43,7 +48,7 @@ export async function DELETE(
 ) {
   try {
     await dbConnect();
-    await requireAuth();
+    const session = await requireAuth();
     const { id, commentId } = await params;
 
     const comment = await JobCardComment.findOne({
@@ -53,6 +58,11 @@ export async function DELETE(
 
     if (!comment) {
       return errorResponse("Comment not found", 404);
+    }
+
+    const isAdmin = [1, 2, 3].includes(session.role);
+    if (!isAdmin && String(comment.userId) !== String(session.id)) {
+      return errorResponse("Forbidden", 403);
     }
 
     await JobCardComment.deleteOne({ _id: commentId });

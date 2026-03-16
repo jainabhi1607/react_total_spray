@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   PieChart,
   Pie,
@@ -18,11 +19,21 @@ import {
   Loader2,
   Upload,
   X,
+  ChevronRight,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { PageLoading } from "@/components/ui/loading";
+import { formatLongDate, JOB_CARD_STATUS_LABELS } from "@/lib/utils";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +54,25 @@ const CHART_COLORS = [
   "#B8E986",
   "#4A90D9",
 ];
+
+const JC_STATUS_BADGES: Record<number, { label: string; bg: string }> = {
+  1: { label: "Date Allocated", bg: "#F7CE4A" },
+  2: { label: "Date Confirmed", bg: "#83CE67" },
+  3: { label: "Assigned Technicians", bg: "#E18230" },
+  4: { label: "Technician Avail. Conf.", bg: "#D514A1" },
+  5: { label: "Client Date Confirmed", bg: "#A114D5" },
+  6: { label: "Job Card Sent", bg: "#00AEEF" },
+  7: { label: "Checklist Complete", bg: "#F7CE4A" },
+  8: { label: "Internal Review", bg: "#2B790E" },
+  9: { label: "Job Invoiced", bg: "#000000" },
+};
+
+const TICKET_STATUS_BADGES: Record<number, { label: string; bg: string }> = {
+  1: { label: "Open", bg: "#00AEEF" },
+  2: { label: "Working", bg: "#F7CE4A" },
+  3: { label: "Technician Required", bg: "#83CE67" },
+  4: { label: "Resolved", bg: "#83CE67" },
+};
 
 // --- Types ---
 
@@ -65,18 +95,52 @@ interface AssetDetail {
   createdAt?: string;
   publicCode?: string;
   supportRequests: number;
+  lastServiceDate?: string | null;
+  jobCards?: AssetJobCard[];
+  supportTickets?: AssetSupportTicket[];
+}
+
+interface AssetJobCard {
+  _id: string;
+  ticketNo?: number;
+  jobCardType?: { _id: string; title: string } | null;
+  jobDate?: string;
+  jobCardStatus?: number;
+  createdAt: string;
+}
+
+interface AssetSupportTicket {
+  _id: string;
+  ticketNo?: number;
+  ticketStatus?: number;
+  clientContactId?: { _id: string; name: string; lastName?: string } | null;
+  userId?: { _id: string; name: string; lastName?: string } | null;
+  createdAt: string;
+}
+
+function timeSinceLastService(dateStr: string): string {
+  const last = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - last.getTime();
+  const totalDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  const years = Math.floor(totalDays / 365);
+  const months = Math.floor((totalDays % 365) / 30);
+  const days = totalDays % 30;
+
+  if (years > 0) {
+    return months > 0 ? `${years} Year${years > 1 ? "s" : ""} ${months} Month${months > 1 ? "s" : ""}` : `${years} Year${years > 1 ? "s" : ""}`;
+  }
+  if (months > 0) {
+    return days > 0 ? `${months} Month${months > 1 ? "s" : ""} ${days} Day${days > 1 ? "s" : ""}` : `${months} Month${months > 1 ? "s" : ""}`;
+  }
+  if (days > 0) {
+    return `${days} Day${days > 1 ? "s" : ""}`;
+  }
+  return "Today";
 }
 
 // --- Helpers ---
-
-function formatLongDate(date: string): string {
-  const d = new Date(date);
-  return d.toLocaleDateString("en-AU", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-}
 
 function getPublicAssetUrl(publicCode: string): string {
   const baseUrl =
@@ -575,6 +639,11 @@ export default function AssetDetailPage() {
               <Card className="bg-cyan-400 text-white">
                 <CardContent className="p-5" style={{ height: 110 }}>
                   <p className="text-sm font-medium">Time since last service</p>
+                  <p className="text-2xl font-bold mt-2">
+                    {asset.lastServiceDate
+                      ? timeSinceLastService(asset.lastServiceDate)
+                      : "No service yet"}
+                  </p>
                 </CardContent>
               </Card>
 
@@ -585,7 +654,7 @@ export default function AssetDetailPage() {
                     Support Requests
                   </p>
                   <p className="text-3xl font-bold mt-2">
-                    {asset.supportRequests}
+                    {asset.supportTickets?.length || asset.supportRequests || 0}
                   </p>
                 </CardContent>
               </Card>
@@ -594,75 +663,77 @@ export default function AssetDetailPage() {
               <Card>
                 <CardContent className="p-5" style={{ height: 110 }}>
                   <p className="text-sm font-medium text-gray-500">Job Cards</p>
-                  <p className="text-3xl font-bold mt-2">0</p>
+                  <p className="text-3xl font-bold mt-2">{asset.jobCards?.length || 0}</p>
                 </CardContent>
               </Card>
             </div>
 
             {/* Maintenance action Breakdown by Type */}
             <Card>
-              <CardContent className="p-5">
-                <h3 className="text-sm font-semibold text-gray-900 mb-4">
+              <CardContent className="p-6">
+                <h3 className="text-sm font-semibold text-gray-900 mb-6">
                   Maintenance action Breakdown by Type
                 </h3>
-                <div className="flex items-start gap-6">
-                  {/* Donut Chart */}
-                  <div className="shrink-0" style={{ width: 160, height: 160 }}>
-                    {maintenanceItems.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={maintenanceItems}
-                            dataKey="count"
-                            nameKey="name"
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={45}
-                            outerRadius={75}
-                            strokeWidth={0}
-                          >
-                            {maintenanceItems.map((_, index) => (
-                              <Cell
-                                key={index}
-                                fill={CHART_COLORS[index % CHART_COLORS.length]}
-                              />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            content={({ active, payload }) => {
-                              if (!active || !payload?.length) return null;
-                              const item = payload[0];
-                              const percent =
-                                maintenanceTotal > 0
-                                  ? (
-                                      ((item.value as number) /
-                                        maintenanceTotal) *
-                                      100
-                                    ).toFixed(1)
-                                  : "0";
-                              return (
-                                <div className="rounded-[10px] bg-gray-800 px-3 py-1.5 text-xs text-white shadow">
-                                  {item.name}: {percent}%
-                                </div>
-                              );
-                            }}
+                <div className="flex items-center">
+                  {/* Donut Chart - 50% width */}
+                  <div className="w-1/2">
+                    <div style={{ width: 170, height: 170 }}>
+                      {maintenanceItems.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={maintenanceItems}
+                              dataKey="count"
+                              nameKey="name"
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={70}
+                              outerRadius={80}
+                              strokeWidth={0}
+                            >
+                              {maintenanceItems.map((_, index) => (
+                                <Cell
+                                  key={index}
+                                  fill={CHART_COLORS[index % CHART_COLORS.length]}
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              content={({ active, payload }) => {
+                                if (!active || !payload?.length) return null;
+                                const item = payload[0];
+                                const percent =
+                                  maintenanceTotal > 0
+                                    ? (
+                                        ((item.value as number) /
+                                          maintenanceTotal) *
+                                        100
+                                      ).toFixed(1)
+                                    : "0";
+                                return (
+                                  <div className="rounded-[10px] bg-gray-800 px-3 py-1.5 text-xs text-white shadow">
+                                    {item.name}: {percent}%
+                                  </div>
+                                );
+                              }}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          <div
+                            className="rounded-full border-[14px] border-gray-100"
+                            style={{ width: 170, height: 170 }}
                           />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="flex h-full items-center justify-center">
-                        <div
-                          className="rounded-full border-[20px] border-gray-100"
-                          style={{ width: 150, height: 150 }}
-                        />
-                      </div>
-                    )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Legend */}
-                  <div className="flex-1 pt-1">
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-sm text-cyan-600 font-medium">
+                  {/* Legend - 50% width */}
+                  <div className="w-1/2 pl-4">
+                    <div className="flex items-center justify-between mb-5">
+                      <span className="text-sm text-gray-500 font-medium">
                         Total Maintenance Actions
                       </span>
                       <span className="text-2xl font-bold">
@@ -675,9 +746,9 @@ export default function AssetDetailPage() {
                           key={item.name}
                           className="flex items-center justify-between"
                         >
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2.5">
                             <div
-                              className="h-3.5 w-3.5 rounded-sm shrink-0"
+                              className="h-4 w-4 shrink-0"
                               style={{
                                 backgroundColor:
                                   CHART_COLORS[index % CHART_COLORS.length],
@@ -687,7 +758,7 @@ export default function AssetDetailPage() {
                               {item.name}
                             </span>
                           </div>
-                          <span className="text-sm text-cyan-600 font-medium">
+                          <span className="text-sm font-medium">
                             {item.count}
                           </span>
                         </div>
@@ -821,22 +892,113 @@ export default function AssetDetailPage() {
         </div>
       )}
 
-      {/* Maintenance Tab */}
+      {/* Maintenance Tab — Job Cards */}
       {activeTab === "maintenance" && (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <p className="text-sm text-gray-500">
-              No maintenance records found
-            </p>
+          <CardContent className="p-0">
+            {!asset.jobCards || asset.jobCards.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <p className="text-sm text-gray-500">No job cards found for this asset</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Ticket No.</TableHead>
+                    <TableHead>Job Type</TableHead>
+                    <TableHead>Date Allocated</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {asset.jobCards.map((jc) => {
+                    const badge = JC_STATUS_BADGES[jc.jobCardStatus || 0];
+                    return (
+                      <TableRow key={jc._id}>
+                        <TableCell className="font-medium">{jc.ticketNo || ""}</TableCell>
+                        <TableCell>{jc.jobCardType?.title || ""}</TableCell>
+                        <TableCell className="whitespace-nowrap">{jc.jobDate ? formatLongDate(jc.jobDate) : ""}</TableCell>
+                        <TableCell>
+                          {badge && (
+                            <span
+                              className="inline-flex items-center px-3 py-1 text-xs font-medium text-white whitespace-nowrap"
+                              style={{ backgroundColor: badge.bg, borderRadius: 5 }}
+                            >
+                              {badge.label}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Link href={`/job-cards/${jc._id}`} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+                            View <ChevronRight className="h-4 w-4" />
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       )}
 
-      {/* Activity Tab */}
+      {/* Activity Tab — Support Tickets */}
       {activeTab === "activity" && (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <p className="text-sm text-gray-500">No activity found</p>
+          <CardContent className="p-0">
+            {!asset.supportTickets || asset.supportTickets.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <p className="text-sm text-gray-500">No support tickets found for this asset</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Ticket No.</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Requester</TableHead>
+                    <TableHead>Date Created</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {asset.supportTickets.map((ticket) => {
+                    const badge = TICKET_STATUS_BADGES[ticket.ticketStatus || 0];
+                    const requester = ticket.clientContactId
+                      ? `${ticket.clientContactId.name}${ticket.clientContactId.lastName ? " " + ticket.clientContactId.lastName : ""}`
+                      : ticket.userId
+                        ? `${ticket.userId.name}${ticket.userId.lastName ? " " + ticket.userId.lastName : ""}`
+                        : "";
+                    return (
+                      <TableRow key={ticket._id}>
+                        <TableCell className="font-medium">{ticket.ticketNo || ""}</TableCell>
+                        <TableCell>Support Ticket</TableCell>
+                        <TableCell>{requester}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatLongDate(ticket.createdAt)}</TableCell>
+                        <TableCell>
+                          {badge && (
+                            <span
+                              className="inline-flex items-center px-3 py-1 text-xs font-medium text-white whitespace-nowrap"
+                              style={{ backgroundColor: badge.bg, borderRadius: 5 }}
+                            >
+                              {badge.label}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Link href={`/support-tickets/${ticket._id}`} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+                            View <ChevronRight className="h-4 w-4" />
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       )}

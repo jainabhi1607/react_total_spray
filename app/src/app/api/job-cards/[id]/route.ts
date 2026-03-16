@@ -16,6 +16,7 @@ import JobCardTechnician from "@/models/JobCardTechnician";
 import JobCardOwner from "@/models/JobCardOwner";
 import JobCardClientAsset from "@/models/JobCardClientAsset";
 import JobCardAssetChecklistItem from "@/models/JobCardAssetChecklistItem";
+import JobCardAssetChecklistItemAttachment from "@/models/JobCardAssetChecklistItemAttachment";
 import Client from "@/models/Client";
 import ClientSite from "@/models/ClientSite";
 import ClientContact from "@/models/ClientContact";
@@ -80,7 +81,51 @@ export async function GET(
         })
           .sort({ orderNo: 1 })
           .lean();
-        return { ...asset, checklistItems };
+
+        // Fetch attachments for image-type checklist items
+        const itemIds = checklistItems.map((item: any) => item._id);
+        const attachments = await JobCardAssetChecklistItemAttachment.find({
+          jobCardAssetChecklistItemId: { $in: itemIds },
+        }).lean();
+        const attachmentMap = new Map<string, any[]>();
+        for (const att of attachments as any[]) {
+          const key = att.jobCardAssetChecklistItemId.toString();
+          if (!attachmentMap.has(key)) attachmentMap.set(key, []);
+          attachmentMap.get(key)!.push(att);
+        }
+        const itemsWithAttachments = checklistItems.map((item: any) => ({
+          ...item,
+          attachments: attachmentMap.get(item._id.toString()) || [],
+        }));
+
+        // Auto-calculate completed count based on actual responses
+        const SECTION_BREAK = 0;
+        const TEXT_ONLY = 9;
+        const respondableItems = itemsWithAttachments.filter(
+          (item: any) => item.checklistItemType !== SECTION_BREAK && item.checklistItemType !== TEXT_ONLY
+        );
+        const completedCount = respondableItems.filter((item: any) => {
+          switch (item.checklistItemType) {
+            case 1: // Checkbox
+            case 5: // Yes/No
+              return item.responseType1 && item.responseType1 > 0;
+            case 2: // Pass/Fail/N/A
+            case 6: // Poor/Fair/Good
+              return item.responseType2 && item.responseType2 > 0;
+            case 3: // Image
+              return item.attachments && item.attachments.length > 0;
+            case 4: // Comment
+              return item.comments && item.comments.trim().length > 0;
+            case 7: // Signature
+              return item.signature && item.signature.length > 0;
+            case 8: // Set Date & Time
+              return !!item.setDateTime;
+            default:
+              return false;
+          }
+        }).length;
+
+        return { ...asset, checklistItems: itemsWithAttachments, completeChecklist: completedCount };
       })
     );
 
@@ -134,6 +179,9 @@ export async function PUT(
       "startDate",
       "invoiceNumber",
       "markComplete",
+      "status",
+      "contractApprove",
+      "nextRecurringDate",
     ];
 
     // Label maps for human-readable logs

@@ -43,10 +43,10 @@ interface StatusCount {
 }
 
 interface DashboardData {
-  clientCount: number;
-  ticketCount: number;
-  jobCardCount: number;
-  technicianCount: number;
+  activeClients: number;
+  openTickets: number;
+  openJobCards: number;
+  activeTechnicians: number;
   recentTickets: RecentTicket[];
   recentJobCards: RecentJobCard[];
   ticketsByStatus: StatusCount[];
@@ -105,25 +105,25 @@ function getJobCardStatusBarColor(status: number): string {
 
 const statCards = [
   {
-    key: "clientCount" as const,
+    key: "activeClients" as const,
     label: "Active Clients",
     iconSrc: "/clients.svg",
     iconBg: "bg-blue-100",
   },
   {
-    key: "ticketCount" as const,
+    key: "openTickets" as const,
     label: "Open Tickets",
     iconSrc: "/support_tickets.svg",
     iconBg: "bg-orange-100",
   },
   {
-    key: "jobCardCount" as const,
+    key: "openJobCards" as const,
     label: "Open Job Cards",
     iconSrc: "/briefcase.svg",
     iconBg: "bg-green-100",
   },
   {
-    key: "technicianCount" as const,
+    key: "activeTechnicians" as const,
     label: "Active Technicians",
     iconSrc: "/tool.svg",
     iconBg: "bg-purple-100",

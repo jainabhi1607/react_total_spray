@@ -184,6 +184,8 @@ interface JobCardData {
   recurringJob?: number;
   recurringPeriod?: number;
   recurringRange?: number;
+  startDate?: string;
+  contractApprove?: number;
   invoiceNumber?: string;
   jobCardSentDate?: string;
   createdAt: string;
@@ -566,6 +568,17 @@ export default function JobCardDetailPage() {
   const [claimCurrentUser, setClaimCurrentUser] = useState<{ id: string; name: string; lastName?: string } | null>(null);
   const [claimLoading, setClaimLoading] = useState(false);
   const [claimSubmitting, setClaimSubmitting] = useState(false);
+
+  // Reschedule recurring dialog
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [rescheduleForm, setRescheduleForm] = useState({
+    startDate: new Date().toISOString().slice(0, 10),
+    recurringPeriod: "",
+    recurringRange: "",
+    contractApprove: false,
+  });
+  const [rescheduleSubmitting, setRescheduleSubmitting] = useState(false);
+  const [setAsRecurringMode, setSetAsRecurringMode] = useState(false);
 
   // Checklist tab state
   const [checklistAssetId, setChecklistAssetId] = useState<string | null>(null);
@@ -976,6 +989,84 @@ export default function JobCardDetailPage() {
       alert("Failed to save job date. Please try again.");
     } finally {
       setJobDateSaving(false);
+    }
+  }
+
+  async function handleReschedule() {
+    if (!rescheduleForm.startDate || !rescheduleForm.recurringPeriod || !rescheduleForm.recurringRange) {
+      alert("Please fill in all fields.");
+      return;
+    }
+    setRescheduleSubmitting(true);
+    try {
+      const start = new Date(rescheduleForm.startDate);
+      const period = Number(rescheduleForm.recurringPeriod);
+      const range = Number(rescheduleForm.recurringRange);
+      const next = new Date(start);
+      if (period === 1) next.setFullYear(next.getFullYear() + range);
+      else if (period === 2) next.setMonth(next.getMonth() + range);
+      else if (period === 3) next.setDate(next.getDate() + range * 7);
+
+      const recurringData = {
+        startDate: start.toISOString(),
+        recurringPeriod: period,
+        recurringRange: range,
+        contractApprove: rescheduleForm.contractApprove ? 1 : 0,
+        nextRecurringDate: next.toISOString(),
+      };
+
+      if (setAsRecurringMode && jobCard) {
+        // Create a new recurring job card with same details as this job
+        const createRes = await fetch("/api/job-cards", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clientId: jobCard.clientId?._id,
+            clientSiteId: jobCard.clientSiteId?._id,
+            clientAssetId: jobCard.clientAssetId?._id,
+            clientContactId: jobCard.clientContactId?._id,
+            titleId: jobCard.titleId?._id,
+            jobCardType: jobCard.jobCardType?._id,
+            warranty: jobCard.warranty,
+            recurringJob: 1,
+            ...recurringData,
+          }),
+        });
+        const createJson = await createRes.json();
+        if (!createRes.ok || !createJson.success) throw new Error(createJson.error || "Failed");
+        // Set nextRecurringDate and contractApprove on the new job
+        await fetch(`/api/job-cards/${createJson.data._id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nextRecurringDate: recurringData.nextRecurringDate,
+            contractApprove: recurringData.contractApprove,
+          }),
+        });
+        setRescheduleOpen(false);
+        setSetAsRecurringMode(false);
+        alert("Recurring job created successfully.");
+        return;
+      }
+
+      // Normal reschedule — update existing recurring job
+      const res = await fetch(`/api/job-cards/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(recurringData),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setRescheduleOpen(false);
+        fetchJobCard();
+      } else {
+        alert(json.error || "Failed to reschedule.");
+      }
+    } catch {
+      alert("Failed. Please try again.");
+    } finally {
+      setRescheduleSubmitting(false);
+      setSetAsRecurringMode(false);
     }
   }
 
@@ -1570,14 +1661,16 @@ export default function JobCardDetailPage() {
       {/* Header */}
       <div className="mb-4 flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/job-cards">
+          <Link href={jobCard.recurringJob === 1 ? "/job-cards?tab=recurring" : "/job-cards"}>
             <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-gray-800 text-gray-800 hover:bg-gray-100">
               <ArrowLeft className="h-5 w-5" />
             </div>
           </Link>
           <div>
             <h1 className="text-[26px] font-bold text-gray-900">
-              Job Card #{jobCard.ticketNo}
+              {jobCard.recurringJob === 1
+                ? `Recurring JC - ${jobCard.clientId?.companyName || ""} - ${jobCard.clientSiteId?.siteName || ""}`
+                : `Job Card #${jobCard.ticketNo}`}
             </h1>
             <p className="mt-0.5 text-[13px] text-gray-500">
               <span className="font-bold text-gray-900">Created:</span>{" "}
@@ -1603,13 +1696,42 @@ export default function JobCardDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            className="inline-flex items-center gap-2 bg-white"
-            style={{ border: "1px solid #D6E1E9", padding: "8px 15px", borderRadius: 5, color: "#272D34", fontSize: 12, fontWeight: "normal", lineHeight: "13px" }}
-          >
-            <RefreshCcw className="h-3.5 w-3.5" />
-            Set as recurring job
-          </button>
+          {jobCard.recurringJob === 1 ? (
+            <button
+              onClick={() => {
+                setRescheduleForm({
+                  startDate: jobCard.startDate ? new Date(jobCard.startDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+                  recurringPeriod: jobCard.recurringPeriod ? String(jobCard.recurringPeriod) : "",
+                  recurringRange: jobCard.recurringRange ? String(jobCard.recurringRange) : "",
+                  contractApprove: jobCard.contractApprove === 1,
+                });
+                setRescheduleOpen(true);
+              }}
+              className="inline-flex items-center gap-2 bg-white cursor-pointer"
+              style={{ border: "1px solid #D6E1E9", padding: "8px 15px", borderRadius: 5, color: "#272D34", fontSize: 12, fontWeight: "normal", lineHeight: "13px" }}
+            >
+              <RefreshCcw className="h-3.5 w-3.5" />
+              {jobCard.recurringPeriod && jobCard.recurringRange && jobCard.startDate ? "Reschedule job" : "Add recurring details"}
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                setRescheduleForm({
+                  startDate: new Date().toISOString().slice(0, 10),
+                  recurringPeriod: "",
+                  recurringRange: "",
+                  contractApprove: false,
+                });
+                setSetAsRecurringMode(true);
+                setRescheduleOpen(true);
+              }}
+              className="inline-flex items-center gap-2 bg-white cursor-pointer"
+              style={{ border: "1px solid #D6E1E9", padding: "8px 15px", borderRadius: 5, color: "#272D34", fontSize: 12, fontWeight: "normal", lineHeight: "13px" }}
+            >
+              <RefreshCcw className="h-3.5 w-3.5" />
+              Set as recurring job
+            </button>
+          )}
           <button
             className="inline-flex items-center gap-2 bg-white"
             style={{ border: "1px solid #D6E1E9", padding: "8px 15px", borderRadius: 5, color: "#272D34", fontSize: 12, fontWeight: "normal", lineHeight: "13px" }}
@@ -1847,7 +1969,9 @@ export default function JobCardDetailPage() {
                   ) : (
                     clientAssets.map((asset) => {
                       const name = asset.clientAssetId?.machineName || "Unknown Asset";
-                      const totalItems = asset.checklistItems?.length || 0;
+                      const totalItems = asset.checklistItems?.filter(
+                        (i: any) => i.checklistItemType !== 0 && i.checklistItemType !== 9
+                      ).length || 0;
                       const completedItems = asset.completeChecklist || 0;
 
                       return (
@@ -3125,6 +3249,118 @@ export default function JobCardDetailPage() {
             </Button>
             <button
               onClick={() => setClItemOpen(false)}
+              className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Reschedule Recurring Job Dialog ─────────────────────── */}
+      <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{setAsRecurringMode ? "Set as Recurring Job" : "Reschedule Recurring Job"}</DialogTitle>
+          </DialogHeader>
+          <hr />
+          <p className="text-sm text-gray-500 px-2">
+            {setAsRecurringMode
+              ? "You are about to create a recurring job from this job card. Please set the Recurring Period and Start Date below"
+              : "You are about to reschedule this recurring job. Please set the new Recurring Period and Start Date below"}
+          </p>
+          <div className="space-y-5 px-2">
+            {/* Start Date */}
+            <div className="flex items-center gap-4">
+              <label className="w-[140px] shrink-0 text-sm text-gray-700">Start Date</label>
+              <input
+                type="date"
+                className="flex h-10 w-full rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                value={rescheduleForm.startDate}
+                onChange={(e) => setRescheduleForm({ ...rescheduleForm, startDate: e.target.value })}
+              />
+            </div>
+
+            {/* Recurring Period */}
+            <div className="flex items-center gap-4">
+              <label className="w-[140px] shrink-0 text-sm text-gray-700">Recurring Period</label>
+              <select
+                className="flex h-10 flex-1 rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                value={rescheduleForm.recurringPeriod}
+                onChange={(e) => setRescheduleForm({ ...rescheduleForm, recurringPeriod: e.target.value, recurringRange: "" })}
+              >
+                <option value="">Select</option>
+                <option value="1">Years</option>
+                <option value="2">Months</option>
+                <option value="3">Weeks</option>
+              </select>
+              <select
+                className="flex h-10 w-[140px] rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                value={rescheduleForm.recurringRange}
+                onChange={(e) => setRescheduleForm({ ...rescheduleForm, recurringRange: e.target.value })}
+              >
+                <option value="">Select</option>
+                {rescheduleForm.recurringPeriod === "1" && (
+                  <option value="1">1</option>
+                )}
+                {rescheduleForm.recurringPeriod === "2" &&
+                  Array.from({ length: 11 }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={String(n)}>{n}</option>
+                  ))
+                }
+                {rescheduleForm.recurringPeriod === "3" &&
+                  Array.from({ length: 26 }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={String(n)}>{n}</option>
+                  ))
+                }
+              </select>
+            </div>
+
+            {/* Will Recurr on */}
+            {rescheduleForm.startDate && rescheduleForm.recurringPeriod && rescheduleForm.recurringRange && (() => {
+              const start = new Date(rescheduleForm.startDate);
+              const range = Number(rescheduleForm.recurringRange);
+              const next = new Date(start);
+              if (rescheduleForm.recurringPeriod === "1") next.setFullYear(next.getFullYear() + range);
+              else if (rescheduleForm.recurringPeriod === "2") next.setMonth(next.getMonth() + range);
+              else if (rescheduleForm.recurringPeriod === "3") next.setDate(next.getDate() + range * 7);
+              const dd = String(next.getDate()).padStart(2, "0");
+              const mm = String(next.getMonth() + 1).padStart(2, "0");
+              const yyyy = next.getFullYear();
+              return (
+                <div className="flex items-center gap-4">
+                  <label className="w-[140px] shrink-0 text-sm text-gray-700">Will Recurr on</label>
+                  <p className="text-sm font-bold text-gray-900">{dd}-{mm}-{yyyy}</p>
+                </div>
+              );
+            })()}
+
+            {/* Contract / Approve */}
+            <div className="flex items-center gap-4">
+              <label className="w-[140px] shrink-0 text-sm text-gray-700">Contract / Approve</label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                  checked={rescheduleForm.contractApprove}
+                  onChange={(e) => setRescheduleForm({ ...rescheduleForm, contractApprove: e.target.checked })}
+                />
+                <span className="text-sm text-gray-700">I want this job to automatically approve</span>
+              </label>
+            </div>
+          </div>
+          <hr />
+          <div className="flex items-center gap-4 px-2">
+            <Button
+              className="bg-cyan-500 hover:bg-cyan-600 text-white"
+              onClick={handleReschedule}
+              disabled={rescheduleSubmitting}
+            >
+              {rescheduleSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              {setAsRecurringMode ? "Create Recurring Job" : "Reschedule"}
+            </Button>
+            <button
+              onClick={() => setRescheduleOpen(false)}
               className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
             >
               Cancel

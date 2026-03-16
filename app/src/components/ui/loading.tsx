@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface LoadingProps {
   className?: string;
@@ -32,4 +33,28 @@ export function PageLoading() {
 
 export function InlineLoading({ className }: { className?: string }) {
   return <Loader2 className={cn("h-4 w-4 animate-spin", className)} />;
+}
+
+export function PageError({
+  message,
+  detail,
+  onRetry,
+}: {
+  message: string;
+  detail?: string | null;
+  onRetry?: () => void;
+}) {
+  return (
+    <div className="flex h-[50vh] items-center justify-center">
+      <div className="text-center">
+        <p className="text-lg font-medium text-gray-900">{message}</p>
+        {detail && <p className="mt-1 text-sm text-gray-500">{detail}</p>}
+        {onRetry && (
+          <Button className="mt-4" onClick={onRetry}>
+            Try Again
+          </Button>
+        )}
+      </div>
+    </div>
+  );
 }

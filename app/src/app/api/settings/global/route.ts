@@ -30,11 +30,27 @@ export async function PUT(req: NextRequest) {
 
     const body = await req.json();
 
+    const allowedFields = [
+      "newSignupEmailSubject", "newSignupEmailContent",
+      "passwordRecoveryEmailSubject", "passwordRecoveryEmailContent",
+      "sendgridApikey", "postmarkApikey", "googleApikey",
+      "awsBucket", "awsAccountId", "awsAccessKeyId", "awsAccessKeySecret",
+      "stripeApikey", "stripePublishKey",
+      "technicianInvalidInsuranceNotificationEmails",
+      "supportTicketAlertRecipients",
+    ];
+    const safeData: Record<string, any> = {};
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) safeData[field] = body[field];
+    }
+
     let settings = await GlobalSetting.findOne();
     if (!settings) {
-      settings = await GlobalSetting.create(body);
+      settings = await GlobalSetting.create(safeData);
     } else {
-      Object.assign(settings, body);
+      for (const [key, val] of Object.entries(safeData)) {
+        (settings as any)[key] = val;
+      }
       await settings.save();
     }
 

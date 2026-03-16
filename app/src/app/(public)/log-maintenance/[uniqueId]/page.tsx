@@ -1,25 +1,16 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import { Wrench, CheckCircle2, AlertCircle } from "lucide-react";
+import { ChevronLeft, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageLoading } from "@/components/ui/loading";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 export default function PublicLogMaintenancePage() {
   const params = useParams();
+  const router = useRouter();
   const uniqueId = params.uniqueId as string;
 
   const [loading, setLoading] = useState(true);
@@ -28,9 +19,12 @@ export default function PublicLogMaintenancePage() {
   const [data, setData] = useState<any>(null);
   const [submitted, setSubmitted] = useState(false);
 
+  useEffect(() => {
+    document.title = "Job Cards";
+  }, []);
+
   // Form state
   const [selectedTask, setSelectedTask] = useState("");
-  const [taskName, setTaskName] = useState("");
   const [notes, setNotes] = useState("");
   const [taskDate, setTaskDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -56,19 +50,10 @@ export default function PublicLogMaintenancePage() {
     fetchData();
   }, [fetchData]);
 
-  const handleTaskSelect = (value: string) => {
-    setSelectedTask(value);
-    // Auto-fill task name from the selected task
-    const task = data?.maintenanceTasks?.find((t: any) => t._id === value);
-    if (task) {
-      setTaskName(task.title);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!taskName.trim() && !selectedTask) {
-      setError("Please select a task or enter a task name");
+    if (!selectedTask) {
+      setError("Please select a task");
       return;
     }
 
@@ -76,12 +61,13 @@ export default function PublicLogMaintenancePage() {
     setError("");
 
     try {
+      const task = data?.maintenanceTasks?.find((t: any) => t._id === selectedTask);
       const res = await fetch(`/api/public/log-maintenance/${uniqueId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           task: selectedTask || undefined,
-          taskName: taskName.trim() || undefined,
+          taskName: task?.title || undefined,
           notes: notes.trim() || undefined,
           taskDate: taskDate || undefined,
         }),
@@ -114,171 +100,167 @@ export default function PublicLogMaintenancePage() {
 
   if (submitted) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-12 sm:py-20">
-        <div className="text-center">
-          <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-6" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">
-            Maintenance Logged Successfully
-          </h2>
-          <p className="text-gray-600 mb-6">
-            The maintenance entry has been recorded for this asset.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button
-              onClick={() => {
-                setSubmitted(false);
-                setSelectedTask("");
-                setTaskName("");
-                setNotes("");
-                setTaskDate(new Date().toISOString().split("T")[0]);
-              }}
-            >
-              <Wrench className="h-4 w-4 mr-2" />
-              Log Another Entry
-            </Button>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        <CheckCircle2 className="h-16 w-16 text-green-500 mb-6" />
+        <h2 className="text-2xl font-bold text-gray-900 mb-3">
+          Maintenance Logged Successfully
+        </h2>
+        <p className="text-gray-600 mb-6">
+          The maintenance entry has been recorded for this asset.
+        </p>
+        <div className="flex gap-3">
+          <Button
+            onClick={() => {
+              setSubmitted(false);
+              setSelectedTask("");
+              setNotes("");
+              setTaskDate(new Date().toISOString().split("T")[0]);
+            }}
+            className="bg-[#00AEEF] hover:bg-[#0098d4] text-white"
+          >
+            Log Another Entry
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/client-asset/${uniqueId}`)}
+          >
+            Back to Asset
+          </Button>
         </div>
       </div>
     );
   }
 
   const { asset, maintenanceTasks } = data;
+  const makeName = asset?.assetMakeId?.title;
+  const modelName = asset?.assetModelId?.title;
+  const makeModel = [modelName, makeName].filter(Boolean).join(" - ");
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 sm:py-8">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <Image
-          src="/logo.jpg"
-          alt="Total Spray Care"
-          width={56}
-          height={56}
-          className="rounded-[10px]"
-        />
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-            Log Maintenance
-          </h1>
-          <p className="text-sm text-gray-500">
-            {asset?.machineName || "Asset"}
-            {asset?.serialNo ? ` - ${asset.serialNo}` : ""}
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Dark Header */}
+      <div className="bg-[#2B3540] text-white" style={{ height: 114 }}>
+        <div className="max-w-4xl mx-auto px-6 h-full grid grid-cols-3 items-center">
+          <div>
+            <Image
+              src="/logo.svg"
+              alt="Total Spray Care"
+              width={124}
+              height={40}
+              className="shrink-0"
+            />
+          </div>
+          <div className="text-center">
+            <p className="text-base font-bold">{asset?.machineName || "Asset"}</p>
+            <p className="text-sm text-gray-400">{asset?.clientSiteId?.siteName || ""}</p>
+            {makeModel && <p className="text-sm text-gray-400">{makeModel}</p>}
+          </div>
+          <div className="flex justify-end">
+            {asset?.image ? (
+              <img
+                src={asset.image}
+                alt={asset.machineName}
+                className="h-12 w-12 object-cover rounded-[10px] border border-gray-600"
+              />
+            ) : (
+              <div className="h-12 w-12 rounded-[10px] border border-gray-600 bg-gray-700" />
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Asset Info */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-            <div>
-              <span className="text-gray-500">Machine:</span>{" "}
-              <span className="font-medium">{asset?.machineName}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">Serial #:</span>{" "}
-              <span className="font-medium">{asset?.serialNo || "N/A"}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">Client:</span>{" "}
-              <span className="font-medium">
-                {asset?.clientId?.companyName || "N/A"}
-              </span>
-            </div>
-            <div>
-              <span className="text-gray-500">Site:</span>{" "}
-              <span className="font-medium">
-                {asset?.clientSiteId?.siteName || "N/A"}
-              </span>
-            </div>
+      {/* Content */}
+      <div className="max-w-4xl mx-auto px-6 py-6">
+        {/* Back */}
+        <button
+          onClick={() => router.push(`/client-asset/${uniqueId}`)}
+          className="flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900 cursor-pointer mb-4"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Back
+        </button>
+
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">Log Maintenance</h1>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Task */}
+          <div>
+            <label className="block text-sm text-gray-600 mb-1.5">Task</label>
+            <select
+              className="w-full h-10 rounded-[10px] border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer"
+              value={selectedTask}
+              onChange={(e) => setSelectedTask(e.target.value)}
+            >
+              <option value="">Select Task</option>
+              {maintenanceTasks?.map((task: any) => (
+                <option key={task._id} value={task._id}>
+                  {task.title}
+                </option>
+              ))}
+            </select>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Maintenance Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Maintenance Entry</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Task Select */}
-            {maintenanceTasks && maintenanceTasks.length > 0 && (
-              <div className="space-y-2">
-                <Label htmlFor="task">Task</Label>
-                <Select value={selectedTask} onValueChange={handleTaskSelect}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a predefined task..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {maintenanceTasks.map((task: any) => (
-                      <SelectItem key={task._id} value={task._id}>
-                        {task.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* Notes */}
+          <div>
+            <label className="block text-sm text-gray-600 mb-1.5">Notes</label>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder=""
+              rows={5}
+              className="rounded-[10px]"
+            />
+          </div>
+
+          {/* Date */}
+          <div>
+            <label className="block text-sm text-gray-600 mb-1.5">Date</label>
+            <input
+              type="date"
+              className="w-full h-10 rounded-[10px] border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              value={taskDate}
+              onChange={(e) => setTaskDate(e.target.value)}
+            />
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-[10px] text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          {/* Submit */}
+          <Button
+            type="submit"
+            disabled={submitting}
+            className="w-full h-12 bg-[#00AEEF] hover:bg-[#0098d4] text-white text-base font-semibold rounded-[10px]"
+          >
+            {submitting ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              "Submit Maintenance Log"
             )}
-
-            {/* Task Name */}
-            <div className="space-y-2">
-              <Label htmlFor="taskName">Task Name</Label>
-              <Input
-                id="taskName"
-                value={taskName}
-                onChange={(e) => setTaskName(e.target.value)}
-                placeholder="Enter task name..."
-              />
-            </div>
-
-            {/* Notes */}
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add any notes..."
-                rows={4}
-              />
-            </div>
-
-            {/* Task Date */}
-            <div className="space-y-2">
-              <Label htmlFor="taskDate">Task Date</Label>
-              <Input
-                id="taskDate"
-                type="date"
-                value={taskDate}
-                onChange={(e) => setTaskDate(e.target.value)}
-              />
-            </div>
-
-            {/* Error */}
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-[10px] text-sm text-red-700">
-                {error}
-              </div>
-            )}
-
-            {/* Submit */}
-            <Button type="submit" disabled={submitting} size="lg" className="w-full">
-              {submitting ? (
-                "Saving..."
-              ) : (
-                <>
-                  <Wrench className="h-4 w-4 mr-2" />
-                  Log Maintenance
-                </>
-              )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+          </Button>
+        </form>
+      </div>
 
       {/* Footer */}
-      <div className="mt-12 pt-6 border-t border-gray-200 text-center">
-        <p className="text-xs text-gray-400">Powered by Total Spray Care</p>
+      <div className="mt-8">
+        <div className="bg-gray-100 px-6 py-5">
+          <p className="text-sm text-gray-700 font-medium">Have any questions?</p>
+          <p className="text-sm text-gray-600 mt-1">
+            Reach out to TSC today at{" "}
+            <a href="tel:0397975555" className="underline font-medium text-gray-800">03 9797 5555</a>
+            {" "}or
+          </p>
+          <p className="text-sm text-gray-600">
+            email us at{" "}
+            <a href="mailto:service@totalsprayboothcare.com" className="underline font-medium text-gray-800">
+              service@totalsprayboothcare.com
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );

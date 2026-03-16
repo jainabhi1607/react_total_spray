@@ -5,28 +5,9 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  Wrench,
-  LifeBuoy,
-  Clock,
   AlertCircle,
-  FileText,
-  MessageSquare,
-  Paperclip,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageLoading } from "@/components/ui/loading";
-import { formatDate } from "@/lib/utils";
 
 export default function PublicClientAssetPage() {
   const params = useParams();
@@ -35,6 +16,11 @@ export default function PublicClientAssetPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [data, setData] = useState<any>(null);
+  const [imageOpen, setImageOpen] = useState(false);
+
+  useEffect(() => {
+    document.title = "Job Cards";
+  }, []);
 
   const fetchData = useCallback(async () => {
     try {
@@ -68,232 +54,119 @@ export default function PublicClientAssetPage() {
     );
   }
 
-  const { asset, attachments, comments, maintenanceLogs } = data;
+  const { asset } = data;
   const clientAccessToken = asset.clientId?.accessToken;
+  const makeName = asset.assetMakeId?.title;
+  const modelName = asset.assetModelId?.title;
+  const makeModel = [modelName, makeName].filter(Boolean).join(" - ");
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <Image
-          src="/logo.jpg"
-          alt="Total Spray Care"
-          width={56}
-          height={56}
-          className="rounded-[10px]"
-        />
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-            {asset.clientId?.companyName || "Asset Portal"}
-          </h1>
-          <p className="text-sm text-gray-500">Asset Details</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Dark Header */}
+      <div className="bg-[#2B3540] text-white" style={{ height: 114 }}>
+        <div className="max-w-4xl mx-auto px-6 h-full grid grid-cols-3 items-center">
+          <div>
+            <Image
+              src="/logo.svg"
+              alt="Total Spray Care"
+              width={124}
+              height={40}
+              className="shrink-0"
+            />
+          </div>
+          <div className="text-center">
+            <p className="text-base font-bold">{asset.machineName || "Asset"}</p>
+            <p className="text-sm text-gray-400">{asset.clientSiteId?.siteName || ""}</p>
+            {makeModel && <p className="text-sm text-gray-400">{makeModel}</p>}
+          </div>
+          <div className="flex justify-end">
+            {asset.image ? (
+              <img
+                src={asset.image}
+                alt={asset.machineName}
+                className="h-12 w-12 object-cover rounded-[10px] border border-gray-600 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => setImageOpen(true)}
+              />
+            ) : (
+              <div className="h-12 w-12 rounded-[10px] border border-gray-600 bg-gray-700" />
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Asset Info Card */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg">Asset Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-gray-500">Machine Name:</span>{" "}
-              <span className="font-medium">{asset.machineName}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">Serial #:</span>{" "}
-              <span className="font-medium">{asset.serialNo || "N/A"}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">Client:</span>{" "}
-              <span className="font-medium">
-                {asset.clientId?.companyName || "N/A"}
-              </span>
-            </div>
-            <div>
-              <span className="text-gray-500">Site:</span>{" "}
-              <span className="font-medium">
-                {asset.clientSiteId?.siteName || "N/A"}
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Action Buttons */}
-      <div className="flex flex-wrap gap-3 mb-6">
+      {/* Action Cards */}
+      <div className="px-6 pt-8" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        {/* Log Maintenance */}
         <Link href={`/log-maintenance/${uniqueId}`}>
-          <Button>
-            <Wrench className="h-4 w-4 mr-2" />
-            Log Maintenance
-          </Button>
+          <div className="bg-[#00AEEF] rounded-[10px] px-6 py-5 flex items-center gap-4 text-white cursor-pointer hover:opacity-90 transition-opacity">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M13 7 8.7 2.7a2.41 2.41 0 0 0-3.4 0L2.7 5.3a2.41 2.41 0 0 0 0 3.4L7 13"/><path d="m8 6 2-2"/><path d="m18 16 2-2"/><path d="m17 11 4.3 4.3c.94.94.94 2.46 0 3.4l-2.6 2.6c-.94.94-2.46.94-3.4 0L11 17"/><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
+            <span className="text-base font-semibold">Log Maintenance</span>
+          </div>
         </Link>
-        {clientAccessToken && (
-          <Link href={`/support/${clientAccessToken}`}>
-            <Button variant="outline">
-              <LifeBuoy className="h-4 w-4 mr-2" />
-              Request Support
-            </Button>
+
+        {/* Request Support */}
+        {clientAccessToken ? (
+          <Link href={`/support/${clientAccessToken}?assetId=${asset._id}&siteId=${asset.clientSiteId?._id || ""}`}>
+            <div className="bg-[#00AEEF] rounded-[10px] px-6 py-5 flex items-center gap-4 text-white cursor-pointer hover:opacity-90 transition-opacity">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              <span className="text-base font-semibold">Request Support</span>
+            </div>
           </Link>
+        ) : (
+          <div className="bg-[#00AEEF] rounded-[10px] px-6 py-5 flex items-center gap-4 text-white opacity-50 cursor-not-allowed">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <span className="text-base font-semibold">Request Support</span>
+          </div>
         )}
+
+        {/* History */}
         <Link href={`/history/${uniqueId}`}>
-          <Button variant="outline">
-            <Clock className="h-4 w-4 mr-2" />
-            Full History
-          </Button>
+          <div className="bg-[#00AEEF] rounded-[10px] px-6 py-5 flex items-center gap-4 text-white cursor-pointer hover:opacity-90 transition-opacity">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+            <span className="text-base font-semibold">History</span>
+          </div>
         </Link>
       </div>
-
-      {/* Tabs */}
-      <Tabs defaultValue="maintenance" className="w-full">
-        <TabsList>
-          <TabsTrigger value="maintenance" className="flex items-center gap-1.5">
-            <Wrench className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Maintenance Log</span>
-            <span className="sm:hidden">Maintenance</span>
-          </TabsTrigger>
-          <TabsTrigger value="support" className="flex items-center gap-1.5">
-            <LifeBuoy className="h-3.5 w-3.5" />
-            <span>Support</span>
-          </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center gap-1.5">
-            <Clock className="h-3.5 w-3.5" />
-            <span>History</span>
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Maintenance Log Tab */}
-        <TabsContent value="maintenance">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Recent Maintenance</CardTitle>
-                <Badge variant="secondary">{maintenanceLogs?.length || 0} entries</Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {maintenanceLogs && maintenanceLogs.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Task</TableHead>
-                      <TableHead className="hidden sm:table-cell">Notes</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {maintenanceLogs.slice(0, 10).map((log: any) => (
-                      <TableRow key={log._id}>
-                        <TableCell className="text-sm">
-                          {log.taskDate ? formatDate(log.taskDate) : "N/A"}
-                        </TableCell>
-                        <TableCell className="text-sm font-medium">
-                          {log.taskName || log.task || "N/A"}
-                        </TableCell>
-                        <TableCell className="text-sm text-gray-500 hidden sm:table-cell">
-                          {log.notes || "-"}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-8">
-                  <Wrench className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-                  <p className="text-sm text-gray-400">No maintenance entries yet</p>
-                  <Link href={`/log-maintenance/${uniqueId}`}>
-                    <Button variant="link" className="mt-2">
-                      Log first maintenance
-                    </Button>
-                  </Link>
-                </div>
-              )}
-              {maintenanceLogs && maintenanceLogs.length > 10 && (
-                <div className="mt-4 text-center">
-                  <Link href={`/history/${uniqueId}`}>
-                    <Button variant="link">View all {maintenanceLogs.length} entries</Button>
-                  </Link>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Support Tab */}
-        <TabsContent value="support">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Support</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <LifeBuoy className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-                <p className="text-sm text-gray-500 mb-4">
-                  Need help with this asset? Submit a support ticket.
-                </p>
-                {clientAccessToken ? (
-                  <Link href={`/support/${clientAccessToken}`}>
-                    <Button>
-                      <LifeBuoy className="h-4 w-4 mr-2" />
-                      Submit Support Ticket
-                    </Button>
-                  </Link>
-                ) : (
-                  <p className="text-xs text-gray-400">
-                    Contact your administrator to get a support access link.
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* History Tab */}
-        <TabsContent value="history">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Maintenance History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {maintenanceLogs && maintenanceLogs.length > 0 ? (
-                <div className="space-y-4">
-                  {maintenanceLogs.map((log: any) => (
-                    <div
-                      key={log._id}
-                      className="flex gap-4 border-l-2 border-blue-200 pl-4 pb-4"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-medium text-gray-900">
-                            {log.taskName || log.task || "Maintenance"}
-                          </span>
-                          <span className="text-xs text-gray-400">
-                            {log.taskDate ? formatDate(log.taskDate) : ""}
-                          </span>
-                        </div>
-                        {log.notes && (
-                          <p className="text-sm text-gray-500">{log.notes}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Clock className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-                  <p className="text-sm text-gray-400">No history available</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
 
       {/* Footer */}
-      <div className="mt-12 pt-6 border-t border-gray-200 text-center">
-        <p className="text-xs text-gray-400">Powered by Total Spray Care</p>
+      <div className="mt-8">
+        <div className="bg-gray-100 px-6 py-5">
+          <p className="text-sm text-gray-700 font-medium">Have any questions?</p>
+          <p className="text-sm text-gray-600 mt-1">
+            Reach out to TSC today at{" "}
+            <a href="tel:0397975555" className="underline font-medium text-gray-800">03 9797 5555</a>
+            {" "}or
+          </p>
+          <p className="text-sm text-gray-600">
+            email us at{" "}
+            <a href="mailto:service@totalsprayboothcare.com" className="underline font-medium text-gray-800">
+              service@totalsprayboothcare.com
+            </a>
+          </p>
+        </div>
       </div>
+
+      {/* Image Popup */}
+      {imageOpen && asset.image && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+          onClick={() => setImageOpen(false)}
+        >
+          <div className="relative max-w-[90vw] max-h-[90vh]">
+            <img
+              src={asset.image}
+              alt={asset.machineName}
+              className="max-w-full max-h-[90vh] object-contain rounded-[10px]"
+            />
+            <button
+              onClick={() => setImageOpen(false)}
+              className="absolute -top-3 -right-3 h-8 w-8 flex items-center justify-center rounded-full bg-white text-gray-800 text-lg font-bold shadow cursor-pointer hover:bg-gray-100"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

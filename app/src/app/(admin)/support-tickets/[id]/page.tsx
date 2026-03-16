@@ -79,6 +79,7 @@ interface PopulatedTitle {
 interface PopulatedUser {
   _id: string;
   name?: string;
+  lastName?: string;
   email?: string;
 }
 
@@ -302,6 +303,7 @@ export default function SupportTicketDetailPage() {
 
   // Add time dialog
   const [addTimeOpen, setAddTimeOpen] = useState(false);
+  const [viewTimeOpen, setViewTimeOpen] = useState(false);
   const [timeForm, setTimeForm] = useState({ hours: "00", minutes: "00", date: new Date().toISOString().slice(0, 10), description: "" });
   const [submittingTime, setSubmittingTime] = useState(false);
   const [savingTimer, setSavingTimer] = useState(false);
@@ -951,7 +953,7 @@ export default function SupportTicketDetailPage() {
         body: JSON.stringify({
           timeHours: Number(timeForm.hours) || 0,
           timeMinutes: Number(timeForm.minutes) || 0,
-          timeDate: timeForm.date || undefined,
+          timeDate: new Date().toISOString(),
           description: timeForm.description.trim(),
         }),
       });
@@ -1698,7 +1700,10 @@ export default function SupportTicketDetailPage() {
                 {displayHours}hrs {displayMinutes}mins
               </p>
 
-              <button className="text-sm text-cyan-500 underline cursor-pointer">
+              <button
+                onClick={() => setViewTimeOpen(true)}
+                className="text-sm text-cyan-500 underline cursor-pointer"
+              >
                 View Time
               </button>
             </CardContent>
@@ -2449,6 +2454,56 @@ export default function SupportTicketDetailPage() {
               className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
             >
               Cancel
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── View Time Dialog ──────────────────────────────────────── */}
+      <Dialog open={viewTimeOpen} onOpenChange={setViewTimeOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Time Entries</DialogTitle>
+          </DialogHeader>
+          <hr />
+          <div className="max-h-[400px] overflow-y-auto space-y-3 px-2 pr-3 styled-scroll">
+            {timeEntries.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-6">No time entries yet.</p>
+            ) : (
+              timeEntries.map((entry) => (
+                <div
+                  key={entry._id}
+                  className="flex items-start justify-between rounded-[10px] border border-gray-200 p-4"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-gray-900">
+                      {entry.timeHours || 0}hrs {entry.timeMinutes || 0}mins
+                    </p>
+                    {entry.description && (
+                      <p className="text-sm text-gray-500 mt-1">{entry.description}</p>
+                    )}
+                    {entry.userId && (
+                      <p className="text-xs text-gray-400 mt-1">
+                        By {entry.userId.name} {entry.userId.lastName || ""}
+                      </p>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 shrink-0 ml-4">
+                    {entry.timeDate ? formatDateTime(entry.timeDate) : formatDateTime(entry.createdAt)}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="flex items-center justify-between px-2 pt-2">
+            <p className="text-sm font-semibold text-green-500">
+              Total: {displayHours}hrs {displayMinutes}mins
+            </p>
+            <button
+              onClick={() => setViewTimeOpen(false)}
+              className="text-sm text-gray-400 hover:text-gray-600 cursor-pointer"
+            >
+              Close
             </button>
           </div>
         </DialogContent>
