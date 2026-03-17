@@ -1105,9 +1105,7 @@ function ClientDetailPage() {
                     </div>
                     <div className="rounded-[10px] bg-[#eef6fa] px-4 py-3">
                       <p className="text-sm text-gray-600 break-all">
-                        {typeof window !== "undefined"
-                          ? `${window.location.origin}/support/${client.accessToken}`
-                          : `/support/${client.accessToken}`}
+                        {`${process.env.NEXT_PUBLIC_APP_URL || ""}/support/${client.accessToken}`}
                       </p>
                     </div>
                   </div>

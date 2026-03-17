@@ -7,6 +7,7 @@ import { ArrowRight, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageLoading } from "@/components/ui/loading";
+import { formatLongDate, formatCommentDate } from "@/lib/utils";
 
 interface LogEntry {
   _id: string;
@@ -66,15 +67,7 @@ export default function TicketLogPage() {
           const d = json.data;
           setTicketNo(String(d.ticketNo || ""));
           setCreatedBy(d.userId?.name || "");
-          setCreatedAt(
-            d.createdAt
-              ? new Date(d.createdAt).toLocaleDateString("en-AU", {
-                  month: "long",
-                  day: "2-digit",
-                  year: "numeric",
-                })
-              : ""
-          );
+          setCreatedAt(d.createdAt ? formatLongDate(d.createdAt) : "");
         }
       } catch {
         // silent
@@ -87,22 +80,9 @@ export default function TicketLogPage() {
     fetchLogs();
   }, [fetchLogs]);
 
-  function formatLogDate(dateStr?: string) {
+  function formatLogDateStr(dateStr?: string) {
     if (!dateStr) return "";
-    const d = new Date(dateStr);
-    return (
-      d.toLocaleDateString("en-AU", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }) +
-      " - " +
-      d.toLocaleTimeString("en-AU", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      })
-    );
+    return formatCommentDate(dateStr);
   }
 
   if (loading && logs.length === 0) return <PageLoading />;
@@ -136,7 +116,7 @@ export default function TicketLogPage() {
         <div className="space-y-4">
           {logs.map((log) => {
             const userName = log.userId?.name || "Unknown";
-            const date = formatLogDate(log.dateTime || log.createdAt);
+            const date = formatLogDateStr(log.dateTime || log.createdAt);
             return (
               <Card key={log._id}>
                 <CardContent className="p-5">

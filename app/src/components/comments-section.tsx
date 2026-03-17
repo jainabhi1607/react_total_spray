@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { formatCommentDate } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -147,20 +148,7 @@ export function CommentsSection({ comments, apiBaseUrl, onRefresh }: CommentsSec
           <div className="space-y-4">
             {comments.map((c) => {
               const isPublic = c.visibility === 2;
-              const dateStr = c.createdAt
-                ? new Date(c.createdAt).toLocaleDateString("en-AU", {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "2-digit",
-                  }) +
-                  " - " +
-                  new Date(c.createdAt).toLocaleTimeString("en-AU", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: true,
-                  })
-                : "";
+              const dateStr = c.createdAt ? formatCommentDate(c.createdAt) : "";
 
               return (
                 <div

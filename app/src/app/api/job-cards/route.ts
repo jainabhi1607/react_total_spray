@@ -14,6 +14,7 @@ import JobCardLog from "@/models/JobCardLog";
 import "@/models/ClientAsset";
 import "@/models/Title";
 import "@/models/JobCardType";
+import JobCardClientAsset from "@/models/JobCardClientAsset";
 import { generateUniqueId } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
@@ -85,15 +86,38 @@ export async function GET(req: NextRequest) {
       query.jobCardStatus = parseInt(jobCardStatus);
     }
 
-    // Tab filtering: active, complete, recurring
+    // Tab filtering: active, complete, recurring, upcoming (portal), completed (portal)
     const tab = searchParams.get("tab");
-    if (tab === "active") {
+    const isPortalUser = [4, 6].includes(session.role);
+
+    if (tab === "upcoming") {
+      // Portal: upcoming services — freshRecurringJob null, status < 8 or null
+      query.freshRecurringJob = null;
+      query.$or = [{ jobCardStatus: { $lt: 8 } }, { jobCardStatus: null }];
+    } else if (tab === "completed") {
+      // Portal: completed services — freshRecurringJob null, status >= 8
+      query.freshRecurringJob = null;
+      query.jobCardStatus = { $gte: 8 };
+    } else if (tab === "active") {
       query.jobCardStatus = { $gte: 0, $lte: 8 };
       query.recurringJob = { $ne: 1 };
     } else if (tab === "complete") {
       query.jobCardStatus = 9;
     } else if (tab === "recurring") {
       query.recurringJob = 1;
+    }
+
+    // Portal-specific: exclude Breakdown Service / General Breakdown types
+    if (isPortalUser && (tab === "upcoming" || tab === "completed")) {
+      // Find excluded type IDs
+      const JobCardTypeModel = (await import("@/models/JobCardType")).default;
+      const excludedTypes = await JobCardTypeModel.find({
+        title: { $in: ["Breakdown Service", "General Breakdown"] },
+      }).select("_id").lean();
+      const excludedIds = excludedTypes.map((t: any) => t._id);
+
+      // Must have a jobCardType that's not excluded
+      query.jobCardType = { $nin: [...excludedIds, null] };
     }
 
     const [jobCards, total] = await Promise.all([
@@ -104,12 +128,25 @@ export async function GET(req: NextRequest) {
         .populate("titleId", "title")
         .populate("jobCardType", "title")
         .populate("userId", "name email")
-        .sort({ createdAt: -1 })
+        .sort(tab === "upcoming" ? { jobDate: 1 } : { createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
       JobCard.countDocuments(query),
     ]);
+
+    // For portal tabs, add totalAssets count per job card
+    if (isPortalUser && (tab === "upcoming" || tab === "completed")) {
+      const jobCardIds = jobCards.map((j: any) => j._id);
+      const assetCounts = await JobCardClientAsset.aggregate([
+        { $match: { jobCardId: { $in: jobCardIds } } },
+        { $group: { _id: "$jobCardId", count: { $sum: 1 } } },
+      ]);
+      const countMap = new Map(assetCounts.map((a: any) => [String(a._id), a.count]));
+      for (const jc of jobCards as any[]) {
+        jc.totalAssets = countMap.get(String(jc._id)) || 0;
+      }
+    }
 
     return paginatedResponse(jobCards, total, page, limit);
   } catch (error) {

@@ -37,6 +37,7 @@ import {
   formatDateTime,
   TICKET_STATUS,
   TICKET_STATUS_LABELS,
+  formatCommentDate,
 } from "@/lib/utils";
 import { TicketHistorySection } from "@/components/ticket-history-section";
 
@@ -1856,20 +1857,7 @@ export default function SupportTicketDetailPage() {
                 <div className="space-y-4">
                   {comments.map((c) => {
                     const isPublic = c.visibility === 2;
-                    const dateStr = c.createdAt
-                      ? new Date(c.createdAt).toLocaleDateString("en-AU", {
-                          weekday: "long",
-                          year: "numeric",
-                          month: "long",
-                          day: "2-digit",
-                        }) +
-                        " - " +
-                        new Date(c.createdAt).toLocaleTimeString("en-AU", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: true,
-                        })
-                      : "";
+                    const dateStr = c.createdAt ? formatCommentDate(c.createdAt) : "";
 
                     return (
                       <div

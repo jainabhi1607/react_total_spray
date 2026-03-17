@@ -49,6 +49,7 @@ import { PageLoading } from "@/components/ui/loading";
 import {
   formatDate,
   formatDateTime,
+  formatLogDate,
   JOB_CARD_STATUS_LABELS,
 } from "@/lib/utils";
 import { AddJobCardDialog } from "@/components/dialogs/add-job-card-dialog";
@@ -2807,7 +2808,7 @@ export default function JobCardDetailPage() {
                                       />
                                       {item.setDateTime && (
                                         <span className="text-[12px] text-gray-500">
-                                          {new Date(item.setDateTime).toLocaleString()}
+                                          {formatDateTime(item.setDateTime)}
                                         </span>
                                       )}
                                     </div>
@@ -2905,8 +2906,7 @@ export default function JobCardDetailPage() {
                     className="rounded-[10px] border border-gray-200 bg-white px-6 py-5"
                   >
                     <p className="text-[14px] font-semibold text-gray-900 mb-1">
-                      {logDate ? new Date(logDate).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) : ""}{" "}
-                      - {logDate ? new Date(logDate).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : ""}
+                      {logDate ? formatLogDate(logDate) : ""}
                     </p>
                     <p className="text-[13px] text-gray-600">
                       {userName} - {log.task}

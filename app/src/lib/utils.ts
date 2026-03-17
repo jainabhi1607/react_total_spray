@@ -25,12 +25,15 @@ export function generateAccessToken(): string {
   return CryptoJS.lib.WordArray.random(32).toString();
 }
 
+const TZ = "Australia/Sydney";
+
 export function formatLongDate(date: Date | string): string {
   const d = new Date(date);
   return d.toLocaleDateString("en-AU", {
     day: "2-digit",
     month: "long",
     year: "numeric",
+    timeZone: TZ,
   });
 }
 
@@ -40,6 +43,7 @@ export function formatDate(date: Date | string): string {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    timeZone: TZ,
   });
 }
 
@@ -51,7 +55,47 @@ export function formatDateTime(date: Date | string): string {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: TZ,
   });
+}
+
+export function formatCommentDate(date: Date | string): string {
+  const d = new Date(date);
+  return (
+    d.toLocaleDateString("en-AU", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "2-digit",
+      timeZone: TZ,
+    }) +
+    " - " +
+    d.toLocaleTimeString("en-AU", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: TZ,
+    })
+  );
+}
+
+export function formatLogDate(date: Date | string): string {
+  const d = new Date(date);
+  return (
+    d.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+      timeZone: TZ,
+    }) +
+    " - " +
+    d.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: TZ,
+    })
+  );
 }
 
 export function formatCurrency(amount: number): string {
