@@ -5,6 +5,7 @@ export interface IUserLoginCodeDocument extends Document {
   otp: number;
   expiryTime: Date;
   status?: number;
+  failedAttempts: number;
 }
 
 const UserLoginCodeSchema = new Schema<IUserLoginCodeDocument>(
@@ -13,6 +14,7 @@ const UserLoginCodeSchema = new Schema<IUserLoginCodeDocument>(
     otp: { type: Number, required: true },
     expiryTime: { type: Date, required: true },
     status: { type: Number, default: 1 },
+    failedAttempts: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

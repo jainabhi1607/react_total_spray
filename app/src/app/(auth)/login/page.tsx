@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useState } from "react";
-import { signIn, signOut } from "next-auth/react";
+import { Suspense, useState, useEffect } from "react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -18,13 +18,24 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  const { data: session, status } = useSession();
+  const rawCallback = searchParams.get("callbackUrl") || "/dashboard";
+  // Prevent open redirect — only allow relative paths starting with a single /
+  const callbackUrl = /^\/[^/]/.test(rawCallback) || rawCallback === "/" ? rawCallback : "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // If user already has a fully verified session, redirect to dashboard
+  // Stale sessions (otpVerified=false) are harmless here — signIn() overwrites them
+  useEffect(() => {
+    if (status === "authenticated" && (session?.user as any)?.otpVerified) {
+      router.replace(callbackUrl);
+    }
+  }, [status, session, callbackUrl, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

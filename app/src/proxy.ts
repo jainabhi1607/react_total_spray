@@ -43,13 +43,15 @@ export const proxy = auth((req) => {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Check if OTP is verified — redirect to OTP page if not
+  // If OTP is not verified, the session is incomplete — clear it and send to login
   const otpVerified = (req.auth.user as any)?.otpVerified;
-  if (!otpVerified && !pathname.startsWith("/otp")) {
-    const userId = (req.auth.user as any)?.id;
-    const otpUrl = new URL("/otp", req.url);
-    if (userId) otpUrl.searchParams.set("uid", userId);
-    return NextResponse.redirect(otpUrl);
+  if (!otpVerified) {
+    const loginUrl = new URL("/login", req.url);
+    loginUrl.searchParams.set("callbackUrl", pathname);
+    const response = NextResponse.redirect(loginUrl);
+    response.cookies.delete("next-auth.session-token");
+    response.cookies.delete("__Secure-next-auth.session-token");
+    return response;
   }
 
   const role = (req.auth.user as any)?.role;

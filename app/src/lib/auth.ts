@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import dbConnect from "@/lib/db";
 import User from "@/models/User";
 import UserDetail from "@/models/UserDetail";
@@ -63,8 +64,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           loginResponse: "Success",
         }).catch(() => {});
 
-        // Generate and send OTP
-        const otp = Math.floor(100000 + Math.random() * 900000);
+        // Generate and send OTP (cryptographically secure)
+        const otpArray = new Uint32Array(1);
+        crypto.getRandomValues(otpArray);
+        const otp = 100000 + (otpArray[0] % 900000);
         const expiryTime = new Date(Date.now() + 10 * 60 * 1000);
         await UserLoginCode.create({
           userId: user._id,

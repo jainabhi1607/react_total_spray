@@ -11,9 +11,11 @@ import { Loader2, ShieldCheck } from "lucide-react";
 function OtpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session, update } = useSession();
+  const { data: session, status, update } = useSession();
   const userId = searchParams.get("uid") || (session?.user as any)?.id || "";
-  const callbackUrl = searchParams.get("cb") || "/dashboard";
+  const rawCallback = searchParams.get("cb") || "/dashboard";
+  // Prevent open redirect — only allow relative paths starting with a single /
+  const callbackUrl = /^\/[^/]/.test(rawCallback) || rawCallback === "/" ? rawCallback : "/dashboard";
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -21,12 +23,20 @@ function OtpForm() {
   const [resendSuccess, setResendSuccess] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Redirect already-verified users to dashboard
   useEffect(() => {
+    if (status === "loading") return; // Wait for session to load
+
+    // Already verified — go to dashboard
     if ((session?.user as any)?.otpVerified) {
       router.replace(callbackUrl);
+      return;
     }
-  }, [session, callbackUrl, router]);
+
+    // No uid param AND no session — not coming from login flow, go to login
+    if (!searchParams.get("uid") && !(session?.user as any)?.id) {
+      router.replace("/login");
+    }
+  }, [status, session, searchParams, callbackUrl, router]);
 
   useEffect(() => {
     inputRefs.current[0]?.focus();

@@ -18,11 +18,15 @@ export async function getSession(): Promise<AuthSession | null> {
 }
 
 export async function requireAuth(): Promise<AuthSession> {
-  const session = await getSession();
-  if (!session) {
+  const session = await auth();
+  if (!session?.user) {
     throw new AuthError("Unauthorized");
   }
-  return session;
+  // Reject sessions that haven't completed OTP verification
+  if (!(session.user as any).otpVerified) {
+    throw new AuthError("Unauthorized");
+  }
+  return session.user as unknown as AuthSession;
 }
 
 export async function requireAdmin(): Promise<AuthSession> {
