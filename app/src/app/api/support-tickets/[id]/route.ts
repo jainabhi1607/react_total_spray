@@ -15,6 +15,7 @@ import SupportTicketAttachment from "@/models/SupportTicketAttachment";
 import SupportTicketTechnician from "@/models/SupportTicketTechnician";
 import SupportTicketOwner from "@/models/SupportTicketOwner";
 import SupportTicketTime from "@/models/SupportTicketTime";
+import SupportTicketLog from "@/models/SupportTicketLog";
 import "@/models/ClientContact";
 import "@/models/User";
 
@@ -51,7 +52,7 @@ export async function GET(
       attachQuery.visibility = 2;
     }
 
-    const [detail, comments, attachments, technicians, owners, timeLogs] =
+    const [detail, comments, attachments, technicians, owners, timeLogs, statusLogs] =
       await Promise.all([
         SupportTicketDetail.findOne({ supportTicketId: id })
           .populate("rootCauseUserId", "name lastName")
@@ -77,6 +78,12 @@ export async function GET(
           .populate("userId", "name lastName")
           .sort({ createdAt: -1 })
           .lean(),
+        SupportTicketLog.find({
+          supportTicketId: id,
+          task: { $regex: /^Ticket status changed to|^Ticket Created|^Ticket resolved/i },
+        })
+          .sort({ dateTime: 1 })
+          .lean(),
       ]);
 
     return successResponse({
@@ -87,6 +94,7 @@ export async function GET(
       technicians,
       owners,
       timeLogs,
+      statusLogs,
     });
   } catch (error) {
     return handleApiError(error);

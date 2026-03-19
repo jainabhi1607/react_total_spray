@@ -131,7 +131,7 @@ function JobCardsContent() {
           }
         }
       } catch {
-        setUserRole(3); // fallback to admin
+        // Don't default to admin — leave as null so loading state persists
       }
     }
     fetchSession();

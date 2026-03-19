@@ -39,6 +39,7 @@ interface Ticket {
   clientId: { _id: string; companyName: string } | null;
   clientSiteId: { _id: string; siteName: string } | null;
   clientAssetId: { _id: string; machineName: string } | null;
+  clientContactId: { _id: string; name: string; lastName?: string } | null;
   titleId: { _id: string; title: string } | null;
   ticketStatus: number;
   createdAt: string;
@@ -77,6 +78,21 @@ const TABS = [
   { label: "Resolved", value: "4" },
 ];
 
+// Portal-specific status labels and colors
+const PORTAL_STATUS_LABELS: Record<number, string> = {
+  1: "Ticket Created",
+  2: "In Progress",
+  3: "Technician Required",
+  4: "Resolved",
+};
+
+const PORTAL_STATUS_BADGE_CLASSES: Record<number, string> = {
+  1: "bg-[#00AEEF] text-white",
+  2: "bg-[#E18230] text-white",
+  3: "bg-[#EF4444] text-white",
+  4: "bg-green-500 text-white",
+};
+
 // --- Helpers ---
 
 function calculateAge(createdAt: string): string {
@@ -98,6 +114,14 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+function formatLodgedDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+}
+
 // --- Page Component ---
 
 export default function SupportTicketsPage() {
@@ -109,9 +133,6 @@ export default function SupportTicketsPage() {
 }
 
 function SupportTicketsContent() {
-  useEffect(() => {
-    document.title = "TSC - Support Tickets";
-  }, []);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -131,6 +152,27 @@ function SupportTicketsContent() {
     resolved: 0,
     total: 0,
   });
+  const [userRole, setUserRole] = useState<number | null>(null);
+
+  const isPortal = userRole === 4 || userRole === 6;
+
+  // Fetch session to determine role
+  useEffect(() => {
+    async function fetchSession() {
+      try {
+        const res = await fetch("/api/auth/session");
+        const json = await res.json();
+        if (json?.user?.role) setUserRole(json.user.role);
+      } catch {
+        // silent
+      }
+    }
+    fetchSession();
+  }, []);
+
+  useEffect(() => {
+    document.title = "TSC - Support Tickets";
+  }, []);
 
   // Add Ticket dialog state
   const [addTicketOpen, setAddTicketOpen] = useState(false);
@@ -255,7 +297,7 @@ function SupportTicketsContent() {
     },
   ];
 
-  if (loading && tickets.length === 0) {
+  if (userRole === null || (loading && tickets.length === 0)) {
     return <PageLoading />;
   }
 
@@ -269,6 +311,144 @@ function SupportTicketsContent() {
     );
   }
 
+  // ─── Portal View ─────────────────────────────────────────────────
+  if (isPortal) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold text-gray-900">Support Tickets</h1>
+
+        <Card>
+          <CardContent className="p-0">
+            {tickets.length === 0 ? (
+              <div className="py-12 text-center">
+                <p className="text-sm text-gray-500">No tickets found</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>
+                        <span className="inline-flex items-center gap-1">
+                          Ticket No.
+                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                        </span>
+                      </TableHead>
+                      <TableHead>
+                        <span className="inline-flex items-center gap-1">
+                          Client Site
+                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                        </span>
+                      </TableHead>
+                      <TableHead>
+                        <span className="inline-flex items-center gap-1">
+                          Asset
+                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                        </span>
+                      </TableHead>
+                      <TableHead>
+                        <span className="inline-flex items-center gap-1">
+                          Requester
+                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                        </span>
+                      </TableHead>
+                      <TableHead>
+                        <span className="inline-flex items-center gap-1">
+                          Lodged Date
+                          <ArrowUpDown className="h-3 w-3 text-gray-400" />
+                        </span>
+                      </TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {tickets.map((ticket) => {
+                      const requesterName = ticket.clientContactId
+                        ? `${ticket.clientContactId.name}${ticket.clientContactId.lastName ? ` ${ticket.clientContactId.lastName}` : ""}`
+                        : "-";
+                      const assetDisplay = ticket.clientAssetId
+                        ? `${ticket.clientId?.companyName || ""} - ${ticket.clientAssetId.machineName}`
+                        : "-";
+
+                      return (
+                        <TableRow key={ticket._id}>
+                          <TableCell className="font-medium">
+                            {ticket.ticketNo}
+                          </TableCell>
+                          <TableCell className="max-w-[160px] truncate">
+                            {ticket.clientSiteId?.siteName || "-"}
+                          </TableCell>
+                          <TableCell className="max-w-[180px] truncate">
+                            {assetDisplay}
+                          </TableCell>
+                          <TableCell className="max-w-[160px] truncate">
+                            {requesterName}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {formatLodgedDate(ticket.createdAt)}
+                          </TableCell>
+                          <TableCell>
+                            <span
+                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${
+                                PORTAL_STATUS_BADGE_CLASSES[ticket.ticketStatus] ||
+                                "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {PORTAL_STATUS_LABELS[ticket.ticketStatus] || "Unknown"}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Link href={`/support-tickets/${ticket._id}`}>
+                              <button className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-gray-100 hover:text-gray-600">
+                                <ArrowRight className="h-4 w-4" />
+                              </button>
+                            </Link>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500">
+              Page {page} of {totalPages} ({total} ticket
+              {total !== 1 ? "s" : ""})
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ─── Admin View ─────────────────────────────────────────────────
   return (
     <div className="space-y-6">
       {/* Header */}

@@ -12,6 +12,7 @@ import SupportTicket from "@/models/SupportTicket";
 import SupportTicketDetail from "@/models/SupportTicketDetail";
 import SupportTicketLog from "@/models/SupportTicketLog";
 import SupportTicketOwner from "@/models/SupportTicketOwner";
+import "@/models/ClientContact";
 
 export async function GET(req: NextRequest) {
   try {
@@ -83,6 +84,7 @@ export async function GET(req: NextRequest) {
         .populate("clientId", "companyName")
         .populate("clientSiteId", "siteName")
         .populate("clientAssetId", "machineName")
+        .populate("clientContactId", "name lastName")
         .populate("titleId", "title")
         .populate("userId", "name email")
         .sort({ createdAt: -1 })

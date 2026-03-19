@@ -65,6 +65,12 @@ interface ClientInfo {
   address?: string;
 }
 
+interface SiteAddress {
+  _id: string;
+  siteName: string;
+  address?: string;
+}
+
 interface SiteInfo {
   _id: string;
   siteName: string;
@@ -77,6 +83,7 @@ interface ContactInfo {
   lastName?: string;
   email?: string;
   phone?: string;
+  position?: string;
 }
 
 interface TitleInfo {
@@ -135,6 +142,9 @@ interface ClientAssetData {
     _id: string;
     machineName: string;
     serialNumber?: string;
+    serialNo?: string;
+    assetMakeId?: { _id: string; title: string };
+    assetModelId?: { _id: string; title: string };
   };
   checklistItems?: any[];
   completeChecklist?: number;
@@ -520,6 +530,7 @@ export default function JobCardDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [userRole, setUserRole] = useState<number | null>(null);
 
   // Assets dialog
   const [assetDialogOpen, setAssetDialogOpen] = useState(false);
@@ -668,6 +679,22 @@ export default function JobCardDetailPage() {
   useEffect(() => {
     fetchJobCard();
   }, [fetchJobCard]);
+
+  // Fetch user session to detect portal users
+  useEffect(() => {
+    async function fetchSession() {
+      try {
+        const res = await fetch("/api/auth/session");
+        const json = await res.json();
+        if (json?.user?.role) setUserRole(json.user.role);
+      } catch {
+        // silent
+      }
+    }
+    fetchSession();
+  }, []);
+
+  const isPortalUser = userRole === 4 || userRole === 6;
 
   // ─── Checklist hooks (must be before early returns) ────────────────
   const fetchChecklistItems = useCallback(async (assetId: string) => {
@@ -1134,7 +1161,7 @@ export default function JobCardDetailPage() {
 
   // --- Render ---
 
-  if (loading) {
+  if (loading || userRole === null) {
     return <PageLoading />;
   }
 
@@ -1165,6 +1192,199 @@ export default function JobCardDetailPage() {
   const clientAssets = jobCard.clientAssets || [];
   const owners = jobCard.owners || [];
   const detail = jobCard.detail;
+
+  // ─── Portal User View (read-only) ─────────────────────────────────
+  if (isPortalUser) {
+    const portalSiteAddress = (jobCard.clientSiteId as any)?.address || "";
+    const portalSiteName = jobCard.clientSiteId?.siteName || "";
+
+    function portalFormatJobDate(dateStr: string) {
+      const d = new Date(dateStr);
+      const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      return `${days[d.getDay()]} ${months[d.getMonth()]} ${String(d.getDate()).padStart(2, "0")}, ${d.getFullYear()}`;
+    }
+
+    function portalFormatJobTime(dateStr: string) {
+      const d = new Date(dateStr);
+      let hours = d.getHours();
+      const minutes = String(d.getMinutes()).padStart(2, "0");
+      const ampm = hours >= 12 ? "PM" : "AM";
+      hours = hours % 12 || 12;
+      return `${String(hours).padStart(2, "0")}:${minutes} ${ampm}`;
+    }
+
+    return (
+      <div>
+        {/* Header */}
+        <div className="mb-6 flex items-center gap-3">
+          <Link href="/job-cards">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-gray-800 text-gray-800 hover:bg-gray-100">
+              <ArrowLeft className="h-5 w-5" />
+            </div>
+          </Link>
+          <h1 className="text-[26px] font-bold text-gray-900">
+            Job Card #{jobCard.ticketNo}
+          </h1>
+        </div>
+
+        <div className="flex gap-6">
+          {/* LEFT COLUMN */}
+          <div className="min-w-0 flex-[2] space-y-6">
+            {/* Main Info Card */}
+            <div className="rounded-[10px] border border-gray-200 bg-white p-10">
+              {/* Client Info */}
+              <h2 className="text-[20px] font-bold text-gray-900">
+                {jobCard.clientId?.companyName || "Unknown Client"}
+              </h2>
+              {(portalSiteName || portalSiteAddress) && (
+                <p className="mt-1 text-[13px] text-gray-600">
+                  {portalSiteName}{portalSiteAddress ? ` - ${portalSiteAddress}` : ""}
+                </p>
+              )}
+              {jobCard.clientContactId?.position && (
+                <p className="mt-2 text-[13px] text-gray-900">
+                  {jobCard.clientContactId.position}
+                </p>
+              )}
+              {jobCard.clientContactId?.email && (
+                <p className="mt-1 text-[13px] text-gray-600">
+                  {jobCard.clientContactId.email}
+                </p>
+              )}
+
+              {/* Sites Row */}
+              <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-4">
+                <span className="text-[13px] text-cyan-500">Sites</span>
+                <span className="text-[13px] text-gray-900">
+                  {portalSiteName || "-"}
+                </span>
+              </div>
+
+              {/* Job Type Row */}
+              <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
+                <span className="text-[13px] text-cyan-500">Job Type</span>
+                <span className="text-[13px] text-gray-900">
+                  {jobCard.jobCardType?.title || "-"}
+                </span>
+              </div>
+
+              {/* Assets */}
+              <div className="mt-6">
+                <h3 className="text-[15px] font-bold text-gray-900">Assets</h3>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {clientAssets.length === 0 ? (
+                    <p className="text-[13px] text-gray-400">No assets assigned.</p>
+                  ) : (
+                    clientAssets.map((asset) => {
+                      const assetData = asset.clientAssetId;
+                      const name = assetData?.machineName || "Unknown Asset";
+                      const make = typeof assetData?.assetMakeId === "object" ? assetData.assetMakeId?.title : "";
+                      const model = typeof assetData?.assetModelId === "object" ? assetData.assetModelId?.title : "";
+                      const serial = assetData?.serialNo || assetData?.serialNumber || "";
+
+                      return (
+                        <div
+                          key={asset._id}
+                          className="w-[220px] rounded-[10px] bg-[#E8F7FD] px-4 py-3"
+                        >
+                          <div className="flex items-start justify-between">
+                            <p className="text-[13px] font-bold text-gray-900">{name}</p>
+                            <button className="text-gray-400">
+                              <PlusSquareIcon />
+                            </button>
+                          </div>
+                          {make && (
+                            <p className="text-[12px] text-gray-600">Make: {make}</p>
+                          )}
+                          {model && (
+                            <p className="text-[12px] text-gray-600">Model: {model}</p>
+                          )}
+                          {serial && (
+                            <p className="text-[12px] text-gray-600">Serial: {serial}</p>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Activity (public comments) */}
+            {comments.length > 0 && (
+              <div className="rounded-[10px] border border-gray-200 bg-white p-10">
+                <h3 className="text-[15px] font-bold text-gray-900 mb-4">Activity</h3>
+                <div className="space-y-3">
+                  {comments.map((comment) => (
+                    <div
+                      key={comment._id}
+                      className="rounded-[10px] bg-[#FFF8E7] px-5 py-4"
+                    >
+                      <p className="text-[12px] text-cyan-500 mb-1">
+                        {formatDateTime(comment.dateTime || comment.createdAt)}
+                      </p>
+                      <p className="text-[13px] text-gray-900 whitespace-pre-wrap">
+                        {comment.comments}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div className="flex-1 space-y-5">
+            {/* Job Date - Dark Card */}
+            <div className="rounded-[10px] bg-[#1E293B] p-10">
+              <h4 className="text-[14px] font-semibold text-white">Job Date</h4>
+              {jobCard.jobDate ? (
+                <div className="mt-2">
+                  <p className="text-[22px] font-bold text-white">
+                    {portalFormatJobDate(jobCard.jobDate)}
+                  </p>
+                  <p className="mt-0.5 text-[13px] font-medium text-[#00AEEF]">
+                    {portalFormatJobTime(jobCard.jobDate)}
+                  </p>
+                  {jobCard.multiDayJob === 1 && jobCard.jobEndDate && (
+                    <p className="mt-1 text-[13px] text-gray-400">
+                      to {portalFormatJobDate(jobCard.jobEndDate)}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="mt-3 text-[13px] text-gray-400">No date set</p>
+              )}
+            </div>
+
+            {/* Attachments */}
+            <div className="rounded-[10px] border border-gray-200 bg-white p-10">
+              <div className="flex items-center justify-between">
+                <h4 className="text-[14px] font-semibold text-gray-900">Attachments</h4>
+                <span className="text-[13px] text-cyan-500">Total {attachments.length}</span>
+              </div>
+              {attachments.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {attachments.map((att) => (
+                    <a
+                      key={att._id}
+                      href={`/uploads/job-card-attachments/${att.fileName}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-[13px] text-cyan-500 underline"
+                    >
+                      {att.documentName || att.fileName}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Save a single item's response field
   async function saveItemResponse(itemId: string, data: Record<string, any>) {

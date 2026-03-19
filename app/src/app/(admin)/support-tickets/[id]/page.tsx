@@ -247,6 +247,26 @@ export default function SupportTicketDetailPage() {
   // Loading / error
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<number | null>(null);
+  const [sessionUserId, setSessionUserId] = useState<string | null>(null);
+  const [statusLogs, setStatusLogs] = useState<{ task?: string; dateTime?: string }[]>([]);
+
+  const isPortalUser = userRole === 4 || userRole === 6;
+
+  // Fetch session to detect portal users
+  useEffect(() => {
+    async function fetchSession() {
+      try {
+        const res = await fetch("/api/auth/session");
+        const json = await res.json();
+        if (json?.user?.role) setUserRole(json.user.role);
+        if (json?.user?.id) setSessionUserId(json.user.id);
+      } catch {
+        // silent
+      }
+    }
+    fetchSession();
+  }, []);
 
   // Comment form
   const [commentText, setCommentText] = useState("");
@@ -374,6 +394,7 @@ export default function SupportTicketDetailPage() {
       setTechnicians(d.technicians || []);
       setOwners(d.owners || []);
       setTimeEntries(d.timeLogs || []);
+      setStatusLogs(d.statusLogs || []);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -1140,7 +1161,7 @@ export default function SupportTicketDetailPage() {
 
   // ─── Render ───────────────────────────────────────────────────────────
 
-  if (loading) return <PageLoading />;
+  if (loading || userRole === null) return <PageLoading />;
 
   if (error || !ticket) {
     return (
@@ -1173,6 +1194,358 @@ export default function SupportTicketDetailPage() {
     detail?.supportingEvidence3 ? { url: detail.supportingEvidence3, name: detail.supportingEvidenceName3 || "Evidence 3" } : null,
   ].filter(Boolean) as { url: string; name: string }[];
 
+  // ─── Portal View (read-only) ─────────────────────────────────────
+  if (isPortalUser) {
+    // Map status labels for portal
+    const PORTAL_PROGRESS_STEPS = [
+      { status: 1, label: "Ticket Created", color: "#00AEEF" },
+      { status: 2, label: "In Progress", color: "#F7CE4A" },
+      { status: 3, label: "Technician Required", color: "#E18230" },
+      { status: 4, label: "Ticket Closed", color: "#3d444d" },
+    ];
+
+    // Map status log dates: find the earliest log entry for each status
+    function getStatusDate(statusNum: number): string | null {
+      const statusMap: Record<number, string[]> = {
+        1: ["Ticket Created", "Ticket status changed to Open"],
+        2: ["Ticket status changed to In Progress", "Ticket status changed to Working"],
+        3: ["Ticket status changed to On Hold", "Ticket status changed to On-site Technician", "Ticket status changed to Technician Required"],
+        4: ["Ticket resolved", "Ticket status changed to Resolved", "Ticket status changed to Closed"],
+      };
+      const keywords = statusMap[statusNum] || [];
+      for (const log of statusLogs) {
+        if (keywords.some((kw) => log.task?.toLowerCase().includes(kw.toLowerCase()))) {
+          return log.dateTime || null;
+        }
+      }
+      // Status 1 (Ticket Created) fallback to ticket createdAt
+      if (statusNum === 1) return ticket!.createdAt;
+      return null;
+    }
+
+    function portalFormatStatusDate(dateStr: string): string {
+      const d = new Date(dateStr);
+      const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      let hours = d.getHours();
+      const minutes = String(d.getMinutes()).padStart(2, "0");
+      const ampm = hours >= 12 ? "pm" : "am";
+      hours = hours % 12 || 12;
+      return `${d.getDate()} ${months[d.getMonth()]}, ${d.getFullYear()} - ${hours}:${minutes}${ampm}`;
+    }
+
+    const siteAddress = ticket.clientSiteId?.address || "";
+    const siteName = ticket.clientSiteId?.siteName || "";
+    const assetDisplay = ticket.clientAssetId
+      ? `${ticket.clientId?.companyName || ""} - ${ticket.clientAssetId.machineName}${ticket.clientAssetId.serialNo ? ` - ${ticket.clientAssetId.serialNo}` : ""}`
+      : "-";
+
+    return (
+      <div>
+        {/* Header */}
+        <div className="mb-6 flex items-center gap-3">
+          <Link href="/support-tickets">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-gray-800 text-gray-800 hover:bg-gray-100">
+              <ArrowLeft className="h-5 w-5" />
+            </div>
+          </Link>
+          <h1 className="text-[26px] font-bold text-gray-900">
+            Support Ticket #{ticket.ticketNo}
+          </h1>
+        </div>
+
+        <div className="flex gap-6">
+          {/* LEFT COLUMN */}
+          <div className="min-w-0 flex-[2] space-y-6">
+            {/* Main Info Card */}
+            <div className="rounded-[10px] border border-gray-200 bg-white p-10">
+              <h2 className="text-[20px] font-bold text-gray-900">
+                {ticket.clientId?.companyName || "Unknown Client"}
+              </h2>
+              {(siteName || siteAddress) && (
+                <p className="mt-1 text-[13px] text-gray-600">
+                  {siteName}{siteAddress ? ` - ${siteAddress}` : ""}
+                </p>
+              )}
+              {ticket.clientContactId && (
+                <div className="mt-2">
+                  <p className="text-[13px] text-gray-900 font-medium">{contactName}</p>
+                  {ticket.clientContactId.phone && (
+                    <p className="text-[13px] text-gray-900">{ticket.clientContactId.phone}</p>
+                  )}
+                  {ticket.clientContactId.email && (
+                    <p className="text-[13px] text-gray-600">{ticket.clientContactId.email}</p>
+                  )}
+                </div>
+              )}
+
+              <hr className="border-gray-200 mt-6" />
+
+              {/* Sites */}
+              <div className="flex items-center justify-between py-4">
+                <span className="text-[13px] text-gray-400">Sites</span>
+                <span className="text-[13px] text-gray-900">{siteName || "-"}</span>
+              </div>
+              <hr className="border-gray-200" />
+
+              {/* Asset */}
+              <div className="flex items-center justify-between py-4">
+                <span className="text-[13px] text-gray-400">Asset</span>
+                <span className="text-[13px] text-gray-900">{assetDisplay}</span>
+              </div>
+              <hr className="border-gray-200" />
+
+              {/* Production Impact */}
+              <div className="flex items-center justify-between py-4">
+                <span className="text-[13px] text-gray-400">Production Impact</span>
+                <span className="text-[13px] text-gray-900">
+                  {ticket.productionImpact === 1 ? "High" : ticket.productionImpact === 2 ? "Low" : ""}
+                </span>
+              </div>
+              <hr className="border-gray-200" />
+
+              {/* Time Issue Occurred */}
+              <div className="flex items-center justify-between py-4">
+                <span className="text-[13px] text-gray-400">Time issue occured</span>
+                <span className="text-[13px] text-gray-900">{timeIssue !== "-" ? timeIssue : ":"}</span>
+              </div>
+              <hr className="border-gray-200" />
+
+              {/* Date Submitted */}
+              <div className="flex items-center justify-between py-4">
+                <span className="text-[13px] text-gray-400">Date Submitted</span>
+                <span className="text-[13px] text-gray-900">{formatDate(ticket.createdAt)}</span>
+              </div>
+              <hr className="border-gray-200" />
+
+              {/* Description */}
+              {detail?.description && (
+                <div className="mt-5">
+                  <h3 className="text-[15px] font-bold text-gray-900">Description</h3>
+                  <p className="mt-2 text-[13px] text-cyan-500 whitespace-pre-wrap">{detail.description}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Activity */}
+            <div>
+              <h3 className="text-[15px] font-bold text-gray-900 mb-4">Activity</h3>
+
+              {/* Comment input */}
+              <div className="rounded-[10px] border border-gray-200 bg-white p-5 mb-4">
+                <textarea
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="Start typing..."
+                  rows={3}
+                  className="w-full text-[13px] text-gray-700 outline-none resize-none"
+                />
+              </div>
+              <Button
+                onClick={async () => {
+                  if (!commentText.trim()) return;
+                  setSubmittingComment(true);
+                  try {
+                    const res = await fetch(`/api/support-tickets/${ticketId}/comments`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ comments: commentText.trim(), visibility: 2 }),
+                    });
+                    const json = await res.json();
+                    if (json.success) {
+                      setCommentText("");
+                      fetchTicket();
+                    }
+                  } catch {
+                    // silent
+                  } finally {
+                    setSubmittingComment(false);
+                  }
+                }}
+                disabled={submittingComment || !commentText.trim()}
+                className="bg-cyan-500 hover:bg-cyan-600 text-white mb-4"
+              >
+                {submittingComment ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                Save
+              </Button>
+
+              {/* Existing comments */}
+              <div className="space-y-3">
+                {comments.map((comment) => {
+                  const isOwnComment = sessionUserId && comment.userId && String(comment.userId._id) === String(sessionUserId);
+
+                  return (
+                    <div
+                      key={comment._id}
+                      className="rounded-[10px] bg-[#FFF8E7] px-5 py-4"
+                    >
+                      <div className="flex items-start justify-between">
+                        <p className="text-[12px] text-cyan-500 mb-1">
+                          {formatCommentDate(comment.createdAt)}
+                        </p>
+                        {isOwnComment && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                setEditingCommentId(comment._id);
+                                setEditCommentText(comment.comments || "");
+                              }}
+                              className="text-gray-400 hover:text-cyan-500 cursor-pointer"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (!confirm("Delete this comment?")) return;
+                                try {
+                                  const res = await fetch(`/api/support-tickets/${ticketId}/comments/${comment._id}`, { method: "DELETE" });
+                                  const json = await res.json();
+                                  if (res.ok && json.success) fetchTicket();
+                                } catch {
+                                  // silent
+                                }
+                              }}
+                              className="text-[11px] text-gray-400 hover:text-red-500 cursor-pointer"
+                            >
+                              <TrashIcon />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {editingCommentId === comment._id ? (
+                        <div>
+                          <textarea
+                            value={editCommentText}
+                            onChange={(e) => setEditCommentText(e.target.value)}
+                            rows={2}
+                            className="w-full text-[13px] text-gray-700 outline-none resize-none border border-gray-200 rounded-[10px] p-2 mt-1"
+                          />
+                          <div className="flex items-center gap-2 mt-2">
+                            <Button
+                              size="sm"
+                              className="bg-cyan-500 hover:bg-cyan-600 text-white text-[12px]"
+                              disabled={!editCommentText.trim()}
+                              onClick={async () => {
+                                try {
+                                  const res = await fetch(`/api/support-tickets/${ticketId}/comments/${comment._id}`, {
+                                    method: "PUT",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ comments: editCommentText.trim() }),
+                                  });
+                                  const json = await res.json();
+                                  if (res.ok && json.success) {
+                                    setComments((prev) =>
+                                      prev.map((c) => (c._id === comment._id ? { ...c, comments: editCommentText.trim() } : c))
+                                    );
+                                    setEditingCommentId(null);
+                                    setEditCommentText("");
+                                  }
+                                } catch {
+                                  // silent
+                                }
+                              }}
+                            >
+                              Save
+                            </Button>
+                            <button
+                              onClick={() => { setEditingCommentId(null); setEditCommentText(""); }}
+                              className="text-[12px] text-gray-400 hover:text-gray-600 cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-[13px] text-gray-900 whitespace-pre-wrap">
+                          {comment.comments}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div className="flex-1 space-y-5">
+            {/* Ticket Progress - Dark Card */}
+            <div className="rounded-[10px] bg-[#1E293B] p-8">
+              <h4 className="text-[16px] font-semibold text-white mb-6">Ticket Progress</h4>
+              <div className="space-y-0">
+                {PORTAL_PROGRESS_STEPS.map((step, idx) => {
+                  const isReached = ticket.ticketStatus >= step.status;
+                  const statusDate = getStatusDate(step.status);
+                  const isLast = idx === PORTAL_PROGRESS_STEPS.length - 1;
+
+                  return (
+                    <div key={step.status}>
+                      {/* Step */}
+                      <div className="flex items-start gap-3">
+                        <div
+                          className="mt-0.5 h-5 w-5 shrink-0 rounded-full"
+                          style={{
+                            backgroundColor: isReached ? step.color : "#475569",
+                            opacity: isReached ? 1 : 0.4,
+                          }}
+                        />
+                        <div>
+                          <p
+                            className="text-[14px] font-medium"
+                            style={{ color: isReached ? "#FFFFFF" : "#64748B" }}
+                          >
+                            {step.label}
+                          </p>
+                          {isReached && statusDate && (
+                            <p className="text-[12px] text-gray-400 mt-0.5">
+                              {portalFormatStatusDate(statusDate)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {/* Connector line */}
+                      {!isLast && (
+                        <div className="ml-[9px] my-5">
+                          <div
+                            className="w-[2px] h-6"
+                            style={{ backgroundColor: isReached ? "#475569" : "#334155" }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Attachments */}
+            <div className="rounded-[10px] border border-gray-200 bg-white p-8">
+              <div className="flex items-center justify-between">
+                <h4 className="text-[14px] font-semibold text-gray-900">Attachments</h4>
+                <span className="text-[13px] text-gray-400">Total {attachments.length}</span>
+              </div>
+              {attachments.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {attachments.map((att) => (
+                    <a
+                      key={att._id}
+                      href={`/uploads/support-ticket-attachments/${att.fileName}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-[13px] text-cyan-500 underline"
+                    >
+                      {att.documentName || att.fileName}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Admin View ─────────────────────────────────────────────────
   return (
     <div className="space-y-6">
       {/* ─── Header ──────────────────────────────────────────────── */}

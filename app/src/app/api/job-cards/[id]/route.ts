@@ -22,6 +22,8 @@ import Client from "@/models/Client";
 import ClientSite from "@/models/ClientSite";
 import ClientContact from "@/models/ClientContact";
 import ClientAsset from "@/models/ClientAsset";
+import "@/models/AssetMake";
+import "@/models/AssetModel";
 import Title from "@/models/Title";
 import "@/models/User";
 import "@/models/SupportTicket";
@@ -39,10 +41,10 @@ export async function GET(
     const { id } = await params;
 
     const jobCard = await JobCard.findById(id)
-      .populate("clientId", "companyName")
-      .populate("clientSiteId", "siteName")
+      .populate("clientId", "companyName address")
+      .populate("clientSiteId", "siteName address")
       .populate("clientAssetId", "machineName")
-      .populate("clientContactId", "name email phone")
+      .populate("clientContactId", "name lastName email phone position")
       .populate("titleId", "title")
       .populate("jobCardType", "title")
       .populate("supportTicketId", "ticketNo")
@@ -54,6 +56,11 @@ export async function GET(
     enforcePortalScope(session, (jobCard as any).clientId?._id || (jobCard as any).clientId);
 
     const isPortal = [4, 6].includes(session.role);
+
+    // Portal users cannot access recurring templates
+    if (isPortal && (jobCard as any).recurringJob === 1) {
+      return errorResponse("Job card not found", 404);
+    }
     const jcCommentQuery: Record<string, any> = { jobCardId: id };
     const jcAttachQuery: Record<string, any> = { jobCardId: id };
     if (isPortal) {
@@ -79,7 +86,13 @@ export async function GET(
           .populate("userId", "name email")
           .lean(),
         JobCardClientAsset.find({ jobCardId: id })
-          .populate("clientAssetId")
+          .populate({
+            path: "clientAssetId",
+            populate: [
+              { path: "assetMakeId", select: "title" },
+              { path: "assetModelId", select: "title" },
+            ],
+          })
           .lean(),
       ]);
 

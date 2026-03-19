@@ -34,16 +34,13 @@ export async function GET(req: NextRequest) {
     }
 
     // Search by ticketNo or description
+    let searchOrCondition: Record<string, any>[] | null = null;
     if (search) {
       const searchNum = parseInt(search);
       if (!isNaN(searchNum)) {
-        query.$or = [
-          { ticketNo: searchNum },
-        ];
+        searchOrCondition = [{ ticketNo: searchNum }];
       } else {
-        query.$or = [
-          { uniqueId: { $regex: search, $options: "i" } },
-        ];
+        searchOrCondition = [{ uniqueId: { $regex: search, $options: "i" } }];
       }
     }
 
@@ -91,20 +88,33 @@ export async function GET(req: NextRequest) {
     const isPortalUser = [4, 6].includes(session.role);
 
     if (tab === "upcoming") {
-      // Portal: upcoming services — freshRecurringJob null, status < 8 or null
+      // Portal: upcoming services — exclude recurring templates, status < 8 or null
       query.freshRecurringJob = null;
-      query.$or = [{ jobCardStatus: { $lt: 8 } }, { jobCardStatus: null }];
+      query.recurringJob = { $ne: 1 };
+      const statusOr = [{ jobCardStatus: { $lt: 8 } }, { jobCardStatus: null }];
+      if (searchOrCondition) {
+        query.$and = [{ $or: searchOrCondition }, { $or: statusOr }];
+      } else {
+        query.$or = statusOr;
+      }
     } else if (tab === "completed") {
-      // Portal: completed services — freshRecurringJob null, status >= 8
+      // Portal: completed services — exclude recurring templates, status >= 8
       query.freshRecurringJob = null;
+      query.recurringJob = { $ne: 1 };
       query.jobCardStatus = { $gte: 8 };
+      if (searchOrCondition) query.$or = searchOrCondition;
     } else if (tab === "active") {
       query.jobCardStatus = { $gte: 0, $lte: 8 };
       query.recurringJob = { $ne: 1 };
+      if (searchOrCondition) query.$or = searchOrCondition;
     } else if (tab === "complete") {
       query.jobCardStatus = 9;
+      if (searchOrCondition) query.$or = searchOrCondition;
     } else if (tab === "recurring") {
       query.recurringJob = 1;
+      if (searchOrCondition) query.$or = searchOrCondition;
+    } else {
+      if (searchOrCondition) query.$or = searchOrCondition;
     }
 
     // Portal-specific: exclude Breakdown Service / General Breakdown types
@@ -116,8 +126,10 @@ export async function GET(req: NextRequest) {
       }).select("_id").lean();
       const excludedIds = excludedTypes.map((t: any) => t._id);
 
-      // Must have a jobCardType that's not excluded
-      query.jobCardType = { $nin: [...excludedIds, null] };
+      // Exclude specific breakdown types (but allow null/unset types)
+      if (excludedIds.length > 0) {
+        query.jobCardType = { $nin: excludedIds };
+      }
     }
 
     const [jobCards, total] = await Promise.all([
@@ -189,16 +201,20 @@ export async function POST(req: NextRequest) {
       return errorResponse("Client is required");
     }
 
-    // Auto-generate ticketNo by finding max + 1
-    const lastJobCard = await JobCard.findOne().sort({ ticketNo: -1 }).lean();
-    const ticketNo = lastJobCard && (lastJobCard as any).ticketNo
-      ? (lastJobCard as any).ticketNo + 1
-      : 10000;
+    // Auto-generate ticketNo only for actual job cards, not recurring templates
+    const isRecurringTemplate = recurringJob === 1;
+    let ticketNo: number | undefined;
+    if (!isRecurringTemplate) {
+      const lastJobCard = await JobCard.findOne({ ticketNo: { $exists: true } }).sort({ ticketNo: -1 }).lean();
+      ticketNo = lastJobCard && (lastJobCard as any).ticketNo
+        ? (lastJobCard as any).ticketNo + 1
+        : 10000;
+    }
 
     const uniqueId = generateUniqueId();
 
     const createData: Record<string, any> = {
-      ticketNo,
+      ...(ticketNo !== undefined ? { ticketNo } : {}),
       uniqueId,
       userId: session.id,
       clientId: effectiveClientId,
@@ -237,7 +253,9 @@ export async function POST(req: NextRequest) {
     await JobCardLog.create({
       jobCardId: jobCard._id,
       userId: session.id,
-      task: `Job Card Created: ${ticketNo}${supportTicketId ? " (from Support Ticket)" : ""}`,
+      task: isRecurringTemplate
+        ? "Recurring Job Created"
+        : `Job Card Created: ${ticketNo}${supportTicketId ? " (from Support Ticket)" : ""}`,
       dateTime: new Date(),
     });
 
