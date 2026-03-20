@@ -11,6 +11,7 @@ import {
 } from "@/lib/api-helpers";
 import Client from "@/models/Client";
 import ClientDetail from "@/models/ClientDetail";
+import UserGroup from "@/models/UserGroup";
 import { generateAccessToken } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
@@ -83,6 +84,15 @@ export async function POST(req: NextRequest) {
     // Create associated ClientDetail record
     await ClientDetail.create({
       clientId: client._id,
+    });
+
+    // Create default Administrator user group
+    await UserGroup.create({
+      userId: client._id,
+      title: "Administrator",
+      menus: "1,2,3,4,6,8",
+      defaultGroup: 1,
+      dateTime: new Date(),
     });
 
     return successResponse(client, 201);

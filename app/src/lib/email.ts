@@ -14,6 +14,11 @@ function escapeHtml(str: string): string {
 }
 
 async function sendEmail(to: string, subject: string, html: string) {
+  // TODO: Re-enable email sending when EmailJS is configured for server-side access
+  console.log(`[Email disabled] Would send to: ${to}, subject: ${subject}`);
+  return { success: true };
+
+  /*
   const res = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -36,6 +41,7 @@ async function sendEmail(to: string, subject: string, html: string) {
   }
 
   return { success: true };
+  */
 }
 
 export async function sendOtpEmail(to: string, otp: number, name?: string) {
