@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageLoading } from "@/components/ui/loading";
 import {
@@ -62,15 +64,27 @@ export default function SitesPage() {
                   <TableHead>Address</TableHead>
                   <TableHead>Site ID</TableHead>
                   <TableHead>Assets</TableHead>
+                  <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sites.map((site) => (
                   <TableRow key={site._id}>
-                    <TableCell className="font-medium">{site.siteName}</TableCell>
+                    <TableCell className="font-medium">
+                      <Link href={`/sites/${site._id}`} className="text-gray-900 hover:text-cyan-500">
+                        {site.siteName}
+                      </Link>
+                    </TableCell>
                     <TableCell className="text-gray-500">{site.address || "-"}</TableCell>
                     <TableCell className="text-gray-500">{site.siteId || "-"}</TableCell>
                     <TableCell>{site.assetCount}</TableCell>
+                    <TableCell className="text-right">
+                      <Link href={`/sites/${site._id}`}>
+                        <button className="rounded-[10px] p-1.5 text-gray-400 cursor-pointer hover:bg-gray-100 hover:text-gray-600">
+                          <ArrowRight className="h-4 w-4" />
+                        </button>
+                      </Link>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

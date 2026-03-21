@@ -220,6 +220,170 @@ function getStepColor(stepIdx: number, activeIdx: number): string {
   return STEP_INACTIVE_GRAYS[2];
 }
 
+// ─── Portal Attachments with Image Viewer ───────────────────────────────
+
+function PortalAttachments({ attachments }: { attachments: Attachment[] }) {
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
+
+  const isImage = (url: string) => /\.(jpg|jpeg|png|gif|webp|svg|bmp|tiff)$/i.test(url);
+
+  const imageAttachments = attachments.filter((att) => isImage(att.fileName || att.fileUrl || ""));
+  const docAttachments = attachments.filter((att) => !isImage(att.fileName || att.fileUrl || ""));
+
+  const images = imageAttachments.map((att) => ({
+    src: att.fileName || att.fileUrl || "",
+    label: att.documentName || att.fileName || "",
+  }));
+
+  function openViewer(idx: number) {
+    setViewerIndex(idx);
+    setViewerOpen(true);
+  }
+
+  function goPrev() {
+    setViewerIndex((p) => (p > 0 ? p - 1 : images.length - 1));
+  }
+
+  function goNext() {
+    setViewerIndex((p) => (p < images.length - 1 ? p + 1 : 0));
+  }
+
+  useEffect(() => {
+    if (!viewerOpen) return;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setViewerOpen(false);
+      if (e.key === "ArrowLeft") setViewerIndex((p) => (p > 0 ? p - 1 : images.length - 1));
+      if (e.key === "ArrowRight") setViewerIndex((p) => (p < images.length - 1 ? p + 1 : 0));
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [viewerOpen, images.length]);
+
+  return (
+    <>
+      <div className="rounded-[10px] border border-gray-200 bg-white p-8">
+        <div className="flex items-center justify-between">
+          <h4 className="text-[14px] font-semibold text-gray-900">Attachments</h4>
+          <span className="text-[13px] text-gray-400">Total {attachments.length}</span>
+        </div>
+
+        {attachments.length > 0 && (
+          <div className="mt-4 space-y-4">
+            {/* Image thumbnails */}
+            {imageAttachments.length > 0 && (
+              <div className="flex flex-wrap gap-3">
+                {imageAttachments.map((att, idx) => {
+                  const url = att.fileName || att.fileUrl || "";
+                  return (
+                    <button
+                      key={att._id}
+                      onClick={() => openViewer(idx)}
+                      className="w-[100px] h-[100px] rounded-[10px] overflow-hidden border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
+                    >
+                      <img
+                        src={url}
+                        alt={att.documentName || ""}
+                        className="h-full w-full object-cover"
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Non-image documents */}
+            {docAttachments.length > 0 && (
+              <div className="space-y-2">
+                {docAttachments.map((att) => (
+                  <a
+                    key={att._id}
+                    href={att.fileName || att.fileUrl || ""}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-[13px] text-gray-900 underline"
+                  >
+                    {att.documentName || att.fileName}
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Image Viewer Popup */}
+      {viewerOpen && images.length > 0 && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80"
+          onClick={() => setViewerOpen(false)}
+        >
+          <div
+            className="relative max-w-[90vw] max-h-[90vh] flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setViewerOpen(false)}
+              className="absolute -top-3 -right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white text-gray-700 shadow-lg hover:bg-gray-100 cursor-pointer text-lg font-bold"
+            >
+              ×
+            </button>
+
+            {/* Image */}
+            <img
+              src={images[viewerIndex].src}
+              alt={images[viewerIndex].label || "Image"}
+              className="max-h-[80vh] max-w-[85vw] rounded-[10px] object-contain"
+            />
+
+            {/* Label */}
+            {images[viewerIndex].label && (
+              <p className="mt-2 text-sm text-white">{images[viewerIndex].label}</p>
+            )}
+
+            {/* Navigation arrows */}
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={goPrev}
+                  className="absolute left-[-50px] top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-lg hover:bg-white cursor-pointer text-xl"
+                >
+                  ‹
+                </button>
+                <button
+                  onClick={goNext}
+                  className="absolute right-[-50px] top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-lg hover:bg-white cursor-pointer text-xl"
+                >
+                  ›
+                </button>
+
+                {/* Dots */}
+                <div className="mt-3 flex gap-1.5">
+                  {images.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setViewerIndex(i)}
+                      className={`h-2 w-2 rounded-full cursor-pointer transition-colors ${
+                        i === viewerIndex ? "bg-white" : "bg-white/40"
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                {/* Counter */}
+                <p className="mt-1 text-[12px] text-white/70">
+                  {viewerIndex + 1} / {images.length}
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // ─── Page Component ─────────────────────────────────────────────────────
 
 export default function SupportTicketDetailPage() {
@@ -1518,27 +1682,7 @@ export default function SupportTicketDetailPage() {
             </div>
 
             {/* Attachments */}
-            <div className="rounded-[10px] border border-gray-200 bg-white p-8">
-              <div className="flex items-center justify-between">
-                <h4 className="text-[14px] font-semibold text-gray-900">Attachments</h4>
-                <span className="text-[13px] text-gray-400">Total {attachments.length}</span>
-              </div>
-              {attachments.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  {attachments.map((att) => (
-                    <a
-                      key={att._id}
-                      href={`/uploads/support-ticket-attachments/${att.fileName}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block text-[13px] text-cyan-500 underline"
-                    >
-                      {att.documentName || att.fileName}
-                    </a>
-                  ))}
-                </div>
-              )}
-            </div>
+            <PortalAttachments attachments={attachments} />
           </div>
         </div>
       </div>

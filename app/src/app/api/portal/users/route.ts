@@ -20,7 +20,7 @@ export async function GET() {
       clientId: session.clientId,
       role: { $in: [4, 6] },
     })
-      .select("name lastName email role status createdAt")
+      .select("name lastName email role status createdAt updatedAt")
       .sort({ createdAt: -1 })
       .lean();
 
