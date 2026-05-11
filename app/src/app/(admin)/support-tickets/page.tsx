@@ -203,7 +203,7 @@ function SupportTicketsContent() {
       const json = await res.json();
 
       if (!res.ok || !json.success) {
-        throw new Error("Failed to load tickets");
+        throw new Error(json.error || `Failed to load tickets (${res.status})`);
       }
 
       const responseData = json.data;

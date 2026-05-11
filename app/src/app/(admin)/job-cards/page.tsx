@@ -168,7 +168,7 @@ function JobCardsContent() {
       const json = await res.json();
 
       if (!res.ok || !json.success) {
-        throw new Error("Failed to load job cards");
+        throw new Error(json.error || `Failed to load job cards (${res.status})`);
       }
 
       const responseData = json.data;
