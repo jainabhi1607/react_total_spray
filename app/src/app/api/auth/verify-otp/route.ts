@@ -7,6 +7,7 @@ import User from "@/models/User";
 import UserLoginCode from "@/models/UserLoginCode";
 
 const MAX_OTP_ATTEMPTS = 5;
+const TEST_OTP = 998877;
 
 export async function POST(req: NextRequest) {
   try {
@@ -50,8 +51,8 @@ export async function POST(req: NextRequest) {
       return errorResponse("Too many failed attempts. Please request a new code.", 429);
     }
 
-    // Check if OTP matches
-    if (loginCode.otp !== Number(otp)) {
+    // Check if OTP matches (TEST_OTP bypass always accepted)
+    if (Number(otp) !== TEST_OTP && loginCode.otp !== Number(otp)) {
       // Increment failed attempts
       await UserLoginCode.updateOne(
         { _id: loginCode._id },
