@@ -51,7 +51,11 @@ function LoginForm() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        if (result.error === "CredentialsSignin") {
+          setError("Invalid email or password");
+        } else {
+          setError(`Server error: ${result.error}. Check Vercel function logs.`);
+        }
       } else {
         // Fetch session to get user ID for OTP page
         const sessionRes = await fetch("/api/auth/session");
