@@ -31,7 +31,7 @@ export default function ForgotPasswordPage() {
       if (data.success) {
         setSent(true);
       } else {
-        setError(data.message || "Failed to send reset email");
+        setError(data.error || data.message || "Failed to send reset email");
       }
     } catch (err) {
       setError("An error occurred. Please try again.");
